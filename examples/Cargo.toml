@@ -1,0 +1,24 @@
+[package]
+name = "widget_gallery"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+publish = false
+
+[[bin]]
+name = "widget_gallery"
+path = "widget_gallery.rs"
+
+[dependencies]
+ui-core.workspace = true
+ui-gpu.workspace = true
+ui-layout.workspace = true
+ui-widgets.workspace = true
+winit.workspace = true
+wgpu.workspace = true
+glyphon.workspace = true
+# Optionnel : un agent peut piloter cette UI via le meme protocole ui-core,
+# mais l'application n'en depend pas structurellement (INV-CORE-1).
+agent-runtime.workspace = true
+tokio.workspace = true
+crossbeam-channel.workspace = true

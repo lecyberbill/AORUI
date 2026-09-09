@@ -1,0 +1,18 @@
+[package]
+name = "ui-gpu"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+description = "Pipeline de rendu wgpu/WGSL : quads SDF instancies, flou Dual-Kawase, composition glassmorphism, texte via glyphon."
+
+[dependencies]
+ui-core.workspace = true
+wgpu.workspace = true
+winit.workspace = true
+glyphon.workspace = true
+bytemuck.workspace = true
+pollster.workspace = true
+thiserror.workspace = true
+
+[dev-dependencies]
+naga = { version = "0.19", features = ["wgsl-in"] }

@@ -1,0 +1,11 @@
+[package]
+name = "ui-widgets"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+description = "Modele declaratif de widgets (bouton, texte, input, liste, checkbox, fenetre, onglets, scroll) style cyber-glass, independant du rendu GPU."
+
+[dependencies]
+ui-core.workspace = true
+ui-layout.workspace = true
+taffy.workspace = true

@@ -1,0 +1,10 @@
+[package]
+name = "ui-layout"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+description = "Integration Taffy : arbre declaratif, resolution Flexbox/Grid, hit-testing."
+
+[dependencies]
+taffy.workspace = true
+thiserror.workspace = true

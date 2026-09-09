@@ -1,0 +1,10 @@
+[package]
+name = "ui-core"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+description = "Protocole d'evenements/patches et types partages du framework UI (evenements generiques, GpuSdfInstance). Zero dependance GPU ou runtime bloquant."
+
+[dependencies]
+serde.workspace = true
+bytemuck.workspace = true

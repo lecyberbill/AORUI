@@ -1,0 +1,14 @@
+[package]
+name = "ui-schema"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+description = "Lossless serializable UI Document Schema for AORUI Studio"
+
+[dependencies]
+ui-core.workspace = true
+ui-layout.workspace = true
+ui-widgets.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+thiserror.workspace = true
