@@ -466,8 +466,9 @@ fn render_kind(kind: &WidgetKind, bounds: [f32; 4], clip: [f32; 4], theme: &Them
                         let x1 = bounds[0] + 12.0 + estimate_text_width(&value[..min_s], theme.typography.body_size);
                         let x2 = bounds[0] + 12.0 + estimate_text_width(&value[..max_s], theme.typography.body_size);
                         let sel_bounds = [x1, cursor_y, (x2 - x1).max(2.0), cursor_h];
-                        let sel_bg = [theme.accent[0] * 0.35, theme.accent[1] * 0.35, theme.accent[2] * 0.35, 0.55];
-                        frame.instances.push(custom_glass_instance(sel_bounds, clip, sel_bg, [0.0, 0.0, 0.0, 0.0], 2.0, 0.0, 0.0));
+                        let sel_bg = [1.0 / 255.0, 35.0 / 255.0, 45.0 / 255.0, 0.90];
+                        let sel_border = [theme.accent[0] * 0.7, theme.accent[1] * 0.7, theme.accent[2] * 0.7, 0.8];
+                        frame.instances.push(custom_glass_instance(sel_bounds, clip, sel_bg, sel_border, 2.0, 1.0, 0.15));
                     }
                 }
 
@@ -545,8 +546,9 @@ fn render_kind(kind: &WidgetKind, bounds: [f32; 4], clip: [f32; 4], theme: &Them
                                     let cur_y = start_y + idx as f32 * line_h;
                                     if cur_y + line_h <= bounds[1] + bounds[3] {
                                         let sel_bounds = [x1, cur_y + 1.0, (x2 - x1).max(2.0), line_h - 2.0];
-                                        let sel_bg = [theme.accent[0] * 0.35, theme.accent[1] * 0.35, theme.accent[2] * 0.35, 0.55];
-                                        frame.instances.push(custom_glass_instance(sel_bounds, clip, sel_bg, [0.0, 0.0, 0.0, 0.0], 2.0, 0.0, 0.0));
+                                        let sel_bg = [1.0 / 255.0, 35.0 / 255.0, 45.0 / 255.0, 0.90];
+                                        let sel_border = [theme.accent[0] * 0.7, theme.accent[1] * 0.7, theme.accent[2] * 0.7, 0.8];
+                                        frame.instances.push(custom_glass_instance(sel_bounds, clip, sel_bg, sel_border, 2.0, 1.0, 0.15));
                                     }
                                 }
                                 line_offset += line_len + 1;
