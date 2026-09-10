@@ -520,7 +520,8 @@ struct DemoState {
     accept_checked: bool,
     turbo_toggle: bool,
     firewall_toggle: bool,
-    slider_value: f32,
+    network_intensity: f32,
+    brush_intensity: f32,
     active_tab: usize,
     selected_item: Option<usize>,
     click_count: u32,
@@ -532,6 +533,7 @@ struct DemoState {
     studio_editor: TextEditorState,
     concurrency_spin: f64,
     port_spin: f64,
+    spinners_enabled: bool,
     focused_input: Option<String>,
     selected_segment: usize,
     security_policy: String,
@@ -571,7 +573,13 @@ struct DemoState {
 impl DemoState {
     fn apply(&mut self, event: UiEvent) {
         match event {
-            UiEvent::CheckboxToggled { checked, .. } => self.accept_checked = checked,
+            UiEvent::CheckboxToggled { widget_id, checked } => {
+                if widget_id == "spinners_toggle" {
+                    self.spinners_enabled = checked;
+                } else {
+                    self.accept_checked = checked;
+                }
+            }
             UiEvent::ToggleSwitched { widget_id, active } => {
                 if widget_id == "turbo_toggle" {
                     self.turbo_toggle = active;
@@ -579,7 +587,13 @@ impl DemoState {
                     self.firewall_toggle = active;
                 }
             }
-            UiEvent::SliderChanged { value, .. } => self.slider_value = value,
+            UiEvent::SliderChanged { widget_id, value } => {
+                if widget_id == "palette_intensity_slider" {
+                    self.brush_intensity = value;
+                } else {
+                    self.network_intensity = value;
+                }
+            }
             UiEvent::NumberChanged { widget_id, value } => {
                 if widget_id == "concurrency_spin" {
                     self.concurrency_spin = value;
@@ -1011,16 +1025,21 @@ fn build_base_ui(tree: &mut WidgetTree, state: &DemoState, width: f32, height: f
 
             // Numeric Spinners: Workers limit and Proxy port
             let spin1_focused = state.focused_input.as_deref() == Some("concurrency_spin");
-            let spin1_input = tree.number_input(WidgetId::new("concurrency_spin"), state.concurrency_spin, 1.0, 64.0, 1.0, 0, spin1_focused, leaf(138.0, 28.0)).unwrap();
+            let spin1_input = tree.number_input_state(WidgetId::new("concurrency_spin"), state.concurrency_spin, 1.0, 64.0, 1.0, 0, spin1_focused, state.spinners_enabled, leaf(138.0, 28.0)).unwrap();
             let spin1_label = tree.label_muted("Workers (1-64):", leaf(100.0, 28.0)).unwrap();
             let spin1_box = tree.container(&[spin1_label, spin1_input], row(6.0)).unwrap();
 
             let spin2_focused = state.focused_input.as_deref() == Some("port_spin");
-            let spin2_input = tree.number_input(WidgetId::new("port_spin"), state.port_spin, 1024.0, 65535.0, 10.0, 0, spin2_focused, leaf(138.0, 28.0)).unwrap();
+            let spin2_input = tree.number_input_state(WidgetId::new("port_spin"), state.port_spin, 1024.0, 65535.0, 10.0, 0, spin2_focused, state.spinners_enabled, leaf(138.0, 28.0)).unwrap();
             let spin2_label = tree.label_muted("Port (1024+):", leaf(90.0, 28.0)).unwrap();
             let spin2_box = tree.container(&[spin2_label, spin2_input], row(6.0)).unwrap();
 
-            let spinners_row = tree.grid(2, 12.0, 0.0, &[spin1_box, spin2_box], leaf(508.0, 28.0)).unwrap();
+            let spinners_grid = tree.grid(2, 12.0, 0.0, &[spin1_box, spin2_box], leaf(508.0, 28.0)).unwrap();
+
+            let spin_toggle = tree.checkbox(WidgetId::new("spinners_toggle"), state.spinners_enabled, leaf(18.0, 18.0)).unwrap();
+            let spin_toggle_lbl = tree.label_muted(if state.spinners_enabled { "Hybrid Input: Enabled (Type Digits or Up/Down Arrows / Steppers)" } else { "Hybrid Input: Disabled (Locked)" }, leaf(480.0, 18.0)).unwrap();
+            let spin_toggle_row = tree.container(&[spin_toggle, spin_toggle_lbl], row(8.0)).unwrap();
+            let spinners_section = tree.container(&[spinners_grid, spin_toggle_row], column(4.0)).unwrap();
 
             let checkbox = tree.checkbox(WidgetId::new("accept_terms"), state.accept_checked, leaf(18.0, 18.0)).unwrap();
             let checkbox_label = tree.label("Enable continuous diagnostics telemetry", leaf(340.0, 18.0)).unwrap();
@@ -1031,15 +1050,15 @@ fn build_base_ui(tree: &mut WidgetTree, state: &DemoState, width: f32, height: f
             let toggle_row = tree.container(&[toggle, toggle_label], row(10.0)).unwrap();
 
             let slider_label = tree
-                .label(format!("Network Intensity Level: {:.0}%", state.slider_value), leaf(340.0, 16.0))
+                .label(format!("Network Intensity Level: {:.0}%", state.network_intensity), leaf(340.0, 16.0))
                 .unwrap();
             let slider = tree
-                .slider(WidgetId::new("brightness_slider"), 0.0, 100.0, state.slider_value, leaf(508.0, 16.0))
+                .slider(WidgetId::new("brightness_slider"), 0.0, 100.0, state.network_intensity, leaf(508.0, 16.0))
                 .unwrap();
-            let progress = tree.progress_bar(state.slider_value / 100.0, leaf(508.0, 6.0)).unwrap();
+            let progress = tree.progress_bar(state.network_intensity / 100.0, leaf(508.0, 6.0)).unwrap();
             let slider_group = tree.container(&[slider_label, slider, progress], column(4.0)).unwrap();
 
-            tree.container(&[buttons_grid, color_peeker, palette_row, env_row, pwd_row, spinners_row, checkbox_row, toggle_row, slider_group], column(4.0)).unwrap()
+            tree.container(&[buttons_grid, color_peeker, palette_row, env_row, pwd_row, spinners_section, checkbox_row, toggle_row, slider_group], column(4.0)).unwrap()
         }
         1 => {
             // --- Tab Security: Firewall, RadioGroup, Action Icons & Accordion ---
@@ -1374,8 +1393,8 @@ fn build_popover_ui(tree: &mut WidgetTree, state: &DemoState, width: f32, height
     if state.show_inspector_palette {
         let content_node = if !state.inspector_palette_folded {
             let active_tool_lbl = tree.label(format!("Tool: {}", state.active_tool.to_uppercase()), leaf(140.0, 18.0)).unwrap();
-            let opacity_lbl = tree.label_muted(format!("Intensity: {:.0}%", state.slider_value), leaf(140.0, 16.0)).unwrap();
-            let insp_slider = tree.slider(WidgetId::new("palette_intensity_slider"), 0.0, 100.0, state.slider_value, leaf(140.0, 16.0)).unwrap();
+            let opacity_lbl = tree.label_muted(format!("Intensity: {:.0}%", state.brush_intensity), leaf(140.0, 16.0)).unwrap();
+            let insp_slider = tree.slider(WidgetId::new("palette_intensity_slider"), 0.0, 100.0, state.brush_intensity, leaf(140.0, 16.0)).unwrap();
             let insp_btn = tree.button(WidgetId::new("palette_preset_btn"), "Apply Blend", true, leaf(140.0, 26.0)).unwrap();
             let insp_box = tree.container(&[active_tool_lbl, opacity_lbl, insp_slider, insp_btn], column(6.0)).unwrap();
             Some(insp_box)
@@ -1553,7 +1572,8 @@ impl App {
                 accept_checked: false,
                 turbo_toggle: true,
                 firewall_toggle: true,
-                slider_value: 72.0,
+                network_intensity: 72.0,
+                brush_intensity: 85.0,
                 active_tab: 0,
                 selected_item: Some(2),
                 click_count: 0,
@@ -1565,6 +1585,7 @@ impl App {
                 studio_editor: TextEditorState::new("// AORUI Shader Node\nfn evaluate_node() -> bool {\n    let status = verify_mesh();\n    return status;\n}"),
                 concurrency_spin: 8.0,
                 port_spin: 8080.0,
+                spinners_enabled: true,
                 focused_input: Some("global_search".to_string()),
                 selected_segment: 0,
                 security_policy: "strict".to_string(),
@@ -1856,7 +1877,11 @@ impl App {
 
             // Check slider in overlay palette
             if let Ok(Some((id, value))) = o_tree.slider_value_at(o_root, self.cursor_pos) {
-                self.state.slider_value = value;
+                if id == "palette_intensity_slider" {
+                    self.state.brush_intensity = value;
+                } else {
+                    self.state.network_intensity = value;
+                }
                 self.slider_drag = Some(id);
                 return;
             }
@@ -1881,7 +1906,11 @@ impl App {
         }
 
         if let Ok(Some((id, value))) = self.tree.slider_value_at(root, self.cursor_pos) {
-            self.state.slider_value = value;
+            if id == "palette_intensity_slider" {
+                self.state.brush_intensity = value;
+            } else {
+                self.state.network_intensity = value;
+            }
             self.slider_drag = Some(id);
         }
 
@@ -2020,7 +2049,11 @@ impl App {
         // 1. Check overlay tree first (floating palettes)
         if let (Some(o_tree), Some(o_root)) = (&self.overlay_tree, self.overlay_root) {
             if let Ok(Some(value)) = o_tree.slider_drag_value(o_root, target_id, self.cursor_pos.0) {
-                self.state.slider_value = value;
+                if target_id == "palette_intensity_slider" {
+                    self.state.brush_intensity = value;
+                } else {
+                    self.state.network_intensity = value;
+                }
                 return;
             }
         }
@@ -2028,7 +2061,11 @@ impl App {
         // 2. Fallback to base tree
         if let Some(root) = self.root {
             if let Ok(Some(value)) = self.tree.slider_drag_value(root, target_id, self.cursor_pos.0) {
-                self.state.slider_value = value;
+                if target_id == "palette_intensity_slider" {
+                    self.state.brush_intensity = value;
+                } else {
+                    self.state.network_intensity = value;
+                }
             }
         }
     }
@@ -2296,12 +2333,49 @@ impl ApplicationHandler for App {
                             let ctrl = self.ctrl_held;
                             let shift = self.shift_held;
                             if let Some(focused) = &self.state.focused_input {
-                                let (editor, is_multiline) = match focused.as_str() {
-                                    "global_search" => (Some(&mut self.state.search_editor), false),
-                                    "master_token_pwd" => (Some(&mut self.state.password_editor), false),
-                                    "studio_editor" => (Some(&mut self.state.studio_editor), true),
-                                    _ => (None, false),
-                                };
+                                if self.state.spinners_enabled && (focused == "concurrency_spin" || focused == "port_spin") {
+                                    let is_concurrency = focused == "concurrency_spin";
+                                    let (min, max, step) = if is_concurrency {
+                                        (1.0, 64.0, 1.0)
+                                    } else {
+                                        (1024.0, 65535.0, 10.0)
+                                    };
+                                    let current_val = if is_concurrency { self.state.concurrency_spin } else { self.state.port_spin };
+                                    match key_event.logical_key {
+                                        winit::keyboard::Key::Named(winit::keyboard::NamedKey::ArrowUp) => {
+                                            let next = (current_val + step).min(max);
+                                            if is_concurrency { self.state.concurrency_spin = next; } else { self.state.port_spin = next; }
+                                        }
+                                        winit::keyboard::Key::Named(winit::keyboard::NamedKey::ArrowDown) => {
+                                            let next = (current_val - step).max(min);
+                                            if is_concurrency { self.state.concurrency_spin = next; } else { self.state.port_spin = next; }
+                                        }
+                                        winit::keyboard::Key::Named(winit::keyboard::NamedKey::Backspace) => {
+                                            let cur_int = current_val as i64;
+                                            let next = (cur_int / 10) as f64;
+                                            let clamped = if next == 0.0 { min } else { next.clamp(min, max) };
+                                            if is_concurrency { self.state.concurrency_spin = clamped; } else { self.state.port_spin = clamped; }
+                                        }
+                                        _ => {
+                                            if let Some(text) = &key_event.text {
+                                                for c in text.chars() {
+                                                    if let Some(d) = c.to_digit(10) {
+                                                        let cur_int = current_val as i64;
+                                                        let next = (cur_int * 10 + d as i64) as f64;
+                                                        let clamped = next.clamp(min, max);
+                                                        if is_concurrency { self.state.concurrency_spin = clamped; } else { self.state.port_spin = clamped; }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                } else {
+                                    let (editor, is_multiline) = match focused.as_str() {
+                                        "global_search" => (Some(&mut self.state.search_editor), false),
+                                        "master_token_pwd" => (Some(&mut self.state.password_editor), false),
+                                        "studio_editor" => (Some(&mut self.state.studio_editor), true),
+                                        _ => (None, false),
+                                    };
 
                                 if let Some(ed) = editor {
                                     match key_event.logical_key {
@@ -2363,6 +2437,7 @@ impl ApplicationHandler for App {
                                 }
                             }
                         }
+                    }
                     }
 
                     if let Some(window) = &self.window {

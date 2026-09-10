@@ -107,7 +107,7 @@ pub enum WidgetKind {
     TextInput { id: WidgetId, value: String, placeholder: String, focused: bool, cursor: usize, selection: Option<(usize, usize)> },
     TextArea { id: WidgetId, value: String, placeholder: String, focused: bool, line_numbers: bool, cursor: usize, selection: Option<(usize, usize)> },
     PasswordInput { id: WidgetId, value: String, placeholder: String, focused: bool, revealed: bool, cursor: usize },
-    NumberInput { id: WidgetId, value: f64, min: f64, max: f64, step: f64, precision: usize, focused: bool },
+    NumberInput { id: WidgetId, value: f64, min: f64, max: f64, step: f64, precision: usize, focused: bool, enabled: bool },
 
     Window { id: WidgetId, title: String },
     WindowCloseButton { owner: WidgetId },
@@ -182,7 +182,7 @@ impl WidgetKind {
                 | WidgetKind::TextInput { .. }
                 | WidgetKind::TextArea { .. }
                 | WidgetKind::PasswordInput { .. }
-                | WidgetKind::NumberInput { .. }
+                | WidgetKind::NumberInput { enabled: true, .. }
                 | WidgetKind::RadioButton { .. }
                 | WidgetKind::SegmentItem { .. }
                 | WidgetKind::WindowCloseButton { .. }
@@ -222,7 +222,7 @@ impl WidgetKind {
             | WidgetKind::TextInput { id, .. }
             | WidgetKind::TextArea { id, .. }
             | WidgetKind::PasswordInput { id, .. }
-            | WidgetKind::NumberInput { id, .. }
+            | WidgetKind::NumberInput { id, enabled: true, .. }
             | WidgetKind::RadioButton { id, .. }
             | WidgetKind::Dropdown { id, .. }
             | WidgetKind::AccordionHeader { id, .. }
@@ -272,6 +272,7 @@ impl WidgetKind {
             | WidgetKind::MetricCard { .. }
             | WidgetKind::ScrollView { .. }
             | WidgetKind::Tooltip { .. }
+            | WidgetKind::NumberInput { enabled: false, .. }
             | WidgetKind::AudioVisualizer { .. } => None,
         }
     }

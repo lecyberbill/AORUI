@@ -640,15 +640,42 @@ fn render_kind(
             }
         }
 
-        WidgetKind::NumberInput { value, precision, focused, .. } => {
-            let base = if *focused { theme.glow_intensity_hover * 1.1 } else { theme.glow_intensity * 0.4 };
-            let intensity = interactive_glow(base, hovered, pressed, theme);
-            let border_accent = if *focused { theme.accent } else { theme.accent_secondary };
-            frame.instances.push(glass_instance(bounds, clip, theme.glass_bg, border_accent, intensity, theme));
+        WidgetKind::NumberInput { value, precision, focused, enabled, .. } => {
+            let base = if *focused {
+                theme.glow_intensity_hover * 1.1
+            } else if *enabled {
+                theme.glow_intensity * 0.4
+            } else {
+                0.0
+            };
+            let intensity = interactive_glow(base, hovered && *enabled, pressed && *enabled, theme);
+            let border_accent = if *focused {
+                theme.accent
+            } else if *enabled {
+                theme.accent_secondary
+            } else {
+                [0.2, 0.25, 0.35, 0.4]
+            };
+            let bg = if *enabled {
+                theme.glass_bg
+            } else {
+                [theme.glass_bg[0] * 0.6, theme.glass_bg[1] * 0.6, theme.glass_bg[2] * 0.6, 0.4]
+            };
+            frame.instances.push(glass_instance(bounds, clip, bg, border_accent, intensity, theme));
 
             let num_text = format!("{:.precision$}", value, precision = *precision);
+            let text_color = if *enabled { theme.text_color } else { theme.text_muted };
             let text_box = [bounds[0] + 12.0, bounds[1], bounds[2] - 38.0, bounds[3]];
-            frame.texts.push(text_spec(num_text, text_box, clip, theme, theme.text_color, TextAlign::Left, TextRole::Body));
+            frame.texts.push(text_spec(num_text.clone(), text_box, clip, theme, text_color, TextAlign::Left, TextRole::Body));
+
+            if *focused && *enabled {
+                let text_w = estimate_text_width(&num_text, theme.typography.body_size);
+                let cursor_x = (bounds[0] + 12.0 + text_w).min(bounds[0] + bounds[2] - 34.0);
+                let cursor_h = (bounds[3] - 14.0).max(12.0);
+                let cursor_y = bounds[1] + (bounds[3] - cursor_h) * 0.5;
+                let cursor_bounds = [cursor_x, cursor_y, 2.0, cursor_h];
+                frame.instances.push(glass_instance(cursor_bounds, clip, theme.accent, theme.accent, 0.8, theme));
+            }
 
             // Stepper buttons on the right side
             let stepper_w = 24.0;
@@ -658,12 +685,17 @@ fn render_kind(
             let up_box = [stepper_x, bounds[1] + 2.0, stepper_w, half_h];
             let down_box = [stepper_x, bounds[1] + 2.0 + half_h, stepper_w, half_h];
 
-            let btn_bg = [theme.glass_bg[0] * 0.8, theme.glass_bg[1] * 0.8, theme.glass_bg[2] * 0.8, 0.5];
+            let btn_bg = if *enabled {
+                [theme.glass_bg[0] * 0.8, theme.glass_bg[1] * 0.8, theme.glass_bg[2] * 0.8, 0.5]
+            } else {
+                [0.1, 0.1, 0.1, 0.2]
+            };
             frame.instances.push(glass_instance(up_box, clip, btn_bg, [0.0, 0.0, 0.0, 0.0], 0.0, theme));
             frame.instances.push(glass_instance(down_box, clip, btn_bg, [0.0, 0.0, 0.0, 0.0], 0.0, theme));
 
-            frame.texts.push(text_spec("▲".to_string(), up_box, clip, theme, theme.text_muted, TextAlign::Center, TextRole::Caption));
-            frame.texts.push(text_spec("▼".to_string(), down_box, clip, theme, theme.text_muted, TextAlign::Center, TextRole::Caption));
+            let arrow_color = if *enabled { theme.text_muted } else { [0.35, 0.35, 0.4, 0.4] };
+            frame.texts.push(text_spec("▲".to_string(), up_box, clip, theme, arrow_color, TextAlign::Center, TextRole::Caption));
+            frame.texts.push(text_spec("▼".to_string(), down_box, clip, theme, arrow_color, TextAlign::Center, TextRole::Caption));
         }
 
         WidgetKind::RadioButton { label, selected, .. } => {

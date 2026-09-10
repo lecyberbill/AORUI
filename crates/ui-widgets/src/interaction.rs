@@ -166,7 +166,10 @@ impl WidgetTree {
                     Some(UiEvent::FocusChanged { widget_id: Some(id.to_string()) })
                 }
             }
-            WidgetKind::NumberInput { id, value, min, max, step, .. } => {
+            WidgetKind::NumberInput { id, value, min, max, step, enabled, .. } => {
+                if !*enabled {
+                    return Ok(None);
+                }
                 let effective = self.effective_bounds(root)?;
                 let bounds = effective[&node].visual;
                 // Stepper buttons are in the rightmost 28px: top half is +, bottom half is -
@@ -599,7 +602,7 @@ impl WidgetTree {
                 WidgetKind::TextInput { id, .. }
                 | WidgetKind::TextArea { id, .. }
                 | WidgetKind::PasswordInput { id, .. }
-                | WidgetKind::NumberInput { id, .. }
+                | WidgetKind::NumberInput { id, enabled: true, .. }
                 | WidgetKind::Button { id, enabled: true, .. }
                 | WidgetKind::IconButton { id, enabled: true, .. }
                 | WidgetKind::AccordionHeader { id, .. }

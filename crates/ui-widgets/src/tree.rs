@@ -524,6 +524,22 @@ impl WidgetTree {
         focused: bool,
         style: Style,
     ) -> Result<NodeId, LayoutError> {
+        self.number_input_state(id, value, min, max, step, precision, focused, true, style)
+    }
+
+    /// Numeric spinner input field with customizable enabled state.
+    pub fn number_input_state(
+        &mut self,
+        id: impl Into<WidgetId>,
+        value: f64,
+        min: f64,
+        max: f64,
+        step: f64,
+        precision: usize,
+        focused: bool,
+        enabled: bool,
+        style: Style,
+    ) -> Result<NodeId, LayoutError> {
         self.layout.insert_leaf(
             style,
             WidgetKind::NumberInput {
@@ -534,6 +550,7 @@ impl WidgetTree {
                 step,
                 precision,
                 focused,
+                enabled,
             },
         )
     }
