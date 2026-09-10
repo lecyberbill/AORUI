@@ -1289,7 +1289,7 @@ fn build_base_ui(tree: &mut WidgetTree, state: &DemoState, width: f32, height: f
                 WidgetId::new("media_fit_selector"),
                 &fit_options,
                 fit_idx,
-                leaf(296.0, 26.0),
+                leaf(86.0, 24.0),
                 row(4.0),
             ).unwrap();
             let fit_header = tree.container(&[fit_label, fit_selector], row(12.0)).unwrap();
