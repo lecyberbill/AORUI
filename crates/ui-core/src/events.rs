@@ -48,6 +48,8 @@ pub enum UiEvent {
     PaletteClosed { palette_id: String },
     PaletteMoved { palette_id: String, x: f32, y: f32 },
     PaletteResized { palette_id: String, width: f32, height: f32 },
+    MediaPlayToggled { widget_id: String, playing: bool },
+    MediaSeeked { widget_id: String, progress: f32 },
 
     // --- Agent runtime commands (preserved for agent-runtime) ---
     UserPromptSubmitted(String),

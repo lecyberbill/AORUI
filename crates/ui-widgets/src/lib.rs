@@ -28,7 +28,7 @@ pub use effective::{EffectiveBounds, NO_CLIP};
 pub use frame::{Frame, InteractionState, TextAlign, TextSpec};
 pub use id::WidgetId;
 pub use kind::{IconKind, InteractionKey, ListItemBadge, SplitOrientation, ToastKind, WidgetKind};
-pub use media::{MediaKind, MediaSpec};
+pub use media::{MediaFit, MediaKind, MediaSpec};
 pub use text_measure::{DefaultTextMeasure, TextMeasure};
 pub use theme::{FontFamily, FontWeight, Theme, Typography};
 pub use tree::WidgetTree;
@@ -743,5 +743,52 @@ mod tests {
         let (id, offset) = cur_line2.unwrap();
         assert_eq!(id, "editor");
         assert!(offset >= 14); // Points into line 2
+    }
+
+    #[test]
+    fn image_widget_produces_configured_media_spec() {
+        let mut tree = WidgetTree::new();
+        let img = tree.image("artwork", "res://cyber.png", MediaFit::Contain, leaf_style(200.0, 150.0)).unwrap();
+        let root = tree.container(&[img], leaf_style(300.0, 200.0)).unwrap();
+        tree.compute(root, Size::MAX_CONTENT).unwrap();
+
+        let theme = Theme::cyber_glass();
+        let frame = tree.build_frame(root, &theme, Default::default()).unwrap();
+        assert_eq!(frame.media.len(), 1);
+        assert_eq!(frame.media[0].kind, MediaKind("image"));
+        assert_eq!(frame.media[0].resource_id, "res://cyber.png");
+        assert_eq!(frame.media[0].fit, MediaFit::Contain);
+    }
+
+    #[test]
+    fn video_player_renders_media_spec_and_transport_controls() {
+        let mut tree = WidgetTree::new();
+        let player = tree.video_player("stream_player", "res://stream_feed", true, 0.45, 120.0, 1.0, leaf_style(400.0, 240.0)).unwrap();
+        let root = tree.container(&[player], leaf_style(400.0, 240.0)).unwrap();
+        tree.compute(root, Size::MAX_CONTENT).unwrap();
+
+        let theme = Theme::cyber_glass();
+        let frame = tree.build_frame(root, &theme, Default::default()).unwrap();
+        assert_eq!(frame.media.len(), 1);
+        assert_eq!(frame.media[0].kind, MediaKind("video"));
+        assert_eq!(frame.media[0].resource_id, "res://stream_feed");
+
+        // Transport controls: pause glyph (playing=true) + timecode string
+        assert!(frame.texts.iter().any(|t| t.text == "⏸"));
+        assert!(frame.texts.iter().any(|t| t.text.contains("00:54 / 02:00")));
+    }
+
+    #[test]
+    fn audio_visualizer_generates_proportional_frequency_bars() {
+        let mut tree = WidgetTree::new();
+        let spectrum = [0.2, 0.8, 0.5, 0.95, 0.3, 0.6];
+        let viz = tree.audio_visualizer("spectrum_bars", &spectrum, 1.0, leaf_style(200.0, 60.0)).unwrap();
+        let root = tree.container(&[viz], leaf_style(200.0, 60.0)).unwrap();
+        tree.compute(root, Size::MAX_CONTENT).unwrap();
+
+        let theme = Theme::cyber_glass();
+        let frame = tree.build_frame(root, &theme, Default::default()).unwrap();
+        // Background instance + 6 frequency bar instances
+        assert_eq!(frame.instances.len(), 7);
     }
 }

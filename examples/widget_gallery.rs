@@ -4,11 +4,121 @@ use std::sync::Arc;
 use ui_core::UiEvent;
 use ui_gpu::GpuRenderer;
 use ui_layout::{length, AlignItems, AvailableSpace, FlexDirection, Rect, Size, Style};
-use ui_widgets::{ColorSpace, InteractionKey, InteractionState, Theme, ToastKind, WidgetId, WidgetTree};
+use ui_widgets::{ColorSpace, InteractionKey, InteractionState, MediaFit, Theme, ToastKind, WidgetId, WidgetTree};
 use winit::application::ApplicationHandler;
 use winit::event::{ElementState, MouseButton, MouseScrollDelta, WindowEvent};
 use winit::event_loop::{ActiveEventLoop, ControlFlow, EventLoop};
 use winit::window::{ResizeDirection, Window, WindowAttributes, WindowId};
+
+/// Generates a procedural cybernetic artwork image (512x512 RGBA8)
+fn generate_cyber_artwork(width: u32, height: u32) -> Vec<u8> {
+    let mut buffer = vec![0u8; (width * height * 4) as usize];
+    let wf = width as f32;
+    let hf = height as f32;
+    let cx = wf * 0.5;
+    let cy = hf * 0.44;
+    let radius = wf * 0.26;
+
+    for y in 0..height {
+        let yf = y as f32;
+        let ny = yf / hf;
+        for x in 0..width {
+            let xf = x as f32;
+            let idx = ((y * width + x) * 4) as usize;
+
+            // Sky background: Deep cosmic gradient
+            let mut r = (10.0 + ny * 25.0).min(255.0);
+            let mut g = (14.0 + ny * 10.0).min(255.0);
+            let mut b = (35.0 + ny * 45.0).min(255.0);
+
+            // Pseudo starfield
+            let seed = ((x.wrapping_mul(374761393) ^ y.wrapping_mul(668265263)) % 1000) as f32;
+            if ny < 0.65 && seed > 994.0 {
+                let star_bright = ((seed - 994.0) / 6.0 * 255.0) as f32;
+                r = (r + star_bright).min(255.0);
+                g = (g + star_bright).min(255.0);
+                b = (b + star_bright).min(255.0);
+            }
+
+            // Cyber Sun / Sphere
+            let dx = xf - cx;
+            let dy = yf - cy;
+            let dist = (dx * dx + dy * dy).sqrt();
+            if dist < radius {
+                let norm_dist = dist / radius;
+                let slice = (yf * 0.12).sin();
+                if !(yf > cy && slice > 0.6) {
+                    let sun_r = (255.0 * (1.0 - norm_dist * 0.2)).min(255.0);
+                    let sun_g = (80.0 + (1.0 - ny) * 160.0).min(255.0);
+                    let sun_b = (180.0 * (1.0 - norm_dist)).min(255.0);
+                    r = sun_r;
+                    g = sun_g;
+                    b = sun_b;
+                }
+            }
+
+            // Perspective Grid Floor (lower 40%)
+            if ny >= 0.60 {
+                let horizon_dist = (ny - 0.60) / 0.40;
+                let z = 1.0 / (horizon_dist + 0.05);
+                let grid_x = ((xf - cx) * z * 0.04).sin();
+                let grid_y = (z * 1.8).sin();
+
+                if grid_x.abs() > 0.92 || grid_y.abs() > 0.88 {
+                    let glow = horizon_dist.powf(0.5);
+                    r = (r * 0.2 + 0.0 * glow).min(255.0);
+                    g = (g * 0.2 + 220.0 * glow).min(255.0);
+                    b = (b * 0.2 + 255.0 * glow).min(255.0);
+                } else {
+                    r = (r * 0.4).min(255.0);
+                    g = (g * 0.4 + 10.0).min(255.0);
+                    b = (b * 0.4 + 30.0).min(255.0);
+                }
+            }
+
+            buffer[idx] = r as u8;
+            buffer[idx + 1] = g as u8;
+            buffer[idx + 2] = b as u8;
+            buffer[idx + 3] = 255;
+        }
+    }
+    buffer
+}
+
+/// Generates an animated multi-wave plasma stream frame (256x160 RGBA8)
+fn generate_plasma_frame(width: u32, height: u32, time: f32) -> Vec<u8> {
+    let mut buffer = vec![0u8; (width * height * 4) as usize];
+    let wf = width as f32;
+    let hf = height as f32;
+
+    for y in 0..height {
+        let yf = y as f32;
+        for x in 0..width {
+            let xf = x as f32;
+            let idx = ((y * width + x) * 4) as usize;
+
+            let v1 = ((xf * 0.04 + time).sin() + 1.0) * 0.5;
+            let v2 = ((yf * 0.04 - time * 1.2).sin() + 1.0) * 0.5;
+            let cx = xf - wf * 0.5;
+            let cy = yf - hf * 0.5;
+            let dist = (cx * cx + cy * cy).sqrt() * 0.05;
+            let v3 = ((dist - time * 2.0).sin() + 1.0) * 0.5;
+
+            let wave = (v1 + v2 + v3) / 3.0;
+
+            // Cyber Neon Palette (Cyan -> Purple -> Deep Indigo)
+            let r = ((wave * 3.14159).sin() * 180.0 + 30.0).clamp(0.0, 255.0) as u8;
+            let g = (((wave + 0.33) * 3.14159).sin() * 220.0 + 35.0).clamp(0.0, 255.0) as u8;
+            let b = (((wave + 0.66) * 3.14159).sin() * 255.0 + 50.0).clamp(0.0, 255.0) as u8;
+
+            buffer[idx] = r;
+            buffer[idx + 1] = g;
+            buffer[idx + 2] = b;
+            buffer[idx + 3] = 255;
+        }
+    }
+    buffer
+}
 
 /// Translates `ui_widgets::FontFamily` (decoupled from specific font engines)
 /// into `glyphon::Family`.
@@ -451,6 +561,10 @@ struct DemoState {
     inspector_palette_pos: (f32, f32),
     inspector_palette_size: (f32, f32),
     inspector_palette_folded: bool,
+    video_playing: bool,
+    video_progress: f32,
+    audio_spectrum: Vec<f32>,
+    media_fit_mode: MediaFit,
 }
 
 impl DemoState {
@@ -485,7 +599,27 @@ impl DemoState {
                 self.context_menu = None;
             }
             UiEvent::ListItemSelected { item_index, .. } => self.selected_item = Some(item_index),
-            UiEvent::SegmentSelected { selected_index, .. } => self.selected_segment = selected_index,
+            UiEvent::SegmentSelected { widget_id, selected_index, .. } => {
+                if widget_id == "media_fit_selector" {
+                    self.media_fit_mode = match selected_index {
+                        0 => MediaFit::Cover,
+                        1 => MediaFit::Contain,
+                        _ => MediaFit::Fill,
+                    };
+                } else {
+                    self.selected_segment = selected_index;
+                }
+            }
+            UiEvent::MediaPlayToggled { widget_id, playing } => {
+                if widget_id == "stream_video" {
+                    self.video_playing = playing;
+                }
+            }
+            UiEvent::MediaSeeked { widget_id, progress } => {
+                if widget_id == "stream_video" {
+                    self.video_progress = progress;
+                }
+            }
             UiEvent::RadioSelected { selected_id, .. } => self.security_policy = selected_id,
             UiEvent::FocusChanged { widget_id } => self.focused_input = widget_id,
             UiEvent::TextCursorMoved { widget_id, cursor } => {
@@ -582,6 +716,7 @@ impl DemoState {
                     "nav_sec" => self.active_tab = 1,
                     "nav_net" => self.active_tab = 2,
                     "nav_studio" => self.active_tab = 3,
+                    "nav_media" => self.active_tab = 4,
                     _ => {}
                 }
             }
@@ -698,6 +833,7 @@ impl DemoState {
                     "tab_1" => self.active_tab = 1,
                     "tab_2" => self.active_tab = 2,
                     "tab_3" => self.active_tab = 3,
+                    "tab_4" => self.active_tab = 4,
                     "toggle_turbo" => {
                         self.turbo_toggle = !self.turbo_toggle;
                     }
@@ -796,7 +932,7 @@ fn build_base_ui(tree: &mut WidgetTree, state: &DemoState, width: f32, height: f
         .unwrap();
 
     // Breadcrumb navigation path
-    let tab_names = ["General", "Security", "Network", "Studio"];
+    let tab_names = ["General", "Security", "Network", "Studio", "Media"];
     let current_tab_name = tab_names.get(state.active_tab).unwrap_or(&"General");
     let crumbs = [("nav_home", "Workspace"), ("nav_cluster", "US-East-01"), ("nav_active", *current_tab_name)];
     let breadcrumb_node = tree.breadcrumb("main_breadcrumb", &crumbs, leaf(80.0, 18.0), row(2.0)).unwrap();
@@ -816,9 +952,9 @@ fn build_base_ui(tree: &mut WidgetTree, state: &DemoState, width: f32, height: f
 
     let divider1 = tree.divider(false, leaf(508.0, 1.0)).unwrap();
 
-    let tabs = ["General", "Security", "Network", "Studio"];
+    let tabs = ["General", "Security", "Network", "Studio", "Media"];
     let tabbar =
-        tree.tabbar(WidgetId::new("settings_tabs"), &tabs, state.active_tab, leaf(120.0, 30.0), row(4.0)).unwrap();
+        tree.tabbar(WidgetId::new("settings_tabs"), &tabs, state.active_tab, leaf(96.0, 30.0), row(4.0)).unwrap();
 
     let tab_content = match state.active_tab {
         0 => {
@@ -1013,7 +1149,7 @@ fn build_base_ui(tree: &mut WidgetTree, state: &DemoState, width: f32, height: f
 
             tree.container(&[segment_bar, metrics_grid, table_node, pag_node], column(10.0)).unwrap()
         }
-        _ => {
+        3 => {
             // --- Tab Studio: Resizable SplitView & TreeView ---
             let is_crates_open = state.expanded_nodes.contains("crates_dir");
             let is_widgets_open = state.expanded_nodes.contains("widgets_dir");
@@ -1081,6 +1217,58 @@ fn build_base_ui(tree: &mut WidgetTree, state: &DemoState, width: f32, height: f
             let studio_hint = tree.label_muted("Drag splitter ↔ to resize | Click ▶/▼ to expand | Right-click for context", leaf(508.0, 16.0)).unwrap();
 
             tree.container(&[split, studio_hint], column(6.0)).unwrap()
+        }
+        _ => {
+            // --- Tab Media: GPU Video Streaming, Audio Spectrum & Aspect Fitting Images ---
+            // 1. Dynamic Video Stream Player
+            let vid_badge = tree.badge(if state.video_playing { "STREAMING (60 FPS)" } else { "PAUSED" }, if state.video_playing { ui_widgets::ListItemBadge::Success } else { ui_widgets::ListItemBadge::Warning }, leaf(140.0, 22.0)).unwrap();
+            let vid_title = tree.label("Dynamic Plasma Stream (WGPU Pipeline):", leaf(340.0, 22.0)).unwrap();
+            let vid_header = tree.container(&[vid_title, vid_badge], row(8.0)).unwrap();
+
+            let video_widget = tree.video_player(
+                "stream_video",
+                "stream_video",
+                state.video_playing,
+                state.video_progress,
+                90.0,
+                1.0,
+                leaf(508.0, 150.0),
+            ).unwrap();
+
+            // 2. Audio Spectrum Visualizer
+            let audio_title = tree.label("Audio Spectrum Visualizer (32 Band FFT Neon Glass):", leaf(508.0, 18.0)).unwrap();
+            let visualizer_widget = tree.audio_visualizer(
+                "audio_bars",
+                &state.audio_spectrum,
+                1.0,
+                leaf(508.0, 44.0),
+            ).unwrap();
+
+            // 3. Cyber Artwork Image with Aspect Fit Mode Selector
+            let fit_label = tree.label("Static Artwork Aspect Fitting:", leaf(200.0, 26.0)).unwrap();
+            let fit_options = ["Cover", "Contain", "Fill"];
+            let fit_idx = match state.media_fit_mode {
+                MediaFit::Cover => 0,
+                MediaFit::Contain => 1,
+                MediaFit::Fill => 2,
+            };
+            let fit_selector = tree.segmented_control(
+                WidgetId::new("media_fit_selector"),
+                &fit_options,
+                fit_idx,
+                leaf(296.0, 26.0),
+                row(4.0),
+            ).unwrap();
+            let fit_header = tree.container(&[fit_label, fit_selector], row(12.0)).unwrap();
+
+            let image_widget = tree.image(
+                "cyber_art",
+                "cyber_art",
+                state.media_fit_mode,
+                leaf(508.0, 126.0),
+            ).unwrap();
+
+            tree.container(&[vid_header, video_widget, audio_title, visualizer_widget, fit_header, image_widget], column(6.0)).unwrap()
         }
     };
 
@@ -1207,6 +1395,7 @@ fn build_popover_ui(tree: &mut WidgetTree, state: &DemoState, width: f32, height
                     ("tab_1", "Security Tab", Some("Ctrl+2"), true),
                     ("tab_2", "Network Tab", Some("Ctrl+3"), true),
                     ("tab_3", "Studio Tab", Some("Ctrl+4"), true),
+                    ("tab_4", "Media Tab", Some("Ctrl+5"), true),
                     ("toggle_turbo", "Toggle Turbo Mode", None, true),
                 ],
             ),
@@ -1297,6 +1486,9 @@ fn build_popover_ui(tree: &mut WidgetTree, state: &DemoState, width: f32, height
 struct App {
     window: Option<Arc<Window>>,
     renderer: Option<GpuRenderer>,
+    resources: ui_gpu::ResourceTable,
+    stream_texture: Option<Arc<ui_gpu::GpuTexture>>,
+    frame_count: u64,
     state: DemoState,
     tree: WidgetTree,
     root: Option<ui_layout::NodeId>,
@@ -1326,6 +1518,9 @@ impl App {
         Self {
             window: None,
             renderer: None,
+            resources: ui_gpu::ResourceTable::new(),
+            stream_texture: None,
+            frame_count: 0,
             state: DemoState {
                 accept_checked: false,
                 turbo_toggle: true,
@@ -1372,6 +1567,10 @@ impl App {
                 inspector_palette_pos: (390.0, 110.0),
                 inspector_palette_size: (166.0, 180.0),
                 inspector_palette_folded: false,
+                video_playing: true,
+                video_progress: 0.35,
+                audio_spectrum: (0..32).map(|i| 0.3 + 0.45 * ((i as f32 * 0.4).sin().abs())).collect(),
+                media_fit_mode: MediaFit::Cover,
             },
             tree: WidgetTree::new(),
             root: None,
@@ -1394,6 +1593,23 @@ impl App {
     }
 
     fn redraw(&mut self) {
+        if self.state.video_playing {
+            self.state.video_progress = (self.state.video_progress + 0.0015).fract();
+            if let (Some(renderer), Some(stream_tex)) = (&self.renderer, &self.stream_texture) {
+                let plasma_bytes = generate_plasma_frame(256, 160, self.frame_count as f32 * 0.04);
+                renderer.update_texture_rgba(stream_tex, &plasma_bytes);
+            }
+        }
+        let t = self.frame_count as f32 * 0.08;
+        for (i, bin) in self.state.audio_spectrum.iter_mut().enumerate() {
+            let fi = i as f32;
+            let wave1 = (t * 1.5 + fi * 0.5).sin();
+            let wave2 = (t * 0.7 - fi * 0.3).cos();
+            let amp = (wave1 * 0.5 + wave2 * 0.3 + 0.2).abs().clamp(0.05, 0.98);
+            *bin = *bin * 0.7 + amp * 0.3;
+        }
+        self.frame_count += 1;
+
         let Some(renderer) = self.renderer.as_mut() else { return };
 
         let (width, height) = renderer.window_size();
@@ -1458,9 +1674,24 @@ impl App {
         let media: Vec<ui_gpu::MediaInstance> = base_frame
             .media
             .iter()
-            .map(|spec| ui_gpu::MediaInstance { kind: spec.kind.0.to_string(), resource_id: spec.resource_id.clone(), bounds: spec.bounds })
+            .map(|spec| {
+                let fit_mode = match spec.fit {
+                    ui_widgets::MediaFit::Fill => 0,
+                    ui_widgets::MediaFit::Contain => 1,
+                    ui_widgets::MediaFit::Cover => 2,
+                };
+                let clip_bounds = spec.clip;
+                ui_gpu::MediaInstance {
+                    kind: spec.kind.0.to_string(),
+                    resource_id: spec.resource_id.clone(),
+                    bounds: spec.bounds,
+                    clip_bounds,
+                    radius: spec.radius,
+                    fit_mode,
+                }
+            })
             .collect();
-        let resources = ui_gpu::ResourceTable::new();
+
         let background = wgpu::Color { r: 0.02, g: 0.03, b: 0.06, a: 1.0 };
 
         if self.state.show_modal {
@@ -1508,7 +1739,7 @@ impl App {
                 texts: &modal_text_runs,
             };
 
-            if let Err(err) = renderer.render_layers(background, &[base_layer, modal_layer], &media, &resources) {
+            if let Err(err) = renderer.render_layers(background, &[base_layer, modal_layer], &media, &self.resources) {
                 eprintln!("[widget_gallery] modal render failed: {err}");
             }
 
@@ -1551,7 +1782,7 @@ impl App {
                             texts: &pop_text_runs,
                         };
 
-                        if let Err(err) = renderer.render_layers(background, &[base_layer, pop_layer], &media, &resources) {
+                        if let Err(err) = renderer.render_layers(background, &[base_layer, pop_layer], &media, &self.resources) {
                             eprintln!("[widget_gallery] overlay render failed: {err}");
                         }
                     }
@@ -1559,7 +1790,7 @@ impl App {
                 self.overlay_tree = Some(popover_tree);
                 self.overlay_root = Some(pop_root);
             } else {
-                if let Err(err) = renderer.render_layers(background, &[base_layer], &media, &resources) {
+                if let Err(err) = renderer.render_layers(background, &[base_layer], &media, &self.resources) {
                     eprintln!("[widget_gallery] base render failed: {err}");
                 }
                 self.overlay_tree = None;
@@ -1905,9 +2136,26 @@ impl ApplicationHandler for App {
             .with_decorations(false)
             .with_inner_size(winit::dpi::PhysicalSize::new(WINDOW_WIDTH as u32, WINDOW_HEIGHT as u32));
         let window = Arc::new(event_loop.create_window(attrs).expect("failed to create OS window"));
-        self.renderer = Some(GpuRenderer::new(window.clone()));
+        let renderer = GpuRenderer::new(window.clone());
+
+        let cyber_art = generate_cyber_artwork(512, 512);
+        let static_tex = renderer.create_texture_rgba(512, 512, &cyber_art);
+        self.resources.insert("cyber_art", static_tex);
+
+        let plasma_init = generate_plasma_frame(256, 160, 0.0);
+        let stream_tex = renderer.create_texture_rgba(256, 160, &plasma_init);
+        self.resources.insert("stream_video", stream_tex.clone());
+        self.stream_texture = Some(stream_tex);
+
+        self.renderer = Some(renderer);
         self.window = Some(window);
-        event_loop.set_control_flow(ControlFlow::Wait);
+        event_loop.set_control_flow(ControlFlow::Poll);
+    }
+
+    fn about_to_wait(&mut self, _event_loop: &ActiveEventLoop) {
+        if let Some(window) = &self.window {
+            window.request_redraw();
+        }
     }
 
     fn window_event(&mut self, event_loop: &ActiveEventLoop, _window_id: WindowId, event: WindowEvent) {

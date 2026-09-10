@@ -46,7 +46,27 @@ impl GpuRenderer {
         let text = TextLayer::new(&ctx.device, &ctx.queue, format);
         let measure = crate::measure::CosmicTextMeasure::new();
 
-        Self { ctx, background, blur_half, blurred_full, blur_pipeline, sdf_pipeline, text, measure, media_pipelines: Vec::new() }
+        let image_pipeline = Box::new(crate::image_pipeline::ImagePipeline::new(&ctx.device, format, "image"));
+        let video_pipeline = Box::new(crate::image_pipeline::ImagePipeline::new(&ctx.device, format, "video"));
+        let media_pipelines: Vec<Box<dyn MediaPipeline>> = vec![image_pipeline, video_pipeline];
+
+        let mut renderer = Self { ctx, background, blur_half, blurred_full, blur_pipeline, sdf_pipeline, text, measure, media_pipelines };
+        renderer.update_media_screen_size();
+        renderer
+    }
+
+    fn update_media_screen_size(&mut self) {
+        // Reserved for dynamic per-pipeline screen size dispatch
+    }
+
+    /// Allocates and uploads an RGBA8 texture onto the GPU.
+    pub fn create_texture_rgba(&self, width: u32, height: u32, data: &[u8]) -> Arc<crate::texture::GpuTexture> {
+        crate::texture::GpuTexture::new_rgba(&self.ctx.device, &self.ctx.queue, width, height, data, Some("aorui_gpu_texture"))
+    }
+
+    /// Updates existing GPU texture with new pixel bytes (e.g. video frame streaming).
+    pub fn update_texture_rgba(&self, texture: &crate::texture::GpuTexture, data: &[u8]) {
+        texture.update(&self.ctx.queue, data);
     }
 
     pub fn text_measure(&self) -> crate::measure::CosmicTextMeasure {
@@ -131,6 +151,9 @@ impl GpuRenderer {
         clear_target(&mut encoder, &self.blur_half.view, background_clear);
 
         self.sdf_pipeline.set_screen_size(&self.ctx.queue, self.ctx.config.width as f32, self.ctx.config.height as f32);
+        for pipeline in self.media_pipelines.iter_mut() {
+            pipeline.set_screen_size(&self.ctx.queue, self.ctx.config.width as f32, self.ctx.config.height as f32);
+        }
 
         if layers.len() > 1 {
             // --- Layer 0 (Base UI): rendered to surface_view AND background target for blur capture ---
@@ -139,6 +162,16 @@ impl GpuRenderer {
                 self.sdf_pipeline.upload_instances(&self.ctx.device, &self.ctx.queue, layer0.instances);
                 self.sdf_pipeline.render(&self.ctx.device, &mut encoder, &surface_view, &self.blurred_full.view);
                 self.sdf_pipeline.render(&self.ctx.device, &mut encoder, &self.background.view, &self.blurred_full.view);
+            }
+
+            // Render registered media pipelines on base UI
+            for pipeline in self.media_pipelines.iter_mut() {
+                let matching: Vec<MediaInstance> =
+                    media.iter().filter(|instance| instance.kind == pipeline.kind()).cloned().collect();
+                if !matching.is_empty() {
+                    pipeline.render(&self.ctx.device, &self.ctx.queue, &mut encoder, &surface_view, resources, &matching);
+                    pipeline.render(&self.ctx.device, &self.ctx.queue, &mut encoder, &self.background.view, resources, &matching);
+                }
             }
 
             if !layer0.texts.is_empty() {
@@ -229,6 +262,15 @@ impl GpuRenderer {
                 self.sdf_pipeline.render(&self.ctx.device, &mut encoder, &surface_view, &self.blurred_full.view);
             }
 
+            // Render registered media pipelines between SDF background quads and text overlays
+            for pipeline in self.media_pipelines.iter_mut() {
+                let matching: Vec<MediaInstance> =
+                    media.iter().filter(|instance| instance.kind == pipeline.kind()).cloned().collect();
+                if !matching.is_empty() {
+                    pipeline.render(&self.ctx.device, &self.ctx.queue, &mut encoder, &surface_view, resources, &matching);
+                }
+            }
+
             if !layer.texts.is_empty() {
                 if self.text.prepare(&self.ctx.device, &self.ctx.queue, (self.ctx.config.width, self.ctx.config.height), layer.texts).is_ok() {
                     let mut text_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
@@ -244,15 +286,6 @@ impl GpuRenderer {
                     });
                     let _ = self.text.render(&mut text_pass);
                 }
-            }
-        }
-
-        // Pass 3.5: registered media pipelines
-        for pipeline in self.media_pipelines.iter_mut() {
-            let matching: Vec<MediaInstance> =
-                media.iter().filter(|instance| instance.kind == pipeline.kind()).cloned().collect();
-            if !matching.is_empty() {
-                pipeline.render(&self.ctx.device, &self.ctx.queue, &mut encoder, &surface_view, resources, &matching);
             }
         }
 

@@ -222,6 +222,31 @@ impl WidgetTree {
             WidgetKind::PaletteCloseButton { owner } => {
                 Some(UiEvent::PaletteClosed { palette_id: owner.to_string() })
             }
+            WidgetKind::VideoPlayer { id, playing, .. } => {
+                let effective = self.effective_bounds(root)?;
+                let bounds = effective[&node].visual;
+                let bar_h = 36.0;
+                let bar_y = bounds[1] + bounds[3] - bar_h - 6.0;
+
+                if point.1 >= bar_y && point.1 <= bar_y + bar_h {
+                    let bar_x = bounds[0] + 8.0;
+                    if point.0 >= bar_x && point.0 <= bar_x + 32.0 {
+                        Some(UiEvent::MediaPlayToggled { widget_id: id.to_string(), playing: !playing })
+                    } else {
+                        let time_w = 90.0;
+                        let track_x = bar_x + 34.0;
+                        let track_w = (bounds[2] - 16.0 - 34.0 - time_w - 14.0).max(10.0);
+                        if point.0 >= track_x && point.0 <= track_x + track_w {
+                            let prog = ((point.0 - track_x) / track_w).clamp(0.0, 1.0);
+                            Some(UiEvent::MediaSeeked { widget_id: id.to_string(), progress: prog })
+                        } else {
+                            None
+                        }
+                    }
+                } else {
+                    Some(UiEvent::MediaPlayToggled { widget_id: id.to_string(), playing: !playing })
+                }
+            }
             _ => None,
         })
     }

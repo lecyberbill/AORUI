@@ -155,7 +155,9 @@ pub enum WidgetKind {
 
     ScrollView { id: WidgetId, offset: [f32; 2] },
     Scrollbar { id: WidgetId, content_size: f32, viewport_size: f32, offset: f32 },
-    Media { id: WidgetId, kind: MediaKind, resource_id: String },
+    Media { id: WidgetId, kind: MediaKind, resource_id: String, fit: crate::media::MediaFit, radius: Option<f32> },
+    VideoPlayer { id: WidgetId, resource_id: String, playing: bool, progress: f32, duration_sec: f32, volume: f32 },
+    AudioVisualizer { id: WidgetId, values: Vec<f32>, peak: f32 },
 }
 
 /// Stable identity of an interactive widget across frames, used
@@ -204,6 +206,8 @@ impl WidgetKind {
                 | WidgetKind::PaletteFoldButton { .. }
                 | WidgetKind::PaletteCloseButton { .. }
                 | WidgetKind::ResizeGrip { .. }
+                | WidgetKind::VideoPlayer { .. }
+                | WidgetKind::Media { .. }
         )
     }
 
@@ -224,7 +228,9 @@ impl WidgetKind {
             | WidgetKind::AccordionHeader { id, .. }
             | WidgetKind::ColorSwatch { id, .. }
             | WidgetKind::ColorPicker { id, .. }
-            | WidgetKind::Toast { id, .. } => {
+            | WidgetKind::Toast { id, .. }
+            | WidgetKind::VideoPlayer { id, .. }
+            | WidgetKind::Media { id, .. } => {
                 Some(InteractionKey { widget_id: id.clone(), index: None })
             }
             WidgetKind::MenuItem { id, .. } | WidgetKind::TreeNode { id, .. } => {
@@ -266,7 +272,7 @@ impl WidgetKind {
             | WidgetKind::MetricCard { .. }
             | WidgetKind::ScrollView { .. }
             | WidgetKind::Tooltip { .. }
-            | WidgetKind::Media { .. } => None,
+            | WidgetKind::AudioVisualizer { .. } => None,
         }
     }
 }

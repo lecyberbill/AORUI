@@ -645,17 +645,6 @@ impl WidgetTree {
         self.modal(id, title, children, dialog_style, backdrop_style)
     }
 
-    /// Reserves a layout node for custom non-SDF media content (images, videos, 3D viewports...).
-    pub fn media(
-        &mut self,
-        id: impl Into<WidgetId>,
-        kind: MediaKind,
-        resource_id: impl Into<String>,
-        style: Style,
-    ) -> Result<NodeId, LayoutError> {
-        self.layout.insert_leaf(style, WidgetKind::Media { id: id.into(), kind, resource_id: resource_id.into() })
-    }
-
     pub fn container(&mut self, children: &[NodeId], style: Style) -> Result<NodeId, LayoutError> {
         self.layout.insert_container(style, children, WidgetKind::Container)
     }
@@ -1009,6 +998,88 @@ impl WidgetTree {
                 id: wid,
                 title: title_str,
                 folded,
+            },
+        )
+    }
+
+    /// Generic media widget.
+    pub fn media(
+        &mut self,
+        id: impl Into<WidgetId>,
+        kind: MediaKind,
+        resource_id: impl Into<String>,
+        style: Style,
+    ) -> Result<NodeId, LayoutError> {
+        self.layout.insert_leaf(
+            style,
+            WidgetKind::Media {
+                id: id.into(),
+                kind,
+                resource_id: resource_id.into(),
+                fit: crate::media::MediaFit::Cover,
+                radius: None,
+            },
+        )
+    }
+
+    /// Image widget with custom aspect fitting mode and corner radius.
+    pub fn image(
+        &mut self,
+        id: impl Into<WidgetId>,
+        resource_id: impl Into<String>,
+        fit: crate::media::MediaFit,
+        style: Style,
+    ) -> Result<NodeId, LayoutError> {
+        self.layout.insert_leaf(
+            style,
+            WidgetKind::Media {
+                id: id.into(),
+                kind: MediaKind("image"),
+                resource_id: resource_id.into(),
+                fit,
+                radius: None,
+            },
+        )
+    }
+
+    /// Video player widget with transport controls and status.
+    pub fn video_player(
+        &mut self,
+        id: impl Into<WidgetId>,
+        resource_id: impl Into<String>,
+        playing: bool,
+        progress: f32,
+        duration_sec: f32,
+        volume: f32,
+        style: Style,
+    ) -> Result<NodeId, LayoutError> {
+        self.layout.insert_leaf(
+            style,
+            WidgetKind::VideoPlayer {
+                id: id.into(),
+                resource_id: resource_id.into(),
+                playing,
+                progress,
+                duration_sec,
+                volume,
+            },
+        )
+    }
+
+    /// Real-time audio spectrum analyzer / visualizer.
+    pub fn audio_visualizer(
+        &mut self,
+        id: impl Into<WidgetId>,
+        values: &[f32],
+        peak: f32,
+        style: Style,
+    ) -> Result<NodeId, LayoutError> {
+        self.layout.insert_leaf(
+            style,
+            WidgetKind::AudioVisualizer {
+                id: id.into(),
+                values: values.to_vec(),
+                peak,
             },
         )
     }

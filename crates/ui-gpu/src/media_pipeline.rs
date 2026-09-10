@@ -12,6 +12,9 @@ pub struct MediaInstance {
     pub kind: String,
     pub resource_id: String,
     pub bounds: [f32; 4],
+    pub clip_bounds: [f32; 4],
+    pub radius: f32,
+    pub fit_mode: u32,
 }
 
 /// Point d'extension pour un format de contenu (image, vidéo, document
@@ -34,6 +37,9 @@ pub trait MediaPipeline: Send {
     /// Doit correspondre au `kind` utilisé côté `ui_widgets::MediaKind`
     /// (ex. `"image"`, `"video"`, `"markdown"`, `"viewport3d"`).
     fn kind(&self) -> &'static str;
+
+    /// Met à jour les dimensions de la fenêtre pour la projection NDC.
+    fn set_screen_size(&mut self, _queue: &wgpu::Queue, _width: f32, _height: f32) {}
 
     /// Dessine les instances de ce format dans la passe de composition,
     /// par-dessus les cartes SDF déjà rendues et sous le texte (voir l'ordre

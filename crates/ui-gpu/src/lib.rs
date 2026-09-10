@@ -7,20 +7,24 @@
 
 mod blur_pipeline;
 mod context;
+pub mod image_pipeline;
 pub mod measure;
 mod media_pipeline;
 mod renderer;
 mod resources;
 mod sdf_pipeline;
 mod text;
+pub mod texture;
 mod textures;
 
 pub use context::GpuContext;
+pub use image_pipeline::ImagePipeline;
 pub use measure::CosmicTextMeasure;
 pub use media_pipeline::{MediaInstance, MediaPipeline};
 pub use renderer::{GpuRenderer, RenderLayer};
 pub use resources::ResourceTable;
 pub use text::{TextLayer, TextRun};
+pub use texture::GpuTexture;
 
 #[cfg(test)]
 mod tests {
@@ -53,5 +57,10 @@ mod tests {
     #[test]
     fn blur_dual_kawase_shader_is_valid_wgsl() {
         validate_wgsl(include_str!("../shaders/blur_dual_kawase.wgsl"));
+    }
+
+    #[test]
+    fn image_quad_shader_is_valid_wgsl() {
+        validate_wgsl(include_str!("shaders/image_quad.wgsl"));
     }
 }

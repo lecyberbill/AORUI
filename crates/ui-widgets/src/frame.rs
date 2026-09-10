@@ -1270,8 +1270,108 @@ fn render_kind(
             }
         }
 
-        WidgetKind::Media { kind, resource_id, .. } => {
-            frame.media.push(MediaSpec { kind: *kind, bounds, resource_id: resource_id.clone() });
+        WidgetKind::Media { kind, resource_id, fit, radius, .. } => {
+            let r = radius.unwrap_or(theme.corner_radius);
+            frame.media.push(MediaSpec {
+                kind: *kind,
+                bounds,
+                resource_id: resource_id.clone(),
+                fit: *fit,
+                radius: r,
+                clip,
+            });
+        }
+
+        WidgetKind::VideoPlayer { resource_id, playing, progress, duration_sec, .. } => {
+            // 1. Video frame media spec
+            let r = theme.corner_radius;
+            frame.media.push(MediaSpec {
+                kind: crate::media::MediaKind("video"),
+                bounds,
+                resource_id: resource_id.clone(),
+                fit: crate::media::MediaFit::Cover,
+                radius: r,
+                clip,
+            });
+
+            // 2. Glass frame border & ambient glow
+            frame.instances.push(glass_instance(bounds, clip, [0.0, 0.0, 0.0, 0.0], theme.accent, if hovered { 0.20 } else { 0.05 }, theme));
+
+            // 3. Cyber Glass Bottom Transport Bar (h = 36px)
+            let bar_h = 36.0;
+            let bar_y = bounds[1] + bounds[3] - bar_h - 6.0;
+            let bar_bounds = [bounds[0] + 8.0, bar_y, bounds[2] - 16.0, bar_h];
+            let bar_bg = [theme.glass_bg[0] * 0.9, theme.glass_bg[1] * 0.9, theme.glass_bg[2] * 0.9, 0.92];
+            frame.instances.push(custom_glass_instance(bar_bounds, clip, bar_bg, theme.accent_secondary, 6.0, 1.0, 0.15));
+
+            // Play / Pause button glyph
+            let play_glyph = if *playing { "⏸" } else { "▶" };
+            let play_bounds = [bar_bounds[0] + 6.0, bar_y, 24.0, bar_h];
+            frame.texts.push(text_spec(play_glyph.to_string(), play_bounds, clip, theme, theme.accent, TextAlign::Center, TextRole::Body));
+
+            // Timecode labels: current / total
+            let cur_sec = (progress * duration_sec).round() as u32;
+            let tot_sec = duration_sec.round() as u32;
+            let time_str = format!("{:02}:{:02} / {:02}:{:02}", cur_sec / 60, cur_sec % 60, tot_sec / 60, tot_sec % 60);
+
+            let time_w = 90.0;
+            let time_bounds = [bar_bounds[0] + bar_bounds[2] - time_w - 8.0, bar_y, time_w, bar_h];
+            frame.texts.push(text_spec(time_str, time_bounds, clip, theme, theme.text_muted, TextAlign::Right, TextRole::Caption));
+
+            // Timeline Scrubber track between play button and timecode
+            let track_x = bar_bounds[0] + 34.0;
+            let track_w = (bar_bounds[2] - 34.0 - time_w - 14.0).max(10.0);
+            let track_h = 4.0;
+            let track_y = bar_y + (bar_h - track_h) * 0.5;
+            let track_bounds = [track_x, track_y, track_w, track_h];
+            frame.instances.push(glass_instance(track_bounds, clip, [0.15, 0.20, 0.30, 0.8], theme.accent_secondary, 0.0, theme));
+
+            // Scrubber fill progress
+            let fill_w = (track_w * progress.clamp(0.0, 1.0)).max(2.0);
+            let fill_bounds = [track_x, track_y, fill_w, track_h];
+            frame.instances.push(glass_instance(fill_bounds, clip, theme.accent, theme.accent, 0.4, theme));
+
+            // Scrubber Thumb dot
+            let thumb_size = 10.0;
+            let thumb_x = track_x + fill_w - thumb_size * 0.5;
+            let thumb_y = bar_y + (bar_h - thumb_size) * 0.5;
+            let thumb_bounds = [thumb_x, thumb_y, thumb_size, thumb_size];
+            frame.instances.push(glass_instance(thumb_bounds, clip, [1.0, 1.0, 1.0, 1.0], theme.accent, 0.5, theme));
+        }
+
+        WidgetKind::AudioVisualizer { values, peak, .. } => {
+            // Ambient container glass
+            frame.instances.push(glass_instance(bounds, clip, theme.glass_bg, theme.accent_secondary, 0.08, theme));
+
+            let pad_x = 10.0;
+            let pad_y = 10.0;
+            let avail_w = (bounds[2] - pad_x * 2.0).max(1.0);
+            let avail_h = (bounds[3] - pad_y * 2.0).max(1.0);
+
+            if !values.is_empty() {
+                let n = values.len();
+                let gap = 3.0;
+                let total_gaps = gap * (n.saturating_sub(1) as f32);
+                let bar_w = ((avail_w - total_gaps) / n as f32).max(2.0);
+
+                for (i, &val) in values.iter().enumerate() {
+                    let ratio = (val / peak.max(1.0e-4)).clamp(0.05, 1.0);
+                    let bar_h = avail_h * ratio;
+                    let bar_x = bounds[0] + pad_x + i as f32 * (bar_w + gap);
+                    let bar_y = bounds[1] + bounds[3] - pad_y - bar_h;
+                    let bar_bounds = [bar_x, bar_y, bar_w, bar_h];
+
+                    // Gradient color modulation from cyan to purple/pink
+                    let t = (i as f32 / n as f32).clamp(0.0, 1.0);
+                    let bar_color = [
+                        theme.accent[0] * (1.0 - t) + theme.accent_secondary[0] * t,
+                        theme.accent[1] * (1.0 - t) + theme.accent_secondary[1] * t,
+                        theme.accent[2] * (1.0 - t) + theme.accent_secondary[2] * t,
+                        0.90,
+                    ];
+                    frame.instances.push(custom_glass_instance(bar_bounds, clip, bar_color, bar_color, 2.0, 0.5, 0.35));
+                }
+            }
         }
     }
 }
