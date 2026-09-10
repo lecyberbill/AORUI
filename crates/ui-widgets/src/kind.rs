@@ -104,9 +104,9 @@ pub enum WidgetKind {
     Icon { kind: IconKind, size: f32, color: Option<[f32; 4]> },
     Label { text: String, muted: bool },
     Checkbox { id: WidgetId, checked: bool },
-    TextInput { id: WidgetId, value: String, placeholder: String, focused: bool },
-    TextArea { id: WidgetId, value: String, placeholder: String, focused: bool, line_numbers: bool },
-    PasswordInput { id: WidgetId, value: String, placeholder: String, focused: bool, revealed: bool },
+    TextInput { id: WidgetId, value: String, placeholder: String, focused: bool, cursor: usize, selection: Option<(usize, usize)> },
+    TextArea { id: WidgetId, value: String, placeholder: String, focused: bool, line_numbers: bool, cursor: usize, selection: Option<(usize, usize)> },
+    PasswordInput { id: WidgetId, value: String, placeholder: String, focused: bool, revealed: bool, cursor: usize },
     NumberInput { id: WidgetId, value: f64, min: f64, max: f64, step: f64, precision: usize, focused: bool },
 
     Window { id: WidgetId, title: String },

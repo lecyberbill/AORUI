@@ -474,6 +474,72 @@ impl WidgetTree {
         Ok(None)
     }
 
+    /// Converts mouse click coordinates into a character cursor offset for focused text inputs.
+    pub fn text_cursor_at(
+        &self,
+        root: NodeId,
+        point: (f32, f32),
+        body_font_size: f32,
+    ) -> Result<Option<(String, usize)>, ui_layout::LayoutError> {
+        let effective = self.effective_bounds(root)?;
+        for (node, bounds) in &effective {
+            let b = bounds.visual;
+            if point.0 < b[0] || point.0 > b[0] + b[2] || point.1 < b[1] || point.1 > b[1] + b[3] {
+                continue;
+            }
+            if let Some(kind) = self.layout().payload(*node) {
+                match kind {
+                    WidgetKind::TextInput { id, value, .. } => {
+                        let text_start_x = b[0] + 12.0;
+                        let rel_x = (point.0 - text_start_x).max(0.0);
+                        let idx = crate::frame::find_cursor_index_in_line(value, rel_x, body_font_size);
+                        return Ok(Some((id.to_string(), idx)));
+                    }
+                    WidgetKind::PasswordInput { id, value, revealed, .. } => {
+                        let text_start_x = b[0] + 12.0;
+                        let rel_x = (point.0 - text_start_x).max(0.0);
+                        let idx = if *revealed {
+                            crate::frame::find_cursor_index_in_line(value, rel_x, body_font_size)
+                        } else {
+                            let char_w = body_font_size * 0.55;
+                            ((rel_x / char_w).round() as usize).min(value.len())
+                        };
+                        return Ok(Some((id.to_string(), idx)));
+                    }
+                    WidgetKind::TextArea { id, value, line_numbers, .. } => {
+                        let gutter_w = if *line_numbers { 32.0 } else { 0.0 };
+                        let text_offset_x = b[0] + gutter_w + 10.0;
+                        let line_h = 20.0;
+                        let start_y = b[1] + 8.0;
+
+                        let rel_y = (point.1 - start_y).max(0.0);
+                        let target_line_idx = (rel_y / line_h) as usize;
+
+                        let lines: Vec<&str> = value.split('\n').collect();
+                        let actual_line_idx = target_line_idx.min(lines.len().saturating_sub(1));
+
+                        let line_str = lines.get(actual_line_idx).unwrap_or(&"");
+                        let rel_x = (point.0 - text_offset_x).max(0.0);
+                        let col_idx = crate::frame::find_cursor_index_in_line(line_str, rel_x, body_font_size);
+
+                        // Convert (actual_line_idx, col_idx) to global character offset
+                        let mut byte_offset = 0;
+                        for (i, l) in lines.iter().enumerate() {
+                            if i == actual_line_idx {
+                                byte_offset += col_idx.min(l.len());
+                                break;
+                            }
+                            byte_offset += l.len() + 1; // +1 for '\n'
+                        }
+                        return Ok(Some((id.to_string(), byte_offset.min(value.len()))));
+                    }
+                    _ => {}
+                }
+            }
+        }
+        Ok(None)
+    }
+
     fn collect_focusable(&self, node: NodeId, list: &mut Vec<String>) -> Result<(), ui_layout::LayoutError> {
         if let Some(kind) = self.layout().payload(node) {
             match kind {

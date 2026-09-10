@@ -442,7 +442,7 @@ fn render_kind(kind: &WidgetKind, bounds: [f32; 4], clip: [f32; 4], theme: &Them
             }
         }
 
-        WidgetKind::TextInput { value, placeholder, focused, .. } => {
+        WidgetKind::TextInput { value, placeholder, focused, cursor, selection, .. } => {
             let base = if *focused { theme.glow_intensity_hover * 1.1 } else { theme.glow_intensity * 0.4 };
             let intensity = interactive_glow(base, hovered, pressed, theme);
             let border_accent = if *focused { theme.accent } else { theme.accent_secondary };
@@ -455,26 +455,41 @@ fn render_kind(kind: &WidgetKind, bounds: [f32; 4], clip: [f32; 4], theme: &Them
             frame.texts.push(text_spec(text, inset(bounds, 12.0, 0.0), clip, theme, color, TextAlign::Left, TextRole::Body));
 
             if *focused {
-                // Precise proportional text cursor placement
-                let text_w = estimate_text_width(value, theme.typography.body_size);
-                let cursor_x = (bounds[0] + 12.0 + text_w).min(bounds[0] + bounds[2] - 14.0);
                 let cursor_h = (bounds[3] - 14.0).max(12.0);
                 let cursor_y = bounds[1] + (bounds[3] - cursor_h) * 0.5;
+
+                // Selection highlight
+                if let Some((s_start, s_end)) = selection {
+                    if s_start != s_end {
+                        let min_s = (*s_start).min(*s_end).min(value.len());
+                        let max_s = (*s_start).max(*s_end).min(value.len());
+                        let x1 = bounds[0] + 12.0 + estimate_text_width(&value[..min_s], theme.typography.body_size);
+                        let x2 = bounds[0] + 12.0 + estimate_text_width(&value[..max_s], theme.typography.body_size);
+                        let sel_bounds = [x1, cursor_y, (x2 - x1).max(2.0), cursor_h];
+                        let sel_bg = [theme.accent[0] * 0.35, theme.accent[1] * 0.35, theme.accent[2] * 0.35, 0.55];
+                        frame.instances.push(custom_glass_instance(sel_bounds, clip, sel_bg, [0.0, 0.0, 0.0, 0.0], 2.0, 0.0, 0.0));
+                    }
+                }
+
+                // Caret line at exact cursor index
+                let safe_cursor = (*cursor).min(value.len());
+                let text_w = estimate_text_width(&value[..safe_cursor], theme.typography.body_size);
+                let cursor_x = (bounds[0] + 12.0 + text_w).min(bounds[0] + bounds[2] - 14.0);
                 let cursor_bounds = [cursor_x, cursor_y, 2.0, cursor_h];
-                frame.instances.push(glass_instance(cursor_bounds, clip, theme.accent, theme.accent, 0.5, theme));
+                frame.instances.push(glass_instance(cursor_bounds, clip, theme.accent, theme.accent, 0.6, theme));
             }
         }
 
-        WidgetKind::TextArea { value, placeholder, focused, line_numbers, .. } => {
+        WidgetKind::TextArea { value, placeholder, focused, line_numbers, cursor, selection, .. } => {
             let base = if *focused { theme.glow_intensity_hover * 1.1 } else { theme.glow_intensity * 0.4 };
             let intensity = interactive_glow(base, hovered, pressed, theme);
             let border_accent = if *focused { theme.accent } else { theme.accent_secondary };
             frame.instances.push(glass_instance(bounds, clip, theme.glass_bg, border_accent, intensity, theme));
 
-            let gutter_w = if *line_numbers { 28.0 } else { 0.0 };
+            let gutter_w = if *line_numbers { 32.0 } else { 0.0 };
             if *line_numbers {
                 let gutter_bounds = [bounds[0], bounds[1], gutter_w, bounds[3]];
-                let gutter_bg = [theme.glass_bg[0] * 0.6, theme.glass_bg[1] * 0.6, theme.glass_bg[2] * 0.6, 0.5];
+                let gutter_bg = [theme.glass_bg[0] * 0.5, theme.glass_bg[1] * 0.5, theme.glass_bg[2] * 0.5, 0.65];
                 frame.instances.push(glass_instance(gutter_bounds, clip, gutter_bg, [0.0, 0.0, 0.0, 0.0], 0.0, theme));
 
                 let div_bounds = [bounds[0] + gutter_w, bounds[1], 1.0, bounds[3]];
@@ -482,7 +497,7 @@ fn render_kind(kind: &WidgetKind, bounds: [f32; 4], clip: [f32; 4], theme: &Them
             }
 
             let text_offset_x = bounds[0] + gutter_w + 10.0;
-            let text_w = bounds[2] - gutter_w - 18.0;
+            let text_w = (bounds[2] - gutter_w - 18.0).max(10.0);
             let line_h = 20.0;
             let start_y = bounds[1] + 8.0;
 
@@ -492,6 +507,10 @@ fn render_kind(kind: &WidgetKind, bounds: [f32; 4], clip: [f32; 4], theme: &Them
                 if *line_numbers {
                     let num_bounds = [bounds[0] + 2.0, start_y, gutter_w - 6.0, line_h];
                     frame.texts.push(text_spec("1".to_string(), num_bounds, clip, theme, theme.text_muted, TextAlign::Right, TextRole::Caption));
+                }
+                if *focused {
+                    let cursor_bounds = [text_offset_x, start_y + 2.0, 2.0, line_h - 4.0];
+                    frame.instances.push(glass_instance(cursor_bounds, clip, theme.accent, theme.accent, 0.6, theme));
                 }
             } else {
                 let lines: Vec<&str> = value.split('\n').collect();
@@ -509,20 +528,62 @@ fn render_kind(kind: &WidgetKind, bounds: [f32; 4], clip: [f32; 4], theme: &Them
                 }
 
                 if *focused {
-                    let last_line_idx = lines.len().saturating_sub(1);
-                    let last_line_str = lines.last().unwrap_or(&"");
-                    let cur_y = start_y + last_line_idx as f32 * line_h;
+                    // Optional selection highlight
+                    if let Some((s_start, s_end)) = selection {
+                        if s_start != s_end {
+                            let min_s = (*s_start).min(*s_end).min(value.len());
+                            let max_s = (*s_start).max(*s_end).min(value.len());
+                            let mut line_offset = 0;
+                            for (idx, line_str) in lines.iter().enumerate() {
+                                let line_len = line_str.len();
+                                let line_end = line_offset + line_len;
+                                if max_s > line_offset && min_s < line_end {
+                                    let l_start = min_s.saturating_sub(line_offset).min(line_len);
+                                    let l_end = (max_s - line_offset).min(line_len);
+                                    let x1 = text_offset_x + estimate_text_width(&line_str[..l_start], theme.typography.body_size);
+                                    let x2 = text_offset_x + estimate_text_width(&line_str[..l_end], theme.typography.body_size);
+                                    let cur_y = start_y + idx as f32 * line_h;
+                                    if cur_y + line_h <= bounds[1] + bounds[3] {
+                                        let sel_bounds = [x1, cur_y + 1.0, (x2 - x1).max(2.0), line_h - 2.0];
+                                        let sel_bg = [theme.accent[0] * 0.35, theme.accent[1] * 0.35, theme.accent[2] * 0.35, 0.55];
+                                        frame.instances.push(custom_glass_instance(sel_bounds, clip, sel_bg, [0.0, 0.0, 0.0, 0.0], 2.0, 0.0, 0.0));
+                                    }
+                                }
+                                line_offset += line_len + 1;
+                            }
+                        }
+                    }
+
+                    // Resolve cursor line and column index
+                    let mut acc = 0;
+                    let mut cur_line_idx = 0;
+                    let mut cur_col_idx = 0;
+                    let safe_cursor = (*cursor).min(value.len());
+
+                    for (i, l) in lines.iter().enumerate() {
+                        let line_len = l.len();
+                        if acc + line_len >= safe_cursor || i == lines.len() - 1 {
+                            cur_line_idx = i;
+                            cur_col_idx = safe_cursor.saturating_sub(acc).min(line_len);
+                            break;
+                        }
+                        acc += line_len + 1; // +1 for '\n'
+                    }
+
+                    let cur_line_str = lines.get(cur_line_idx).unwrap_or(&"");
+                    let col_prefix = if cur_col_idx <= cur_line_str.len() { &cur_line_str[..cur_col_idx] } else { cur_line_str };
+                    let cursor_x = (text_offset_x + estimate_text_width(col_prefix, theme.typography.body_size)).min(bounds[0] + bounds[2] - 12.0);
+                    let cur_y = start_y + cur_line_idx as f32 * line_h;
+
                     if cur_y + line_h <= bounds[1] + bounds[3] {
-                        let text_w_est = estimate_text_width(last_line_str, theme.typography.body_size);
-                        let cursor_x = (text_offset_x + text_w_est).min(bounds[0] + bounds[2] - 12.0);
                         let cursor_bounds = [cursor_x, cur_y + 2.0, 2.0, line_h - 4.0];
-                        frame.instances.push(glass_instance(cursor_bounds, clip, theme.accent, theme.accent, 0.5, theme));
+                        frame.instances.push(glass_instance(cursor_bounds, clip, theme.accent, theme.accent, 0.6, theme));
                     }
                 }
             }
         }
 
-        WidgetKind::PasswordInput { value, placeholder, focused, revealed, .. } => {
+        WidgetKind::PasswordInput { value, placeholder, focused, revealed, cursor, .. } => {
             let base = if *focused { theme.glow_intensity_hover * 1.1 } else { theme.glow_intensity * 0.4 };
             let intensity = interactive_glow(base, hovered, pressed, theme);
             let border_accent = if *focused { theme.accent } else { theme.accent_secondary };
@@ -546,17 +607,18 @@ fn render_kind(kind: &WidgetKind, bounds: [f32; 4], clip: [f32; 4], theme: &Them
             frame.texts.push(text_spec(eye_glyph.to_string(), eye_box, clip, theme, eye_color, TextAlign::Center, TextRole::Body));
 
             if *focused {
-                let est_char_len = if *revealed { value.len() } else { value.chars().count() };
+                let safe_cursor = (*cursor).min(value.len());
                 let text_w = if *revealed {
-                    estimate_text_width(value, theme.typography.body_size)
+                    estimate_text_width(&value[..safe_cursor], theme.typography.body_size)
                 } else {
-                    est_char_len as f32 * (theme.typography.body_size * 0.55)
+                    let char_count = value[..safe_cursor].chars().count();
+                    char_count as f32 * (theme.typography.body_size * 0.55)
                 };
                 let cursor_x = (bounds[0] + 12.0 + text_w).min(bounds[0] + bounds[2] - 34.0);
                 let cursor_h = (bounds[3] - 14.0).max(12.0);
                 let cursor_y = bounds[1] + (bounds[3] - cursor_h) * 0.5;
                 let cursor_bounds = [cursor_x, cursor_y, 2.0, cursor_h];
-                frame.instances.push(glass_instance(cursor_bounds, clip, theme.accent, theme.accent, 0.5, theme));
+                frame.instances.push(glass_instance(cursor_bounds, clip, theme.accent, theme.accent, 0.6, theme));
             }
         }
 
@@ -1196,25 +1258,45 @@ fn render_kind(kind: &WidgetKind, bounds: [f32; 4], clip: [f32; 4], theme: &Them
     }
 }
 
+/// Precise proportional width of a single character.
+pub fn estimate_char_width(ch: char, font_size: f32) -> f32 {
+    let ratio = match ch {
+        ' ' => 0.32,
+        'i' | 'j' | 'l' | '!' | '|' | ':' | ';' | '\'' | '`' | ',' | '.' => 0.28,
+        'f' | 't' | 'I' | 'r' | '(' | ')' | '[' | ']' | '{' | '}' | '-' => 0.38,
+        '/' | '\\' | '*' | '?' | '"' | '^' => 0.46,
+        's' | 'z' | 'c' | 'k' | 'v' | 'x' | 'y' | 'e' => 0.54,
+        'a' | 'b' | 'd' | 'g' | 'h' | 'n' | 'o' | 'p' | 'q' | 'u' | '0'..='9' | 'é' | 'è' | 'ê' | 'ë' | 'à' | 'â' | 'î' | 'ï' | 'ô' | 'ù' | 'û' | 'ç' => 0.60,
+        'w' | 'm' => 0.84,
+        'M' | 'W' | '@' | '%' | '&' | '#' | '_' | '~' | '+' | '=' | '<' | '>' => 0.88,
+        'A'..='Z' => 0.68,
+        _ => 0.58,
+    };
+    ratio * font_size
+}
+
 /// Accurate proportional text width estimation for caret positioning.
 pub fn estimate_text_width(text: &str, font_size: f32) -> f32 {
-    let mut total = 0.0;
-    for ch in text.chars() {
-        let ratio = match ch {
-            ' ' => 0.32,
-            'i' | 'j' | 'l' | '!' | '|' | ':' | ';' | '\'' | '`' | ',' | '.' => 0.28,
-            'f' | 't' | 'I' | 'r' | '(' | ')' | '[' | ']' | '{' | '}' | '-' => 0.38,
-            '/' | '\\' | '*' | '?' | '"' | '^' => 0.46,
-            's' | 'z' | 'c' | 'k' | 'v' | 'x' | 'y' | 'e' => 0.54,
-            'a' | 'b' | 'd' | 'g' | 'h' | 'n' | 'o' | 'p' | 'q' | 'u' | '0'..='9' | 'é' | 'è' | 'ê' | 'ë' | 'à' | 'â' | 'î' | 'ï' | 'ô' | 'ù' | 'û' | 'ç' => 0.60,
-            'w' | 'm' => 0.84,
-            'M' | 'W' | '@' | '%' | '&' | '#' | '_' | '~' | '+' | '=' | '<' | '>' => 0.88,
-            'A'..='Z' => 0.68,
-            _ => 0.58,
-        };
-        total += ratio * font_size;
+    text.chars().map(|ch| estimate_char_width(ch, font_size)).sum()
+}
+
+/// Finds the character boundary in `line` whose accumulated text width is closest to `target_x`.
+pub fn find_cursor_index_in_line(line: &str, target_x: f32, font_size: f32) -> usize {
+    if line.is_empty() || target_x <= 0.0 {
+        return 0;
     }
-    total
+    let mut current_x = 0.0;
+    let mut last_idx = 0;
+
+    for (idx, ch) in line.char_indices() {
+        let ch_w = estimate_char_width(ch, font_size);
+        if target_x < current_x + ch_w * 0.5 {
+            return idx;
+        }
+        current_x += ch_w;
+        last_idx = idx + ch.len_utf8();
+    }
+    last_idx
 }
 
 #[cfg(test)]

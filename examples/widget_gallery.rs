@@ -109,6 +109,273 @@ const LIST_SCROLL_ID: &str = "demo_list_scroll";
 const WINDOW_WIDTH: f32 = 580.0;
 const WINDOW_HEIGHT: f32 = 780.0;
 
+/// Interactive text editor buffer supporting cursor positioning, selection, and multi-line navigation.
+#[derive(Debug, Clone)]
+struct TextEditorState {
+    text: String,
+    cursor: usize,
+    selection: Option<(usize, usize)>,
+}
+
+impl TextEditorState {
+    fn new(initial: impl Into<String>) -> Self {
+        let text = initial.into();
+        let cursor = text.len();
+        Self { text, cursor, selection: None }
+    }
+
+    fn insert_char(&mut self, ch: char) {
+        self.delete_selection();
+        self.cursor = self.cursor.min(self.text.len());
+        self.text.insert(self.cursor, ch);
+        self.cursor += ch.len_utf8();
+    }
+
+    #[allow(dead_code)]
+    fn insert_str(&mut self, s: &str) {
+        self.delete_selection();
+        self.cursor = self.cursor.min(self.text.len());
+        self.text.insert_str(self.cursor, s);
+        self.cursor += s.len();
+    }
+
+    fn backspace(&mut self) {
+        if self.delete_selection() {
+            return;
+        }
+        if self.cursor > 0 && !self.text.is_empty() {
+            let prev_char_idx = self.text[..self.cursor]
+                .char_indices()
+                .next_back()
+                .map(|(i, _)| i)
+                .unwrap_or(0);
+            self.text.remove(prev_char_idx);
+            self.cursor = prev_char_idx;
+        }
+    }
+
+    fn delete(&mut self) {
+        if self.delete_selection() {
+            return;
+        }
+        if self.cursor < self.text.len() {
+            self.text.remove(self.cursor);
+        }
+    }
+
+    fn move_left(&mut self, word: bool, select: bool) {
+        if select && self.selection.is_none() {
+            self.selection = Some((self.cursor, self.cursor));
+        } else if !select {
+            self.selection = None;
+        }
+
+        if self.cursor > 0 {
+            if word {
+                let slice = &self.text[..self.cursor];
+                let mut found_non_space = false;
+                let mut new_pos = 0;
+                for (idx, ch) in slice.char_indices().rev() {
+                    if !ch.is_whitespace() {
+                        found_non_space = true;
+                    } else if found_non_space {
+                        new_pos = idx + ch.len_utf8();
+                        break;
+                    }
+                }
+                self.cursor = new_pos;
+            } else {
+                let prev_char_idx = self.text[..self.cursor]
+                    .char_indices()
+                    .next_back()
+                    .map(|(i, _)| i)
+                    .unwrap_or(0);
+                self.cursor = prev_char_idx;
+            }
+        }
+
+        if select {
+            if let Some((anchor, _)) = self.selection {
+                self.selection = Some((anchor, self.cursor));
+            }
+        }
+    }
+
+    fn move_right(&mut self, word: bool, select: bool) {
+        if select && self.selection.is_none() {
+            self.selection = Some((self.cursor, self.cursor));
+        } else if !select {
+            self.selection = None;
+        }
+
+        if self.cursor < self.text.len() {
+            if word {
+                let slice = &self.text[self.cursor..];
+                let mut found_space = false;
+                let mut new_pos = self.text.len();
+                for (idx, ch) in slice.char_indices() {
+                    if ch.is_whitespace() {
+                        found_space = true;
+                    } else if found_space {
+                        new_pos = self.cursor + idx;
+                        break;
+                    }
+                }
+                self.cursor = new_pos;
+            } else {
+                let next_char_idx = self.text[self.cursor..]
+                    .char_indices()
+                    .nth(1)
+                    .map(|(i, _)| self.cursor + i)
+                    .unwrap_or(self.text.len());
+                self.cursor = next_char_idx;
+            }
+        }
+
+        if select {
+            if let Some((anchor, _)) = self.selection {
+                self.selection = Some((anchor, self.cursor));
+            }
+        }
+    }
+
+    fn move_home(&mut self, select: bool) {
+        if select && self.selection.is_none() {
+            self.selection = Some((self.cursor, self.cursor));
+        } else if !select {
+            self.selection = None;
+        }
+
+        let prev_newline = self.text[..self.cursor].rfind('\n').map(|i| i + 1).unwrap_or(0);
+        self.cursor = prev_newline;
+
+        if select {
+            if let Some((anchor, _)) = self.selection {
+                self.selection = Some((anchor, self.cursor));
+            }
+        }
+    }
+
+    fn move_end(&mut self, select: bool) {
+        if select && self.selection.is_none() {
+            self.selection = Some((self.cursor, self.cursor));
+        } else if !select {
+            self.selection = None;
+        }
+
+        let next_newline = self.text[self.cursor..].find('\n').map(|i| self.cursor + i).unwrap_or(self.text.len());
+        self.cursor = next_newline;
+
+        if select {
+            if let Some((anchor, _)) = self.selection {
+                self.selection = Some((anchor, self.cursor));
+            }
+        }
+    }
+
+    fn move_up(&mut self, select: bool) {
+        if select && self.selection.is_none() {
+            self.selection = Some((self.cursor, self.cursor));
+        } else if !select {
+            self.selection = None;
+        }
+
+        let lines: Vec<&str> = self.text.split('\n').collect();
+        let mut acc = 0;
+        let mut cur_line = 0;
+        let mut col = 0;
+        for (i, l) in lines.iter().enumerate() {
+            if acc + l.len() >= self.cursor || i == lines.len() - 1 {
+                cur_line = i;
+                col = self.cursor.saturating_sub(acc);
+                break;
+            }
+            acc += l.len() + 1;
+        }
+
+        if cur_line > 0 {
+            let prev_line = cur_line - 1;
+            let mut prev_acc = 0;
+            for i in 0..prev_line {
+                prev_acc += lines[i].len() + 1;
+            }
+            let target_col = col.min(lines[prev_line].len());
+            self.cursor = prev_acc + target_col;
+        } else {
+            self.cursor = 0;
+        }
+
+        if select {
+            if let Some((anchor, _)) = self.selection {
+                self.selection = Some((anchor, self.cursor));
+            }
+        }
+    }
+
+    fn move_down(&mut self, select: bool) {
+        if select && self.selection.is_none() {
+            self.selection = Some((self.cursor, self.cursor));
+        } else if !select {
+            self.selection = None;
+        }
+
+        let lines: Vec<&str> = self.text.split('\n').collect();
+        let mut acc = 0;
+        let mut cur_line = 0;
+        let mut col = 0;
+        for (i, l) in lines.iter().enumerate() {
+            if acc + l.len() >= self.cursor || i == lines.len() - 1 {
+                cur_line = i;
+                col = self.cursor.saturating_sub(acc);
+                break;
+            }
+            acc += l.len() + 1;
+        }
+
+        if cur_line + 1 < lines.len() {
+            let next_line = cur_line + 1;
+            let mut next_acc = 0;
+            for i in 0..next_line {
+                next_acc += lines[i].len() + 1;
+            }
+            let target_col = col.min(lines[next_line].len());
+            self.cursor = next_acc + target_col;
+        } else {
+            self.cursor = self.text.len();
+        }
+
+        if select {
+            if let Some((anchor, _)) = self.selection {
+                self.selection = Some((anchor, self.cursor));
+            }
+        }
+    }
+
+    fn select_all(&mut self) {
+        self.selection = Some((0, self.text.len()));
+        self.cursor = self.text.len();
+    }
+
+    fn clear_selection(&mut self) {
+        self.selection = None;
+    }
+
+    fn delete_selection(&mut self) -> bool {
+        if let Some((s1, s2)) = self.selection {
+            if s1 != s2 {
+                let start = s1.min(s2).min(self.text.len());
+                let end = s1.max(s2).min(self.text.len());
+                self.text.drain(start..end);
+                self.cursor = start;
+                self.selection = None;
+                return true;
+            }
+        }
+        self.selection = None;
+        false
+    }
+}
+
 /// Application state owned by the demo app.
 struct DemoState {
     accept_checked: bool,
@@ -120,10 +387,10 @@ struct DemoState {
     click_count: u32,
     list_scroll: [f32; 2],
     close_requested: bool,
-    search_text: String,
-    password_value: String,
+    search_editor: TextEditorState,
+    password_editor: TextEditorState,
     password_revealed: bool,
-    editor_text: String,
+    studio_editor: TextEditorState,
     concurrency_spin: f64,
     port_spin: f64,
     focused_input: Option<String>,
@@ -193,6 +460,24 @@ impl DemoState {
             UiEvent::SegmentSelected { selected_index, .. } => self.selected_segment = selected_index,
             UiEvent::RadioSelected { selected_id, .. } => self.security_policy = selected_id,
             UiEvent::FocusChanged { widget_id } => self.focused_input = widget_id,
+            UiEvent::TextCursorMoved { widget_id, cursor } => {
+                self.focused_input = Some(widget_id.clone());
+                match widget_id.as_str() {
+                    "global_search" => {
+                        self.search_editor.cursor = cursor;
+                        self.search_editor.clear_selection();
+                    }
+                    "master_token_pwd" => {
+                        self.password_editor.cursor = cursor;
+                        self.password_editor.clear_selection();
+                    }
+                    "studio_editor" => {
+                        self.studio_editor.cursor = cursor;
+                        self.studio_editor.clear_selection();
+                    }
+                    _ => {}
+                }
+            }
             UiEvent::ModalDismissed { .. } => self.show_modal = false,
             UiEvent::PaletteFoldToggled { palette_id, folded } => {
                 if palette_id == "tools_palette" {
@@ -490,11 +775,13 @@ fn build_base_ui(tree: &mut WidgetTree, state: &DemoState, width: f32, height: f
 
     let search_focused = state.focused_input.as_deref() == Some("global_search");
     let search_input = tree
-        .text_input(
+        .text_input_with_cursor(
             WidgetId::new("global_search"),
-            &state.search_text,
+            &state.search_editor.text,
             "Search module, node, or metric... [Type to test]",
             search_focused,
+            state.search_editor.cursor,
+            state.search_editor.selection,
             leaf(508.0, 30.0),
         )
         .unwrap();
@@ -545,12 +832,13 @@ fn build_base_ui(tree: &mut WidgetTree, state: &DemoState, width: f32, height: f
 
             // Password Input with eye reveal toggle
             let pwd_focused = state.focused_input.as_deref() == Some("master_token_pwd");
-            let pwd_input = tree.password_input(
+            let pwd_input = tree.password_input_with_cursor(
                 WidgetId::new("master_token_pwd"),
-                &state.password_value,
+                &state.password_editor.text,
                 "Master Access Token [Click eye to reveal]...",
                 pwd_focused,
                 state.password_revealed,
+                state.password_editor.cursor,
                 leaf(378.0, 28.0),
             ).unwrap();
             let pwd_label = tree.label_muted("Auth Token:", leaf(120.0, 28.0)).unwrap();
@@ -734,12 +1022,14 @@ fn build_base_ui(tree: &mut WidgetTree, state: &DemoState, width: f32, height: f
             let inspector_desc = tree.label_muted("AORUI Scene Component Inspector", leaf(inspector_w, 16.0)).unwrap();
             let insp_card1 = tree.metric_card("Status", "Compiled & Linked", Some(("OK", true)), leaf(inspector_w, 50.0)).unwrap();
             let editor_focused = state.focused_input.as_deref() == Some("studio_editor");
-            let text_editor = tree.text_area(
+            let text_editor = tree.text_area_with_cursor(
                 WidgetId::new("studio_editor"),
-                &state.editor_text,
+                &state.studio_editor.text,
                 "// Type script...",
                 editor_focused,
                 true,
+                state.studio_editor.cursor,
+                state.studio_editor.selection,
                 leaf(inspector_w, 66.0),
             ).unwrap();
             let action_btn = tree.button(WidgetId::new("inspect_btn"), "Inspect Properties", true, leaf(inspector_w, 30.0)).unwrap();
@@ -995,6 +1285,7 @@ struct App {
     palette_drag: Option<(String, (f32, f32))>,
     palette_resize: Option<(String, (f32, f32), (f32, f32))>,
     shift_held: bool,
+    ctrl_held: bool,
 }
 
 impl App {
@@ -1016,10 +1307,10 @@ impl App {
                 click_count: 0,
                 list_scroll: [0.0, 0.0],
                 close_requested: false,
-                search_text: String::new(),
-                password_value: "cyber-key-7749".to_string(),
+                search_editor: TextEditorState::new(""),
+                password_editor: TextEditorState::new("cyber-key-7749"),
                 password_revealed: false,
-                editor_text: "// AORUI Shader Node\nfn evaluate_node() -> bool {\n    let status = verify_mesh();\n    return status;\n}".to_string(),
+                studio_editor: TextEditorState::new("// AORUI Shader Node\nfn evaluate_node() -> bool {\n    let status = verify_mesh();\n    return status;\n}"),
                 concurrency_spin: 8.0,
                 port_spin: 8080.0,
                 focused_input: Some("global_search".to_string()),
@@ -1068,6 +1359,7 @@ impl App {
             palette_drag: None,
             palette_resize: None,
             shift_held: false,
+            ctrl_held: false,
         }
     }
 
@@ -1295,6 +1587,25 @@ impl App {
         if let Ok(Some((id, color))) = self.tree.color_picker_hue_at(root, self.cursor_pos) {
             self.state.selected_color = color;
             self.color_picker_drag = Some(id);
+        }
+
+        if let Ok(Some((widget_id, cursor_idx))) = self.tree.text_cursor_at(root, self.cursor_pos, self.theme.typography.body_size) {
+            self.state.focused_input = Some(widget_id.clone());
+            match widget_id.as_str() {
+                "global_search" => {
+                    self.state.search_editor.cursor = cursor_idx;
+                    self.state.search_editor.clear_selection();
+                }
+                "master_token_pwd" => {
+                    self.state.password_editor.cursor = cursor_idx;
+                    self.state.password_editor.clear_selection();
+                }
+                "studio_editor" => {
+                    self.state.studio_editor.cursor = cursor_idx;
+                    self.state.studio_editor.clear_selection();
+                }
+                _ => {}
+            }
         }
     }
 
@@ -1539,6 +1850,7 @@ impl ApplicationHandler for App {
             }
             WindowEvent::ModifiersChanged(modifiers) => {
                 self.shift_held = modifiers.state().shift_key();
+                self.ctrl_held = modifiers.state().control_key();
             }
             WindowEvent::CursorMoved { position, .. } => {
                 self.cursor_pos = (position.x as f32, position.y as f32);
@@ -1613,57 +1925,73 @@ impl ApplicationHandler for App {
                             }
                         }
                         _ => {
+                            let ctrl = self.ctrl_held;
+                            let shift = self.shift_held;
                             if let Some(focused) = &self.state.focused_input {
-                                match focused.as_str() {
-                                    "global_search" => match key_event.logical_key {
+                                let (editor, is_multiline) = match focused.as_str() {
+                                    "global_search" => (Some(&mut self.state.search_editor), false),
+                                    "master_token_pwd" => (Some(&mut self.state.password_editor), false),
+                                    "studio_editor" => (Some(&mut self.state.studio_editor), true),
+                                    _ => (None, false),
+                                };
+
+                                if let Some(ed) = editor {
+                                    match key_event.logical_key {
+                                        winit::keyboard::Key::Named(winit::keyboard::NamedKey::ArrowLeft) => {
+                                            ed.move_left(ctrl, shift);
+                                        }
+                                        winit::keyboard::Key::Named(winit::keyboard::NamedKey::ArrowRight) => {
+                                            ed.move_right(ctrl, shift);
+                                        }
+                                        winit::keyboard::Key::Named(winit::keyboard::NamedKey::ArrowUp) => {
+                                            if is_multiline {
+                                                ed.move_up(shift);
+                                            } else {
+                                                ed.move_home(shift);
+                                            }
+                                        }
+                                        winit::keyboard::Key::Named(winit::keyboard::NamedKey::ArrowDown) => {
+                                            if is_multiline {
+                                                ed.move_down(shift);
+                                            } else {
+                                                ed.move_end(shift);
+                                            }
+                                        }
+                                        winit::keyboard::Key::Named(winit::keyboard::NamedKey::Home) => {
+                                            ed.move_home(shift);
+                                        }
+                                        winit::keyboard::Key::Named(winit::keyboard::NamedKey::End) => {
+                                            ed.move_end(shift);
+                                        }
                                         winit::keyboard::Key::Named(winit::keyboard::NamedKey::Backspace) => {
-                                            self.state.search_text.pop();
+                                            ed.backspace();
+                                        }
+                                        winit::keyboard::Key::Named(winit::keyboard::NamedKey::Delete) => {
+                                            ed.delete();
                                         }
                                         winit::keyboard::Key::Named(winit::keyboard::NamedKey::Enter) => {
-                                            println!("[widget_gallery] search submitted: '{}'", self.state.search_text);
+                                            if is_multiline {
+                                                ed.insert_char('\n');
+                                            } else {
+                                                println!("[widget_gallery] input '{focused}' submitted: '{}'", ed.text);
+                                            }
                                         }
                                         _ => {
-                                            if let Some(text) = &key_event.text {
+                                            if ctrl {
+                                                if let winit::keyboard::Key::Character(ref s) = key_event.logical_key {
+                                                    if s.eq_ignore_ascii_case("a") {
+                                                        ed.select_all();
+                                                    }
+                                                }
+                                            } else if let Some(text) = &key_event.text {
                                                 for c in text.chars() {
                                                     if !c.is_control() {
-                                                        self.state.search_text.push(c);
+                                                        ed.insert_char(c);
                                                     }
                                                 }
                                             }
                                         }
-                                    },
-                                    "master_token_pwd" => match key_event.logical_key {
-                                        winit::keyboard::Key::Named(winit::keyboard::NamedKey::Backspace) => {
-                                            self.state.password_value.pop();
-                                        }
-                                        _ => {
-                                            if let Some(text) = &key_event.text {
-                                                for c in text.chars() {
-                                                    if !c.is_control() {
-                                                        self.state.password_value.push(c);
-                                                    }
-                                                }
-                                            }
-                                        }
-                                    },
-                                    "studio_editor" => match key_event.logical_key {
-                                        winit::keyboard::Key::Named(winit::keyboard::NamedKey::Backspace) => {
-                                            self.state.editor_text.pop();
-                                        }
-                                        winit::keyboard::Key::Named(winit::keyboard::NamedKey::Enter) => {
-                                            self.state.editor_text.push('\n');
-                                        }
-                                        _ => {
-                                            if let Some(text) = &key_event.text {
-                                                for c in text.chars() {
-                                                    if !c.is_control() {
-                                                        self.state.editor_text.push(c);
-                                                    }
-                                                }
-                                            }
-                                        }
-                                    },
-                                    _ => {}
+                                    }
                                 }
                             }
                         }

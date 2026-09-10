@@ -696,4 +696,50 @@ mod tests {
             palette_id: "test_palette".to_string(),
         }));
     }
+
+    #[test]
+    fn text_cursor_click_and_caret_positioning() {
+        let mut tree = WidgetTree::new();
+        let input = tree.text_input_with_cursor("search", "abcdef", "placeholder", true, 3, None, leaf_style(200.0, 32.0)).unwrap();
+        let root = tree.container(&[input], leaf_style(200.0, 32.0)).unwrap();
+        tree.compute(root, Size::MAX_CONTENT).unwrap();
+
+        let theme = crate::Theme::cyber_glass();
+        let frame = tree.build_frame(root, &theme, Default::default()).unwrap();
+        // Should produce background instance + caret instance
+        assert!(frame.instances.len() >= 2);
+
+        // Click at text start -> char index 0
+        let cur_start = tree.text_cursor_at(root, (12.0, 16.0), 15.0).unwrap();
+        assert_eq!(cur_start, Some(("search".to_string(), 0)));
+
+        // Click far to the right -> char index 6 (end of string)
+        let cur_end = tree.text_cursor_at(root, (180.0, 16.0), 15.0).unwrap();
+        assert_eq!(cur_end, Some(("search".to_string(), 6)));
+    }
+
+    #[test]
+    fn textarea_multiline_cursor_and_selection() {
+        let mut tree = WidgetTree::new();
+        let text = "Line 1: Hello\nLine 2: World\nLine 3: Rust";
+        let editor = tree.text_area_with_cursor("editor", text, "type...", true, true, 16, Some((0, 6)), leaf_style(300.0, 120.0)).unwrap();
+        let root = tree.container(&[editor], leaf_style(300.0, 120.0)).unwrap();
+        tree.compute(root, Size::MAX_CONTENT).unwrap();
+
+        let theme = crate::Theme::cyber_glass();
+        let frame = tree.build_frame(root, &theme, Default::default()).unwrap();
+        // Has line numbers 1, 2, 3
+        assert!(frame.texts.iter().any(|t| t.text == "1"));
+        assert!(frame.texts.iter().any(|t| t.text == "2"));
+        assert!(frame.texts.iter().any(|t| t.text == "3"));
+        assert!(frame.texts.iter().any(|t| t.text == "Line 1: Hello"));
+
+        // Click on Line 2 (start_y=8, line_h=20 -> y=32 is Line 2)
+        // Line 1 is 13 chars + 1 ('\n') = 14 bytes offset.
+        let cur_line2 = tree.text_cursor_at(root, (50.0, 32.0), 15.0).unwrap();
+        assert!(cur_line2.is_some());
+        let (id, offset) = cur_line2.unwrap();
+        assert_eq!(id, "editor");
+        assert!(offset >= 14); // Points into line 2
+    }
 }

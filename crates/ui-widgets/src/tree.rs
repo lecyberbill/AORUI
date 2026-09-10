@@ -400,9 +400,33 @@ impl WidgetTree {
         focused: bool,
         style: Style,
     ) -> Result<NodeId, LayoutError> {
+        let val_str = value.into();
+        let cursor = val_str.len();
+        self.text_input_with_cursor(id, val_str, placeholder, focused, cursor, None, style)
+    }
+
+    pub fn text_input_with_cursor(
+        &mut self,
+        id: impl Into<WidgetId>,
+        value: impl Into<String>,
+        placeholder: impl Into<String>,
+        focused: bool,
+        cursor: usize,
+        selection: Option<(usize, usize)>,
+        style: Style,
+    ) -> Result<NodeId, LayoutError> {
+        let val = value.into();
+        let safe_cursor = cursor.min(val.len());
         self.layout.insert_leaf(
             style,
-            WidgetKind::TextInput { id: id.into(), value: value.into(), placeholder: placeholder.into(), focused },
+            WidgetKind::TextInput {
+                id: id.into(),
+                value: val,
+                placeholder: placeholder.into(),
+                focused,
+                cursor: safe_cursor,
+                selection,
+            },
         )
     }
 
@@ -416,14 +440,34 @@ impl WidgetTree {
         line_numbers: bool,
         style: Style,
     ) -> Result<NodeId, LayoutError> {
+        let val_str = value.into();
+        let cursor = val_str.len();
+        self.text_area_with_cursor(id, val_str, placeholder, focused, line_numbers, cursor, None, style)
+    }
+
+    pub fn text_area_with_cursor(
+        &mut self,
+        id: impl Into<WidgetId>,
+        value: impl Into<String>,
+        placeholder: impl Into<String>,
+        focused: bool,
+        line_numbers: bool,
+        cursor: usize,
+        selection: Option<(usize, usize)>,
+        style: Style,
+    ) -> Result<NodeId, LayoutError> {
+        let val = value.into();
+        let safe_cursor = cursor.min(val.len());
         self.layout.insert_leaf(
             style,
             WidgetKind::TextArea {
                 id: id.into(),
-                value: value.into(),
+                value: val,
                 placeholder: placeholder.into(),
                 focused,
                 line_numbers,
+                cursor: safe_cursor,
+                selection,
             },
         )
     }
@@ -438,14 +482,32 @@ impl WidgetTree {
         revealed: bool,
         style: Style,
     ) -> Result<NodeId, LayoutError> {
+        let val_str = value.into();
+        let cursor = val_str.len();
+        self.password_input_with_cursor(id, val_str, placeholder, focused, revealed, cursor, style)
+    }
+
+    pub fn password_input_with_cursor(
+        &mut self,
+        id: impl Into<WidgetId>,
+        value: impl Into<String>,
+        placeholder: impl Into<String>,
+        focused: bool,
+        revealed: bool,
+        cursor: usize,
+        style: Style,
+    ) -> Result<NodeId, LayoutError> {
+        let val = value.into();
+        let safe_cursor = cursor.min(val.len());
         self.layout.insert_leaf(
             style,
             WidgetKind::PasswordInput {
                 id: id.into(),
-                value: value.into(),
+                value: val,
                 placeholder: placeholder.into(),
                 focused,
                 revealed,
+                cursor: safe_cursor,
             },
         )
     }

@@ -17,6 +17,7 @@ pub enum UiEvent {
     ToggleSwitched { widget_id: String, active: bool },
     SliderChanged { widget_id: String, value: f32 },
     TextChanged { widget_id: String, value: String },
+    TextCursorMoved { widget_id: String, cursor: usize },
     TextSubmitted { widget_id: String, text: String },
     FocusChanged { widget_id: Option<String> },
     RadioSelected { group_id: String, selected_id: String },
