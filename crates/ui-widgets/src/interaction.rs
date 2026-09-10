@@ -44,11 +44,19 @@ impl WidgetTree {
             WidgetKind::Toggle { id, active } => {
                 Some(UiEvent::ToggleSwitched { widget_id: id.to_string(), active: !active })
             }
-            WidgetKind::Slider { id, min, max, .. } => {
+            WidgetKind::Slider { id, min, max, orientation, .. } => {
                 let effective = self.effective_bounds(root)?;
                 let bounds = effective[&node].visual;
-                let track_w = bounds[2];
-                let ratio = if track_w > 0.0 { ((point.0 - bounds[0]) / track_w).clamp(0.0, 1.0) } else { 0.0 };
+                let ratio = match orientation {
+                    crate::kind::SliderOrientation::Horizontal => {
+                        let track_w = bounds[2];
+                        if track_w > 0.0 { ((point.0 - bounds[0]) / track_w).clamp(0.0, 1.0) } else { 0.0 }
+                    }
+                    crate::kind::SliderOrientation::Vertical => {
+                        let track_h = bounds[3];
+                        if track_h > 0.0 { (1.0 - (point.1 - bounds[1]) / track_h).clamp(0.0, 1.0) } else { 0.0 }
+                    }
+                };
                 let value = min + ratio * (max - min);
                 Some(UiEvent::SliderChanged { widget_id: id.to_string(), value })
             }
@@ -300,33 +308,49 @@ impl WidgetTree {
         let Some(node) = self.hit_test_effective(root, point)? else {
             return Ok(None);
         };
-        let Some(WidgetKind::Slider { id, min, max, .. }) = self.layout().payload(node) else {
+        let Some(WidgetKind::Slider { id, min, max, orientation, .. }) = self.layout().payload(node) else {
             return Ok(None);
         };
         let effective = self.effective_bounds(root)?;
         let bounds = effective[&node].visual;
-        let track_w = bounds[2];
-        let ratio = if track_w > 0.0 { ((point.0 - bounds[0]) / track_w).clamp(0.0, 1.0) } else { 0.0 };
+        let ratio = match orientation {
+            crate::kind::SliderOrientation::Horizontal => {
+                let track_w = bounds[2];
+                if track_w > 0.0 { ((point.0 - bounds[0]) / track_w).clamp(0.0, 1.0) } else { 0.0 }
+            }
+            crate::kind::SliderOrientation::Vertical => {
+                let track_h = bounds[3];
+                if track_h > 0.0 { (1.0 - (point.1 - bounds[1]) / track_h).clamp(0.0, 1.0) } else { 0.0 }
+            }
+        };
         let value = min + ratio * (max - min);
         Ok(Some((id.to_string(), value)))
     }
 
     /// Calculates the updated value for a specific Slider identified by `target_id`
-    /// based on a horizontal coordinate `point_x` during a mouse drag operation.
-    /// Clamps the resulting value between min and max regardless of cursor Y position.
+    /// based on mouse coordinate `point` during a mouse drag operation.
+    /// Clamps the resulting value between min and max.
     pub fn slider_drag_value(
         &self,
         root: NodeId,
         target_id: &str,
-        point_x: f32,
+        point: (f32, f32),
     ) -> Result<Option<f32>, ui_layout::LayoutError> {
         let effective = self.effective_bounds(root)?;
         for (node, entry) in effective.iter() {
-            if let Some(WidgetKind::Slider { id, min, max, .. }) = self.layout().payload(*node) {
+            if let Some(WidgetKind::Slider { id, min, max, orientation, .. }) = self.layout().payload(*node) {
                 if id.as_str() == target_id {
                     let bounds = entry.visual;
-                    let track_w = bounds[2];
-                    let ratio = if track_w > 0.0 { ((point_x - bounds[0]) / track_w).clamp(0.0, 1.0) } else { 0.0 };
+                    let ratio = match orientation {
+                        crate::kind::SliderOrientation::Horizontal => {
+                            let track_w = bounds[2];
+                            if track_w > 0.0 { ((point.0 - bounds[0]) / track_w).clamp(0.0, 1.0) } else { 0.0 }
+                        }
+                        crate::kind::SliderOrientation::Vertical => {
+                            let track_h = bounds[3];
+                            if track_h > 0.0 { (1.0 - (point.1 - bounds[1]) / track_h).clamp(0.0, 1.0) } else { 0.0 }
+                        }
+                    };
                     let value = min + ratio * (max - min);
                     return Ok(Some(value));
                 }

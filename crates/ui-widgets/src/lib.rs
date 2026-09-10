@@ -264,8 +264,46 @@ mod tests {
         assert_eq!(val, Some(("volume".to_string(), 75.0)));
 
         // Test drag tracking even when cursor Y is far above/below the slider
-        let drag_val = tree.slider_drag_value(root, "volume", 180.0).unwrap();
+        let drag_val = tree.slider_drag_value(root, "volume", (180.0, 50.0)).unwrap();
         assert_eq!(drag_val, Some(90.0));
+    }
+
+    #[test]
+    fn vertical_slider_click_and_drag_calculates_interpolated_value() {
+        let mut tree = WidgetTree::new();
+        // Vertical fader: 0 at bottom (y=200), 100 at top (y=0)
+        let slider = tree.slider_vertical("fader", 0.0, 100.0, 0.0, leaf_style(30.0, 200.0)).unwrap();
+        let root = tree.container(&[slider], leaf_style(100.0, 250.0)).unwrap();
+        tree.compute(root, Size::MAX_CONTENT).unwrap();
+
+        // Click at middle (y=100) -> 50%
+        let event = tree.dispatch_click(root, (15.0, 100.0)).unwrap();
+        assert_eq!(event, Some(ui_core::UiEvent::SliderChanged { widget_id: "fader".to_string(), value: 50.0 }));
+
+        // Click near top (y=20) -> 90%
+        let val = tree.slider_value_at(root, (15.0, 20.0)).unwrap();
+        assert_eq!(val, Some(("fader".to_string(), 90.0)));
+
+        // Drag near bottom (y=180) -> 10%
+        let drag_val = tree.slider_drag_value(root, "fader", (100.0, 180.0)).unwrap().unwrap();
+        assert!((drag_val - 10.0).abs() < 1e-4);
+    }
+
+    #[test]
+    fn progress_indicators_generate_instances_and_labels() {
+        let mut tree = WidgetTree::new();
+        let theme = Theme::cyber_glass();
+        let h_bar = tree.progress_bar(0.75, leaf_style(200.0, 8.0)).unwrap();
+        let v_bar = tree.progress_bar_vertical(0.50, leaf_style(8.0, 100.0)).unwrap();
+        let ring = tree.progress_ring(0.85, Some("85%"), leaf_style(60.0, 60.0)).unwrap();
+        let pie = tree.progress_pie(0.40, Some("40%"), leaf_style(60.0, 60.0)).unwrap();
+        let root = tree.container(&[h_bar, v_bar, ring, pie], leaf_style(400.0, 200.0)).unwrap();
+        tree.compute(root, Size::MAX_CONTENT).unwrap();
+
+        let frame = tree.build_frame(root, &theme, InteractionState::default()).unwrap();
+        assert!(!frame.instances.is_empty(), "all progress indicators produce GPU instances");
+        assert!(frame.texts.iter().any(|t| t.text == "85%"), "ring produces central label");
+        assert!(frame.texts.iter().any(|t| t.text == "40%"), "pie produces central label");
     }
 
     #[test]

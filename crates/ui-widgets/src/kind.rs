@@ -28,6 +28,22 @@ pub enum SplitOrientation {
     Vertical,
 }
 
+/// Orientation for interactive sliders.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum SliderOrientation {
+    Horizontal,
+    Vertical,
+}
+
+/// Visual style and shape for progress indicators.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ProgressKind {
+    Horizontal,
+    Vertical,
+    Ring,
+    Pie,
+}
+
 /// Built-in scalable cyber iconography glyphs.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum IconKind {
@@ -134,8 +150,8 @@ pub enum WidgetKind {
     TreeNode { owner: WidgetId, id: WidgetId, label: String, depth: usize, is_dir: bool, expanded: bool, selected: bool },
 
     Toggle { id: WidgetId, active: bool },
-    Slider { id: WidgetId, min: f32, max: f32, value: f32 },
-    ProgressBar { progress: f32 },
+    Slider { id: WidgetId, min: f32, max: f32, value: f32, orientation: SliderOrientation },
+    ProgressBar { progress: f32, kind: ProgressKind, label: Option<String> },
     MetricCard { title: String, value: String, delta: Option<(String, bool)> },
     Divider { vertical: bool },
     BreadcrumbItem { owner: WidgetId, index: usize, id: String, label: String, is_last: bool },

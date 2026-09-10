@@ -522,6 +522,9 @@ struct DemoState {
     firewall_toggle: bool,
     network_intensity: f32,
     brush_intensity: f32,
+    fader_low: f32,
+    fader_mid: f32,
+    fader_high: f32,
     active_tab: usize,
     selected_item: Option<usize>,
     click_count: u32,
@@ -588,10 +591,12 @@ impl DemoState {
                 }
             }
             UiEvent::SliderChanged { widget_id, value } => {
-                if widget_id == "palette_intensity_slider" {
-                    self.brush_intensity = value;
-                } else {
-                    self.network_intensity = value;
+                match widget_id.as_str() {
+                    "palette_intensity_slider" => self.brush_intensity = value,
+                    "fader_low" => self.fader_low = value,
+                    "fader_mid" => self.fader_mid = value,
+                    "fader_high" => self.fader_high = value,
+                    _ => self.network_intensity = value,
                 }
             }
             UiEvent::NumberChanged { widget_id, value } => {
@@ -1050,13 +1055,36 @@ fn build_base_ui(tree: &mut WidgetTree, state: &DemoState, width: f32, height: f
             let toggle_row = tree.container(&[toggle, toggle_label], row(10.0)).unwrap();
 
             let slider_label = tree
-                .label(format!("Network Intensity Level: {:.0}%", state.network_intensity), leaf(340.0, 16.0))
+                .label("Controls & Multi-Shape Progress (Horizontal, Vertical Faders, Donut Ring, Pie):", leaf(508.0, 16.0))
                 .unwrap();
             let slider = tree
-                .slider(WidgetId::new("brightness_slider"), 0.0, 100.0, state.network_intensity, leaf(508.0, 16.0))
+                .slider(WidgetId::new("brightness_slider"), 0.0, 100.0, state.network_intensity, leaf(170.0, 16.0))
                 .unwrap();
-            let progress = tree.progress_bar(state.network_intensity / 100.0, leaf(508.0, 6.0)).unwrap();
-            let slider_group = tree.container(&[slider_label, slider, progress], column(4.0)).unwrap();
+            let progress_h = tree.progress_bar(state.network_intensity / 100.0, leaf(170.0, 6.0)).unwrap();
+            let slider_h_box = tree.container(&[slider, progress_h], column(8.0)).unwrap();
+
+            // 3-Band Audio EQ Vertical Faders (Low / Mid / High)
+            let f1 = tree.slider_vertical(WidgetId::new("fader_low"), 0.0, 100.0, state.fader_low, leaf(20.0, 42.0)).unwrap();
+            let f1_lbl = tree.label_muted("Lo", leaf(20.0, 12.0)).unwrap();
+            let f1_box = tree.container(&[f1, f1_lbl], column(2.0)).unwrap();
+
+            let f2 = tree.slider_vertical(WidgetId::new("fader_mid"), 0.0, 100.0, state.fader_mid, leaf(20.0, 42.0)).unwrap();
+            let f2_lbl = tree.label_muted("Mid", leaf(20.0, 12.0)).unwrap();
+            let f2_box = tree.container(&[f2, f2_lbl], column(2.0)).unwrap();
+
+            let f3 = tree.slider_vertical(WidgetId::new("fader_high"), 0.0, 100.0, state.fader_high, leaf(20.0, 42.0)).unwrap();
+            let f3_lbl = tree.label_muted("Hi", leaf(20.0, 12.0)).unwrap();
+            let f3_box = tree.container(&[f3, f3_lbl], column(2.0)).unwrap();
+
+            let faders_row = tree.container(&[f1_box, f2_box, f3_box], row(4.0)).unwrap();
+
+            // Progress Indicators: Vertical Bar, Ring Donut, Pie Disc
+            let progress_v = tree.progress_bar_vertical(state.fader_mid / 100.0, leaf(8.0, 46.0)).unwrap();
+            let ring_gauge = tree.progress_ring(state.network_intensity / 100.0, None::<&str>, leaf(46.0, 46.0)).unwrap();
+            let pie_disc = tree.progress_pie(state.brush_intensity / 100.0, None::<&str>, leaf(46.0, 46.0)).unwrap();
+
+            let control_row = tree.container(&[slider_h_box, faders_row, progress_v, ring_gauge, pie_disc], row(10.0)).unwrap();
+            let slider_group = tree.container(&[slider_label, control_row], column(4.0)).unwrap();
 
             tree.container(&[buttons_grid, color_peeker, palette_row, env_row, pwd_row, spinners_section, checkbox_row, toggle_row, slider_group], column(4.0)).unwrap()
         }
@@ -1574,6 +1602,9 @@ impl App {
                 firewall_toggle: true,
                 network_intensity: 72.0,
                 brush_intensity: 85.0,
+                fader_low: 65.0,
+                fader_mid: 82.0,
+                fader_high: 48.0,
                 active_tab: 0,
                 selected_item: Some(2),
                 click_count: 0,
@@ -1877,10 +1908,12 @@ impl App {
 
             // Check slider in overlay palette
             if let Ok(Some((id, value))) = o_tree.slider_value_at(o_root, self.cursor_pos) {
-                if id == "palette_intensity_slider" {
-                    self.state.brush_intensity = value;
-                } else {
-                    self.state.network_intensity = value;
+                match id.as_str() {
+                    "palette_intensity_slider" => self.state.brush_intensity = value,
+                    "fader_low" => self.state.fader_low = value,
+                    "fader_mid" => self.state.fader_mid = value,
+                    "fader_high" => self.state.fader_high = value,
+                    _ => self.state.network_intensity = value,
                 }
                 self.slider_drag = Some(id);
                 return;
@@ -1906,10 +1939,12 @@ impl App {
         }
 
         if let Ok(Some((id, value))) = self.tree.slider_value_at(root, self.cursor_pos) {
-            if id == "palette_intensity_slider" {
-                self.state.brush_intensity = value;
-            } else {
-                self.state.network_intensity = value;
+            match id.as_str() {
+                "palette_intensity_slider" => self.state.brush_intensity = value,
+                "fader_low" => self.state.fader_low = value,
+                "fader_mid" => self.state.fader_mid = value,
+                "fader_high" => self.state.fader_high = value,
+                _ => self.state.network_intensity = value,
             }
             self.slider_drag = Some(id);
         }
@@ -2048,11 +2083,13 @@ impl App {
 
         // 1. Check overlay tree first (floating palettes)
         if let (Some(o_tree), Some(o_root)) = (&self.overlay_tree, self.overlay_root) {
-            if let Ok(Some(value)) = o_tree.slider_drag_value(o_root, target_id, self.cursor_pos.0) {
-                if target_id == "palette_intensity_slider" {
-                    self.state.brush_intensity = value;
-                } else {
-                    self.state.network_intensity = value;
+            if let Ok(Some(value)) = o_tree.slider_drag_value(o_root, target_id, self.cursor_pos) {
+                match target_id.as_str() {
+                    "palette_intensity_slider" => self.state.brush_intensity = value,
+                    "fader_low" => self.state.fader_low = value,
+                    "fader_mid" => self.state.fader_mid = value,
+                    "fader_high" => self.state.fader_high = value,
+                    _ => self.state.network_intensity = value,
                 }
                 return;
             }
@@ -2060,11 +2097,13 @@ impl App {
 
         // 2. Fallback to base tree
         if let Some(root) = self.root {
-            if let Ok(Some(value)) = self.tree.slider_drag_value(root, target_id, self.cursor_pos.0) {
-                if target_id == "palette_intensity_slider" {
-                    self.state.brush_intensity = value;
-                } else {
-                    self.state.network_intensity = value;
+            if let Ok(Some(value)) = self.tree.slider_drag_value(root, target_id, self.cursor_pos) {
+                match target_id.as_str() {
+                    "palette_intensity_slider" => self.state.brush_intensity = value,
+                    "fader_low" => self.state.fader_low = value,
+                    "fader_mid" => self.state.fader_mid = value,
+                    "fader_high" => self.state.fader_high = value,
+                    _ => self.state.network_intensity = value,
                 }
             }
         }

@@ -361,11 +361,55 @@ impl WidgetTree {
     }
 
     pub fn slider(&mut self, id: impl Into<WidgetId>, min: f32, max: f32, value: f32, style: Style) -> Result<NodeId, LayoutError> {
-        self.layout.insert_leaf(style, WidgetKind::Slider { id: id.into(), min, max, value })
+        self.slider_oriented(id, min, max, value, crate::kind::SliderOrientation::Horizontal, style)
+    }
+
+    /// Vertical fader slider (e.g. for audio mixers, equalizers, volume faders).
+    pub fn slider_vertical(&mut self, id: impl Into<WidgetId>, min: f32, max: f32, value: f32, style: Style) -> Result<NodeId, LayoutError> {
+        self.slider_oriented(id, min, max, value, crate::kind::SliderOrientation::Vertical, style)
+    }
+
+    /// Generic oriented slider (Horizontal or Vertical).
+    pub fn slider_oriented(
+        &mut self,
+        id: impl Into<WidgetId>,
+        min: f32,
+        max: f32,
+        value: f32,
+        orientation: crate::kind::SliderOrientation,
+        style: Style,
+    ) -> Result<NodeId, LayoutError> {
+        self.layout.insert_leaf(style, WidgetKind::Slider { id: id.into(), min, max, value, orientation })
     }
 
     pub fn progress_bar(&mut self, progress: f32, style: Style) -> Result<NodeId, LayoutError> {
-        self.layout.insert_leaf(style, WidgetKind::ProgressBar { progress })
+        self.progress_bar_custom(progress, crate::kind::ProgressKind::Horizontal, None, style)
+    }
+
+    /// Vertical progress bar filling from bottom to top.
+    pub fn progress_bar_vertical(&mut self, progress: f32, style: Style) -> Result<NodeId, LayoutError> {
+        self.progress_bar_custom(progress, crate::kind::ProgressKind::Vertical, None, style)
+    }
+
+    /// Circular donut ring progress indicator with optional center label.
+    pub fn progress_ring(&mut self, progress: f32, label: Option<impl Into<String>>, style: Style) -> Result<NodeId, LayoutError> {
+        self.progress_bar_custom(progress, crate::kind::ProgressKind::Ring, label.map(|s| s.into()), style)
+    }
+
+    /// Circular pie / camembert progress indicator with optional center label.
+    pub fn progress_pie(&mut self, progress: f32, label: Option<impl Into<String>>, style: Style) -> Result<NodeId, LayoutError> {
+        self.progress_bar_custom(progress, crate::kind::ProgressKind::Pie, label.map(|s| s.into()), style)
+    }
+
+    /// Generic custom progress indicator (Horizontal, Vertical, Ring, Pie).
+    pub fn progress_bar_custom(
+        &mut self,
+        progress: f32,
+        kind: crate::kind::ProgressKind,
+        label: Option<String>,
+        style: Style,
+    ) -> Result<NodeId, LayoutError> {
+        self.layout.insert_leaf(style, WidgetKind::ProgressBar { progress, kind, label })
     }
 
     pub fn metric_card(

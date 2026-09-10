@@ -392,41 +392,134 @@ fn render_kind(
             frame.instances.push(glass_instance(thumb_bounds, clip, thumb_color, thumb_color, thumb_glow, theme));
         }
 
-        WidgetKind::Slider { min, max, value, .. } => {
-            let track_h = 6.0;
-            let track_y = bounds[1] + (bounds[3] - track_h) * 0.5;
-            let track_bounds = [bounds[0], track_y, bounds[2], track_h];
-            frame.instances.push(glass_instance(track_bounds, clip, theme.glass_bg, theme.accent_secondary, 0.0, theme));
-
+        WidgetKind::Slider { min, max, value, orientation, .. } => {
             let range = (max - min).max(1.0e-5);
             let ratio = ((value - min) / range).clamp(0.0, 1.0);
-
-            if ratio > 0.0 {
-                let fill_w = bounds[2] * ratio;
-                let fill_bounds = [bounds[0], track_y, fill_w, track_h];
-                frame.instances.push(glass_instance(fill_bounds, clip, theme.accent, theme.accent, 0.35, theme));
-            }
-
-            let thumb_w = 14.0;
-            let thumb_h = (bounds[3] - 4.0).max(14.0);
-            let thumb_x = bounds[0] + ratio * bounds[2] - thumb_w * 0.5;
-            let thumb_y = bounds[1] + (bounds[3] - thumb_h) * 0.5;
-            let thumb_bounds = [thumb_x, thumb_y, thumb_w, thumb_h];
             let intensity = interactive_glow(theme.glow_intensity * 0.8, hovered, pressed, theme);
-            frame.instances.push(glass_instance(thumb_bounds, clip, [0.95, 0.98, 1.0, 1.0], theme.accent, intensity, theme));
+
+            match orientation {
+                crate::kind::SliderOrientation::Horizontal => {
+                    let track_h = 6.0;
+                    let track_y = bounds[1] + (bounds[3] - track_h) * 0.5;
+                    let track_bounds = [bounds[0], track_y, bounds[2], track_h];
+                    frame.instances.push(glass_instance(track_bounds, clip, theme.glass_bg, theme.accent_secondary, 0.0, theme));
+
+                    if ratio > 0.0 {
+                        let fill_w = bounds[2] * ratio;
+                        let fill_bounds = [bounds[0], track_y, fill_w, track_h];
+                        frame.instances.push(glass_instance(fill_bounds, clip, theme.accent, theme.accent, 0.35, theme));
+                    }
+
+                    let thumb_w = 14.0;
+                    let thumb_h = (bounds[3] - 4.0).max(14.0);
+                    let thumb_x = bounds[0] + ratio * bounds[2] - thumb_w * 0.5;
+                    let thumb_y = bounds[1] + (bounds[3] - thumb_h) * 0.5;
+                    let thumb_bounds = [thumb_x, thumb_y, thumb_w, thumb_h];
+                    frame.instances.push(glass_instance(thumb_bounds, clip, [0.95, 0.98, 1.0, 1.0], theme.accent, intensity, theme));
+                }
+                crate::kind::SliderOrientation::Vertical => {
+                    let track_w = 6.0;
+                    let track_x = bounds[0] + (bounds[2] - track_w) * 0.5;
+                    let track_bounds = [track_x, bounds[1], track_w, bounds[3]];
+                    frame.instances.push(glass_instance(track_bounds, clip, theme.glass_bg, theme.accent_secondary, 0.0, theme));
+
+                    if ratio > 0.0 {
+                        let fill_h = bounds[3] * ratio;
+                        let fill_y = bounds[1] + bounds[3] - fill_h;
+                        let fill_bounds = [track_x, fill_y, track_w, fill_h];
+                        frame.instances.push(glass_instance(fill_bounds, clip, theme.accent, theme.accent, 0.35, theme));
+                    }
+
+                    let thumb_w = (bounds[2] - 4.0).max(20.0);
+                    let thumb_h = 10.0;
+                    let thumb_x = bounds[0] + (bounds[2] - thumb_w) * 0.5;
+                    let thumb_y = bounds[1] + (1.0 - ratio) * bounds[3] - thumb_h * 0.5;
+                    let thumb_bounds = [thumb_x, thumb_y, thumb_w, thumb_h];
+                    frame.instances.push(glass_instance(thumb_bounds, clip, [0.95, 0.98, 1.0, 1.0], theme.accent, intensity, theme));
+                }
+            }
         }
 
-        WidgetKind::ProgressBar { progress } => {
-            let track_h = (bounds[3] - 2.0).max(4.0);
-            let track_y = bounds[1] + (bounds[3] - track_h) * 0.5;
-            let track_bounds = [bounds[0], track_y, bounds[2], track_h];
-            frame.instances.push(glass_instance(track_bounds, clip, [theme.glass_bg[0] * 0.7, theme.glass_bg[1] * 0.7, theme.glass_bg[2] * 0.7, 0.6], theme.accent_secondary, 0.0, theme));
-
+        WidgetKind::ProgressBar { progress, kind, label } => {
             let ratio = progress.clamp(0.0, 1.0);
-            if ratio > 0.0 {
-                let fill_w = (bounds[2] * ratio).max(4.0);
-                let fill_bounds = [bounds[0], track_y, fill_w, track_h];
-                frame.instances.push(glass_instance(fill_bounds, clip, theme.accent, theme.accent, 0.4, theme));
+            match kind {
+                crate::kind::ProgressKind::Horizontal => {
+                    let track_h = (bounds[3] - 2.0).max(4.0);
+                    let track_y = bounds[1] + (bounds[3] - track_h) * 0.5;
+                    let track_bounds = [bounds[0], track_y, bounds[2], track_h];
+                    frame.instances.push(glass_instance(track_bounds, clip, [theme.glass_bg[0] * 0.7, theme.glass_bg[1] * 0.7, theme.glass_bg[2] * 0.7, 0.6], theme.accent_secondary, 0.0, theme));
+
+                    if ratio > 0.0 {
+                        let fill_w = (bounds[2] * ratio).max(4.0);
+                        let fill_bounds = [bounds[0], track_y, fill_w, track_h];
+                        frame.instances.push(glass_instance(fill_bounds, clip, theme.accent, theme.accent, 0.4, theme));
+                    }
+                }
+                crate::kind::ProgressKind::Vertical => {
+                    let track_w = (bounds[2] - 2.0).max(4.0);
+                    let track_x = bounds[0] + (bounds[2] - track_w) * 0.5;
+                    let track_bounds = [track_x, bounds[1], track_w, bounds[3]];
+                    frame.instances.push(glass_instance(track_bounds, clip, [theme.glass_bg[0] * 0.7, theme.glass_bg[1] * 0.7, theme.glass_bg[2] * 0.7, 0.6], theme.accent_secondary, 0.0, theme));
+
+                    if ratio > 0.0 {
+                        let fill_h = (bounds[3] * ratio).max(4.0);
+                        let fill_y = bounds[1] + bounds[3] - fill_h;
+                        let fill_bounds = [track_x, fill_y, track_w, fill_h];
+                        frame.instances.push(glass_instance(fill_bounds, clip, theme.accent, theme.accent, 0.4, theme));
+                    }
+                }
+                crate::kind::ProgressKind::Ring => {
+                    // Circular Donut Gauge / Ring
+                    let size = bounds[2].min(bounds[3]);
+                    let x = bounds[0] + (bounds[2] - size) * 0.5;
+                    let y = bounds[1] + (bounds[3] - size) * 0.5;
+                    let radius = size * 0.5;
+                    let ring_bounds = [x, y, size, size];
+
+                    // Outer circle track
+                    let ring_glow = if ratio > 0.0 { theme.glow_intensity * 0.6 * ratio } else { 0.0 };
+                    let border_color = if ratio > 0.0 { theme.accent } else { theme.accent_secondary };
+                    let ring_bg = [theme.glass_bg[0] * 0.5, theme.glass_bg[1] * 0.5, theme.glass_bg[2] * 0.5, 0.85];
+                    frame.instances.push(custom_glass_instance(ring_bounds, clip, ring_bg, border_color, radius, 3.5, ring_glow));
+
+                    // Inner core cutout
+                    let hole_size = (size - 18.0).max(10.0);
+                    let hole_x = bounds[0] + (bounds[2] - hole_size) * 0.5;
+                    let hole_y = bounds[1] + (bounds[3] - hole_size) * 0.5;
+                    let hole_radius = hole_size * 0.5;
+                    let hole_bounds = [hole_x, hole_y, hole_size, hole_size];
+                    frame.instances.push(custom_glass_instance(hole_bounds, clip, theme.glass_bg, [theme.accent_secondary[0], theme.accent_secondary[1], theme.accent_secondary[2], 0.3], hole_radius, 1.0, 0.0));
+
+                    // Center percentage or label text
+                    let display_text = label.clone().unwrap_or_else(|| format!("{:.0}%", ratio * 100.0));
+                    let text_h = 16.0;
+                    let text_y = bounds[1] + (bounds[3] - text_h) * 0.5;
+                    let text_bounds = [hole_x, text_y, hole_size, text_h];
+                    frame.texts.push(text_spec(display_text, text_bounds, clip, theme, theme.text_color, TextAlign::Center, TextRole::Caption));
+                }
+                crate::kind::ProgressKind::Pie => {
+                    // Filled circular disc progress
+                    let size = bounds[2].min(bounds[3]);
+                    let x = bounds[0] + (bounds[2] - size) * 0.5;
+                    let y = bounds[1] + (bounds[3] - size) * 0.5;
+                    let radius = size * 0.5;
+                    let pie_bounds = [x, y, size, size];
+
+                    let pie_glow = (ratio * theme.glow_intensity * 0.8).max(0.1);
+                    let pie_bg = [
+                        theme.accent[0] * (0.2 + ratio * 0.5),
+                        theme.accent[1] * (0.2 + ratio * 0.5),
+                        theme.accent[2] * (0.2 + ratio * 0.5),
+                        0.85 + ratio * 0.1,
+                    ];
+                    frame.instances.push(custom_glass_instance(pie_bounds, clip, pie_bg, theme.accent, radius, 2.0, pie_glow));
+
+                    let display_text = label.clone().unwrap_or_else(|| format!("{:.0}%", ratio * 100.0));
+                    let text_h = 16.0;
+                    let text_y = bounds[1] + (bounds[3] - text_h) * 0.5;
+                    let text_bounds = [x, text_y, size, text_h];
+                    frame.texts.push(text_spec(display_text, text_bounds, clip, theme, [1.0, 1.0, 1.0, 1.0], TextAlign::Center, TextRole::Caption));
+                }
             }
         }
 
