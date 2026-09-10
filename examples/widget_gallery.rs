@@ -1091,7 +1091,20 @@ fn build_base_ui(tree: &mut WidgetTree, state: &DemoState, width: f32, height: f
                 .unwrap();
 
             let acc_content = tree.container(&[action_icons, list], column(6.0)).unwrap();
-            let accordion = tree.accordion("firewall_acc", "Heuristic Firewall Policies", Some("4 containment rules"), state.accordion_open, acc_content, leaf(508.0, if state.accordion_open { 190.0 } else { 46.0 })).unwrap();
+            let acc_style = Style {
+                size: Size {
+                    width: length(508.0),
+                    height: if state.accordion_open { ui_layout::auto() } else { length(46.0) },
+                },
+                padding: Rect {
+                    left: length(0.0),
+                    right: length(0.0),
+                    top: length(0.0),
+                    bottom: if state.accordion_open { length(8.0) } else { length(0.0) },
+                },
+                ..Default::default()
+            };
+            let accordion = tree.accordion("firewall_acc", "Heuristic Firewall Policies", Some("4 containment rules"), state.accordion_open, acc_content, acc_style).unwrap();
 
             tree.container(&[toggle_row, radio_group, divider_sec, accordion], column(8.0)).unwrap()
         }
@@ -1841,6 +1854,13 @@ impl App {
                 return;
             }
 
+            // Check slider in overlay palette
+            if let Ok(Some((id, value))) = o_tree.slider_value_at(o_root, self.cursor_pos) {
+                self.state.slider_value = value;
+                self.slider_drag = Some(id);
+                return;
+            }
+
             if let Ok(Some(key)) = o_tree.interaction_key_at(o_root, self.cursor_pos) {
                 self.pressed = Some(key);
                 return;
@@ -1995,9 +2015,19 @@ impl App {
         if self.state.show_modal {
             return;
         }
-        let Some(root) = self.root else { return };
-        if self.slider_drag.is_some() {
-            if let Ok(Some((_, value))) = self.tree.slider_value_at(root, self.cursor_pos) {
+        let Some(ref target_id) = self.slider_drag else { return };
+
+        // 1. Check overlay tree first (floating palettes)
+        if let (Some(o_tree), Some(o_root)) = (&self.overlay_tree, self.overlay_root) {
+            if let Ok(Some(value)) = o_tree.slider_drag_value(o_root, target_id, self.cursor_pos.0) {
+                self.state.slider_value = value;
+                return;
+            }
+        }
+
+        // 2. Fallback to base tree
+        if let Some(root) = self.root {
+            if let Ok(Some(value)) = self.tree.slider_drag_value(root, target_id, self.cursor_pos.0) {
                 self.state.slider_value = value;
             }
         }

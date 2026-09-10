@@ -262,6 +262,10 @@ mod tests {
 
         let val = tree.slider_value_at(root, (150.0, 10.0)).unwrap();
         assert_eq!(val, Some(("volume".to_string(), 75.0)));
+
+        // Test drag tracking even when cursor Y is far above/below the slider
+        let drag_val = tree.slider_drag_value(root, "volume", 180.0).unwrap();
+        assert_eq!(drag_val, Some(90.0));
     }
 
     #[test]

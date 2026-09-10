@@ -308,6 +308,30 @@ impl WidgetTree {
         Ok(Some((id.to_string(), value)))
     }
 
+    /// Calculates the updated value for a specific Slider identified by `target_id`
+    /// based on a horizontal coordinate `point_x` during a mouse drag operation.
+    /// Clamps the resulting value between min and max regardless of cursor Y position.
+    pub fn slider_drag_value(
+        &self,
+        root: NodeId,
+        target_id: &str,
+        point_x: f32,
+    ) -> Result<Option<f32>, ui_layout::LayoutError> {
+        let effective = self.effective_bounds(root)?;
+        for (node, entry) in effective.iter() {
+            if let Some(WidgetKind::Slider { id, min, max, .. }) = self.layout().payload(*node) {
+                if id.as_str() == target_id {
+                    let bounds = entry.visual;
+                    let track_w = bounds[2];
+                    let ratio = if track_w > 0.0 { ((point_x - bounds[0]) / track_w).clamp(0.0, 1.0) } else { 0.0 };
+                    let value = min + ratio * (max - min);
+                    return Ok(Some(value));
+                }
+            }
+        }
+        Ok(None)
+    }
+
     /// Computes the picked color of a ColorPicker under `point` (2D SV canvas or 1D Hue slider click/drag).
     pub fn color_picker_hue_at(
         &self,
