@@ -571,11 +571,47 @@ struct DemoState {
     video_progress: f32,
     audio_spectrum: Vec<f32>,
     media_fit_mode: MediaFit,
+    canvas_strokes: Vec<(Vec<[f32; 2]>, [f32; 4], f32)>,
+    canvas_active_stroke: Vec<[f32; 2]>,
 }
 
 impl DemoState {
     fn apply(&mut self, event: UiEvent) {
         match event {
+            UiEvent::CustomPaintPointerDown { widget_id, local_pos, .. } => {
+                if widget_id == "studio_canvas" {
+                    if self.active_tool == "eraser" {
+                        let r = (self.brush_intensity * 0.35).max(12.0);
+                        self.canvas_strokes.retain(|(pts, _, _)| {
+                            !pts.iter().any(|p| ((p[0] - local_pos[0]).powi(2) + (p[1] - local_pos[1]).powi(2)).sqrt() <= r)
+                        });
+                    } else {
+                        self.canvas_active_stroke = vec![local_pos];
+                    }
+                }
+            }
+            UiEvent::CustomPaintPointerMove { widget_id, local_pos, .. } => {
+                if widget_id == "studio_canvas" {
+                    if self.active_tool == "eraser" {
+                        let r = (self.brush_intensity * 0.35).max(12.0);
+                        self.canvas_strokes.retain(|(pts, _, _)| {
+                            !pts.iter().any(|p| ((p[0] - local_pos[0]).powi(2) + (p[1] - local_pos[1]).powi(2)).sqrt() <= r)
+                        });
+                    } else if !self.canvas_active_stroke.is_empty() {
+                        self.canvas_active_stroke.push(local_pos);
+                    }
+                }
+            }
+            UiEvent::PointerUp { .. } => {
+                if !self.canvas_active_stroke.is_empty() {
+                    let pts = std::mem::take(&mut self.canvas_active_stroke);
+                    if !pts.is_empty() {
+                        let stroke_w = (self.brush_intensity * 0.05).clamp(1.5, 12.0);
+                        let col = self.selected_color;
+                        self.canvas_strokes.push((pts, col, stroke_w));
+                    }
+                }
+            }
             UiEvent::CheckboxToggled { widget_id, checked } => {
                 if widget_id == "spinners_toggle" {
                     self.spinners_enabled = checked;
@@ -778,6 +814,10 @@ impl DemoState {
                 } else if widget_id == "modal_confirm_btn" || widget_id == "modal_cancel_btn" {
                     self.show_modal = false;
                     println!("[widget_gallery] modal action confirmed: {widget_id}");
+                } else if widget_id == "clear_canvas_btn" {
+                    self.canvas_strokes.clear();
+                    self.canvas_active_stroke.clear();
+                    self.active_toast = Some(("Canvas Cleared".to_string(), "All vector strokes removed.".to_string(), ToastKind::Info));
                 } else if widget_id == "lock_btn" {
                     self.active_toast = Some(("Security Lock".to_string(), "All inbound endpoints locked.".to_string(), ToastKind::Warning));
                 } else if widget_id == "refresh_btn" {
@@ -1237,45 +1277,107 @@ fn build_base_ui(tree: &mut WidgetTree, state: &DemoState, width: f32, height: f
 
             let left_w = (508.0 * state.split_ratio).clamp(120.0, 360.0);
             let right_w = (508.0 - left_w - 6.0).max(120.0);
-            let inspector_w = (right_w - 20.0).max(100.0);
+            let canvas_w = (right_w - 20.0).max(100.0);
+            let canvas_h = 176.0;
 
             let tree_list = tree.tree_view("studio_tree", &tree_nodes, leaf(left_w - 8.0, 22.0), column(2.0)).unwrap();
 
-            // Right inspector panel
-            let selected_name = state.selected_tree_node.as_deref().unwrap_or("tree_rs");
-            let inspector_title = tree.label(format!("Node: {}", selected_name), leaf(inspector_w, 20.0)).unwrap();
-            let inspector_desc = tree.label_muted("AORUI Scene Component Inspector", leaf(inspector_w, 16.0)).unwrap();
-            let insp_card1 = tree.metric_card("Status", "Compiled & Linked", Some(("OK", true)), leaf(inspector_w, 50.0)).unwrap();
-            let editor_focused = state.focused_input.as_deref() == Some("studio_editor");
-            let text_editor = tree.text_area_with_cursor(
-                WidgetId::new("studio_editor"),
-                &state.studio_editor.text,
-                "// Type script...",
-                editor_focused,
-                true,
-                state.studio_editor.cursor,
-                state.studio_editor.selection,
-                leaf(inspector_w, 66.0),
-            ).unwrap();
-            let action_btn = tree.button(WidgetId::new("inspect_btn"), "Inspect Properties", true, leaf(inspector_w, 30.0)).unwrap();
-            let inspector_content = tree.container(&[inspector_title, inspector_desc, insp_card1, text_editor, action_btn], column(6.0)).unwrap();
+            // Right panel: 2D CustomPaint Canvas Workspace
+            let mut painter = ui_widgets::Painter::new();
+
+            // 1. Blueprint Grid Background
+            let grid_step = 24.0;
+            let mut gx = grid_step;
+            while gx < canvas_w {
+                painter.line([gx, 0.0], [gx, canvas_h], 0.8, [0.0, 0.85, 1.0, 0.06]);
+                gx += grid_step;
+            }
+            let mut gy = grid_step;
+            while gy < canvas_h {
+                painter.line([0.0, gy], [canvas_w, gy], 0.8, [0.0, 0.85, 1.0, 0.06]);
+                gy += grid_step;
+            }
+
+            // 2. Demo Bézier Spline Cable
+            painter.bezier(
+                [14.0, 36.0],
+                [canvas_w * 0.35, 12.0],
+                [canvas_w * 0.65, canvas_h - 12.0],
+                [canvas_w - 18.0, canvas_h - 40.0],
+                2.5,
+                [0.0, 0.85, 1.0, 0.7],
+            );
+            painter.circle([14.0, 36.0], 4.5, Some([0.0, 0.85, 1.0, 1.0]), None);
+            painter.circle([canvas_w - 18.0, canvas_h - 40.0], 4.5, Some([0.55, 0.36, 0.96, 1.0]), None);
+
+            // 3. Parametric Waveform Polyline
+            let wave_pts: Vec<[f32; 2]> = (0..20)
+                .map(|i| {
+                    let t = i as f32 / 19.0;
+                    let x = 14.0 + t * (canvas_w - 28.0);
+                    let y = (canvas_h * 0.5) + (t * std::f32::consts::PI * 4.0).sin() * 18.0;
+                    [x, y]
+                })
+                .collect();
+            painter.polyline(wave_pts, 1.5, [0.06, 0.72, 0.51, 0.5], false);
+
+            // 4. Stored user freehand vector strokes
+            for (pts, col, w) in &state.canvas_strokes {
+                if pts.len() >= 2 {
+                    painter.polyline(pts.clone(), *w, *col, false);
+                } else if !pts.is_empty() {
+                    painter.circle(pts[0], *w * 0.5, Some(*col), None);
+                }
+            }
+
+            // 5. Active drawing stroke
+            if !state.canvas_active_stroke.is_empty() {
+                let stroke_w = (state.brush_intensity * 0.05).clamp(1.5, 12.0);
+                if state.canvas_active_stroke.len() >= 2 {
+                    painter.polyline(state.canvas_active_stroke.clone(), stroke_w, state.selected_color, false);
+                } else {
+                    painter.circle(state.canvas_active_stroke[0], stroke_w * 0.5, Some(state.selected_color), None);
+                }
+            }
+
+            // 6. HUD Text Overlay
+            painter.text(
+                [8.0, 12.0],
+                format!("CANVAS 2D | {} STROKES", state.canvas_strokes.len()),
+                10.0,
+                [0.0, 0.85, 1.0, 0.8],
+            );
+            painter.text(
+                [8.0, canvas_h - 14.0],
+                format!("Tool: {} | Intensity: {:.0}%", state.active_tool.to_uppercase(), state.brush_intensity),
+                10.0,
+                [0.6, 0.7, 0.8, 0.7],
+            );
+
+            let canvas_widget = tree.custom_paint("studio_canvas", painter.finish(), leaf(canvas_w, canvas_h)).unwrap();
+
+            let clear_btn = tree.button(WidgetId::new("clear_canvas_btn"), "Clear Canvas", true, leaf(96.0, 24.0)).unwrap();
+            let tool_lbl = tree.label_muted(format!("Tool: {} (Draw/Erase)", state.active_tool.to_uppercase()), leaf(canvas_w - 106.0, 24.0)).unwrap();
+            let toolbar_row = tree.container(&[clear_btn, tool_lbl], row(8.0)).unwrap();
+
+            let inspector_content = tree.container(&[canvas_widget, toolbar_row], column(6.0)).unwrap();
 
             let left_panel_style = Style {
-                size: Size { width: length(left_w), height: length(220.0) },
+                size: Size { width: length(left_w), height: length(224.0) },
                 padding: Rect { left: length(2.0), right: length(6.0), top: length(0.0), bottom: length(0.0) },
                 ..Default::default()
             };
             let left_panel = tree.container(&[tree_list], left_panel_style).unwrap();
 
             let right_panel_style = Style {
-                size: Size { width: length(right_w), height: length(220.0) },
+                size: Size { width: length(right_w), height: length(224.0) },
                 padding: Rect { left: length(16.0), right: length(4.0), top: length(0.0), bottom: length(0.0) },
                 ..Default::default()
             };
             let right_panel = tree.container(&[inspector_content], right_panel_style).unwrap();
 
-            let split = tree.split_view("studio_split", ui_widgets::SplitOrientation::Horizontal, state.split_ratio, left_panel, right_panel, leaf(508.0, 220.0)).unwrap();
-            let studio_hint = tree.label_muted("Drag splitter ↔ to resize | Click ▶/▼ to expand | Right-click for context", leaf(508.0, 16.0)).unwrap();
+            let split = tree.split_view("studio_split", ui_widgets::SplitOrientation::Horizontal, state.split_ratio, left_panel, right_panel, leaf(508.0, 224.0)).unwrap();
+            let studio_hint = tree.label_muted("Click & drag to draw on Canvas | Use Tool Palette to switch Pencil/Eraser", leaf(508.0, 16.0)).unwrap();
 
             tree.container(&[split, studio_hint], column(6.0)).unwrap()
         }
@@ -1508,7 +1610,7 @@ fn build_popover_ui(tree: &mut WidgetTree, state: &DemoState, width: f32, height
                 "env_dropdown",
                 &env_items,
                 leaf(370.0, 26.0),
-                popover_style(154.0 + WINDOW_MARGIN, 286.0 + WINDOW_MARGIN, 378.0, 94.0),
+                popover_style(146.0 + WINDOW_MARGIN, 554.0 + WINDOW_MARGIN, 378.0, 94.0),
             )
             .unwrap();
         overlay_nodes.push(popover);
@@ -1580,6 +1682,8 @@ struct App {
     palette_drag: Option<(String, (f32, f32))>,
     palette_resize: Option<(String, (f32, f32), (f32, f32))>,
     text_drag: Option<(String, usize)>,
+    canvas_drag: Option<String>,
+    prev_cursor_pos: (f32, f32),
     shift_held: bool,
     ctrl_held: bool,
 }
@@ -1651,6 +1755,8 @@ impl App {
                 video_progress: 0.35,
                 audio_spectrum: (0..32).map(|i| 0.3 + 0.45 * ((i as f32 * 0.4).sin().abs())).collect(),
                 media_fit_mode: MediaFit::Cover,
+                canvas_strokes: Vec::new(),
+                canvas_active_stroke: Vec::new(),
             },
             tree: WidgetTree::new(),
             root: None,
@@ -1658,6 +1764,7 @@ impl App {
             overlay_root: None,
             theme: Theme::cyber_glass(),
             cursor_pos: (0.0, 0.0),
+            prev_cursor_pos: (0.0, 0.0),
             pressed: None,
             scrollbar_drag: None,
             slider_drag: None,
@@ -1667,6 +1774,7 @@ impl App {
             palette_drag: None,
             palette_resize: None,
             text_drag: None,
+            canvas_drag: None,
             shift_held: false,
             ctrl_held: false,
         }
@@ -1975,6 +2083,13 @@ impl App {
                 _ => {}
             }
         }
+        let canvas_key = ui_widgets::InteractionKey { widget_id: WidgetId::new("studio_canvas"), index: None };
+        if self.pressed.as_ref() == Some(&canvas_key) {
+            self.canvas_drag = Some("studio_canvas".to_string());
+            if let Ok(Some(event)) = self.tree.dispatch_click(root, self.cursor_pos) {
+                self.state.apply(event);
+            }
+        }
     }
 
     fn try_start_window_resize(&self) -> bool {
@@ -2133,6 +2248,17 @@ impl App {
         }
     }
 
+    fn update_canvas_drag(&mut self) {
+        if self.state.show_modal {
+            return;
+        }
+        let Some(ref target_id) = self.canvas_drag else { return };
+        let Some(root) = self.root else { return };
+        if let Ok(Some(event)) = self.tree.custom_paint_pointer_at(root, target_id, self.cursor_pos, self.prev_cursor_pos) {
+            self.state.apply(event);
+        }
+    }
+
     fn update_text_drag(&mut self) {
         if self.state.show_modal {
             return;
@@ -2176,6 +2302,8 @@ impl App {
         self.palette_drag = None;
         self.palette_resize = None;
         self.text_drag = None;
+        self.canvas_drag = None;
+        self.state.apply(UiEvent::PointerUp { x: self.cursor_pos.0, y: self.cursor_pos.1 });
 
         if self.state.show_modal {
             if let (Some(m_tree), Some(m_root)) = (&self.overlay_tree, self.overlay_root) {
@@ -2258,8 +2386,8 @@ impl ApplicationHandler for App {
             .with_transparent(true)
             .with_inner_size(winit::dpi::PhysicalSize::new(WINDOW_WIDTH as u32, WINDOW_HEIGHT as u32));
         let window = Arc::new(event_loop.create_window(attrs).expect("failed to create OS window"));
-        let renderer = GpuRenderer::new(window.clone());
-
+        self.window = Some(window.clone());
+        let renderer = GpuRenderer::new(window);
         let cyber_art = generate_cyber_artwork(512, 512);
         let static_tex = renderer.create_texture_rgba(512, 512, &cyber_art);
         self.resources.insert("cyber_art", static_tex);
@@ -2268,9 +2396,7 @@ impl ApplicationHandler for App {
         let stream_tex = renderer.create_texture_rgba(256, 160, &plasma_init);
         self.resources.insert("stream_video", stream_tex.clone());
         self.stream_texture = Some(stream_tex);
-
         self.renderer = Some(renderer);
-        self.window = Some(window);
         event_loop.set_control_flow(ControlFlow::Poll);
     }
 
@@ -2296,6 +2422,7 @@ impl ApplicationHandler for App {
                 self.ctrl_held = modifiers.state().control_key();
             }
             WindowEvent::CursorMoved { position, .. } => {
+                self.prev_cursor_pos = self.cursor_pos;
                 self.cursor_pos = (position.x as f32, position.y as f32);
                 self.update_modal_drag();
                 self.update_palette_drag();
@@ -2305,6 +2432,7 @@ impl ApplicationHandler for App {
                 self.update_color_picker_drag();
                 self.update_splitter_drag();
                 self.update_text_drag();
+                self.update_canvas_drag();
                 if let Some(window) = &self.window {
                     window.request_redraw();
                 }

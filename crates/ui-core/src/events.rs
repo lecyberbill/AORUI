@@ -50,6 +50,8 @@ pub enum UiEvent {
     PaletteResized { palette_id: String, width: f32, height: f32 },
     MediaPlayToggled { widget_id: String, playing: bool },
     MediaSeeked { widget_id: String, progress: f32 },
+    CustomPaintPointerDown { widget_id: String, local_pos: [f32; 2], normalized_pos: [f32; 2] },
+    CustomPaintPointerMove { widget_id: String, local_pos: [f32; 2], delta: [f32; 2] },
 
     // --- Agent runtime commands (preserved for agent-runtime) ---
     UserPromptSubmitted(String),

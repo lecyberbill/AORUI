@@ -174,6 +174,7 @@ pub enum WidgetKind {
     Media { id: WidgetId, kind: MediaKind, resource_id: String, fit: crate::media::MediaFit, radius: Option<f32> },
     VideoPlayer { id: WidgetId, resource_id: String, playing: bool, progress: f32, duration_sec: f32, volume: f32 },
     AudioVisualizer { id: WidgetId, values: Vec<f32>, peak: f32 },
+    CustomPaint { id: WidgetId, commands: Vec<crate::paint::PaintCommand> },
 }
 
 /// Stable identity of an interactive widget across frames, used
@@ -224,6 +225,7 @@ impl WidgetKind {
                 | WidgetKind::ResizeGrip { .. }
                 | WidgetKind::VideoPlayer { .. }
                 | WidgetKind::Media { .. }
+                | WidgetKind::CustomPaint { .. }
         )
     }
 
@@ -246,7 +248,8 @@ impl WidgetKind {
             | WidgetKind::ColorPicker { id, .. }
             | WidgetKind::Toast { id, .. }
             | WidgetKind::VideoPlayer { id, .. }
-            | WidgetKind::Media { id, .. } => {
+            | WidgetKind::Media { id, .. }
+            | WidgetKind::CustomPaint { id, .. } => {
                 Some(InteractionKey { widget_id: id.clone(), index: None })
             }
             WidgetKind::MenuItem { id, .. } | WidgetKind::TreeNode { id, .. } => {

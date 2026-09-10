@@ -19,6 +19,7 @@ mod id;
 mod interaction;
 mod kind;
 mod media;
+pub mod paint;
 pub mod text_measure;
 mod theme;
 mod tree;
@@ -29,6 +30,7 @@ pub use frame::{Frame, InteractionState, TextAlign, TextSpec};
 pub use id::WidgetId;
 pub use kind::{IconKind, InteractionKey, ListItemBadge, SplitOrientation, ToastKind, WidgetKind};
 pub use media::{MediaFit, MediaKind, MediaSpec};
+pub use paint::{eval_cubic_bezier, PaintCommand, Painter};
 pub use text_measure::{DefaultTextMeasure, TextMeasure};
 pub use theme::{FontFamily, FontWeight, Theme, Typography};
 pub use tree::WidgetTree;
@@ -832,5 +834,38 @@ mod tests {
         let frame = tree.build_frame(root, &theme, Default::default()).unwrap();
         // Background instance + 6 frequency bar instances
         assert_eq!(frame.instances.len(), 7);
+    }
+
+    #[test]
+    fn custom_paint_renders_shapes_and_dispatches_events() {
+        let mut tree = WidgetTree::new();
+        let mut painter = Painter::new();
+        painter.line([0.0, 0.0], [50.0, 50.0], 2.0, [1.0, 1.0, 0.0, 1.0])
+            .circle([80.0, 80.0], 20.0, Some([0.0, 1.0, 0.5, 0.8]), None)
+            .rect([10.0, 10.0, 60.0, 40.0], 4.0, Some([0.2, 0.2, 0.4, 0.5]), Some(([1.0, 0.0, 0.5, 1.0], 1.5)))
+            .bezier([0.0, 100.0], [30.0, 50.0], [70.0, 150.0], [100.0, 100.0], 2.0, [0.0, 0.8, 1.0, 1.0])
+            .polyline(vec![[0.0, 0.0], [20.0, 10.0], [40.0, 0.0]], 2.0, [1.0, 0.5, 0.0, 1.0], false)
+            .text([10.0, 90.0], "Signal Telemetry", 12.0, [0.9, 0.9, 0.9, 1.0]);
+
+        let canvas = tree.custom_paint("telemetry_canvas", painter.finish(), leaf_style(200.0, 150.0)).unwrap();
+        let root = tree.container(&[canvas], leaf_style(200.0, 150.0)).unwrap();
+        tree.compute(root, Size::MAX_CONTENT).unwrap();
+
+        let theme = Theme::cyber_glass();
+        let frame = tree.build_frame(root, &theme, Default::default()).unwrap();
+        // Frame should have background glass + circle + rect + line/bezier/polyline segmented instances
+        assert!(frame.instances.len() > 10);
+        assert!(frame.texts.iter().any(|t| t.text == "Signal Telemetry"));
+
+        // Click event dispatching with local coordinates
+        let event = tree.dispatch_click(root, (50.0, 50.0)).unwrap();
+        assert_eq!(
+            event,
+            Some(ui_core::UiEvent::CustomPaintPointerDown {
+                widget_id: "telemetry_canvas".into(),
+                local_pos: [50.0, 50.0],
+                normalized_pos: [0.25, 0.33333334],
+            })
+        );
     }
 }

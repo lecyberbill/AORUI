@@ -1505,6 +1505,109 @@ fn render_kind(
                 }
             }
         }
+
+        WidgetKind::CustomPaint { commands, .. } => {
+            // Ambient container glass background
+            frame.instances.push(glass_instance(bounds, clip, theme.glass_bg, theme.accent_secondary, 0.05, theme));
+
+            let origin_x = bounds[0];
+            let origin_y = bounds[1];
+
+            for cmd in commands {
+                match cmd {
+                    crate::paint::PaintCommand::Line { from, to, stroke_width, color } => {
+                        let p1 = [origin_x + from[0], origin_y + from[1]];
+                        let p2 = [origin_x + to[0], origin_y + to[1]];
+                        render_custom_paint_line(p1, p2, *stroke_width, *color, clip, frame);
+                    }
+                    crate::paint::PaintCommand::Rect { bounds: r_bounds, corner_radius, fill, stroke } => {
+                        let rect_abs = [origin_x + r_bounds[0], origin_y + r_bounds[1], r_bounds[2], r_bounds[3]];
+                        let bg = fill.unwrap_or([0.0, 0.0, 0.0, 0.0]);
+                        let (stroke_color, border_w) = stroke.unwrap_or(([0.0, 0.0, 0.0, 0.0], 0.0));
+                        frame.instances.push(custom_glass_instance(rect_abs, clip, bg, stroke_color, *corner_radius, border_w, 0.1));
+                    }
+                    crate::paint::PaintCommand::Circle { center, radius, fill, stroke } => {
+                        let d = radius * 2.0;
+                        let circle_abs = [origin_x + center[0] - radius, origin_y + center[1] - radius, d, d];
+                        let bg = fill.unwrap_or([0.0, 0.0, 0.0, 0.0]);
+                        let (stroke_color, border_w) = stroke.unwrap_or(([0.0, 0.0, 0.0, 0.0], 0.0));
+                        frame.instances.push(custom_glass_instance(circle_abs, clip, bg, stroke_color, *radius, border_w, 0.2));
+                    }
+                    crate::paint::PaintCommand::Bezier { start, ctrl1, ctrl2, end, stroke_width, color } => {
+                        let p0 = [origin_x + start[0], origin_y + start[1]];
+                        let p1 = [origin_x + ctrl1[0], origin_y + ctrl1[1]];
+                        let p2 = [origin_x + ctrl2[0], origin_y + ctrl2[1]];
+                        let p3 = [origin_x + end[0], origin_y + end[1]];
+
+                        const SUBDIVISIONS: usize = 16;
+                        let mut prev_pt = p0;
+                        for i in 1..=SUBDIVISIONS {
+                            let t = i as f32 / SUBDIVISIONS as f32;
+                            let pt = crate::paint::eval_cubic_bezier(p0, p1, p2, p3, t);
+                            render_custom_paint_line(prev_pt, pt, *stroke_width, *color, clip, frame);
+                            prev_pt = pt;
+                        }
+                    }
+                    crate::paint::PaintCommand::Polyline { points, stroke_width, color, closed } => {
+                        if points.len() >= 2 {
+                            for i in 0..(points.len() - 1) {
+                                let p1 = [origin_x + points[i][0], origin_y + points[i][1]];
+                                let p2 = [origin_x + points[i + 1][0], origin_y + points[i + 1][1]];
+                                render_custom_paint_line(p1, p2, *stroke_width, *color, clip, frame);
+                            }
+                            if *closed {
+                                let p1 = [origin_x + points[points.len() - 1][0], origin_y + points[points.len() - 1][1]];
+                                let p2 = [origin_x + points[0][0], origin_y + points[0][1]];
+                                render_custom_paint_line(p1, p2, *stroke_width, *color, clip, frame);
+                            }
+                        }
+                    }
+                    crate::paint::PaintCommand::Text { position, text, font_size, color } => {
+                        let text_bounds = [origin_x + position[0], origin_y + position[1], bounds[2] - position[0], *font_size + 4.0];
+                        frame.texts.push(TextSpec {
+                            text: text.clone(),
+                            bounds: text_bounds,
+                            font_size: *font_size,
+                            color: *color,
+                            align: TextAlign::Left,
+                            weight: FontWeight::Normal,
+                            clip,
+                        });
+                    }
+                }
+            }
+        }
+    }
+}
+
+fn render_custom_paint_line(
+    from: [f32; 2],
+    to: [f32; 2],
+    stroke_width: f32,
+    color: [f32; 4],
+    clip: [f32; 4],
+    frame: &mut Frame,
+) {
+    let dx = to[0] - from[0];
+    let dy = to[1] - from[1];
+    let len = (dx * dx + dy * dy).sqrt();
+    let r = (stroke_width * 0.5).max(0.5);
+
+    if len < 1.0 {
+        let b = [from[0] - r, from[1] - r, stroke_width.max(1.0), stroke_width.max(1.0)];
+        frame.instances.push(custom_glass_instance(b, clip, color, color, r, 0.0, 0.2));
+        return;
+    }
+
+    let step_size = (stroke_width * 0.6).max(2.5);
+    let steps = ((len / step_size).ceil() as usize).max(1);
+
+    for i in 0..=steps {
+        let t = i as f32 / steps as f32;
+        let x = from[0] + dx * t;
+        let y = from[1] + dy * t;
+        let b = [x - r, y - r, stroke_width.max(1.0), stroke_width.max(1.0)];
+        frame.instances.push(custom_glass_instance(b, clip, color, color, r, 0.0, 0.2));
     }
 }
 

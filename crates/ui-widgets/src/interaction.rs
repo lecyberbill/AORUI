@@ -258,8 +258,49 @@ impl WidgetTree {
                     Some(UiEvent::MediaPlayToggled { widget_id: id.to_string(), playing: !playing })
                 }
             }
+            WidgetKind::CustomPaint { id, .. } => {
+                let effective = self.effective_bounds(root)?;
+                let bounds = effective[&node].visual;
+                let local_x = point.0 - bounds[0];
+                let local_y = point.1 - bounds[1];
+                let norm_x = if bounds[2] > 0.0 { (local_x / bounds[2]).clamp(0.0, 1.0) } else { 0.0 };
+                let norm_y = if bounds[3] > 0.0 { (local_y / bounds[3]).clamp(0.0, 1.0) } else { 0.0 };
+                Some(UiEvent::CustomPaintPointerDown {
+                    widget_id: id.to_string(),
+                    local_pos: [local_x, local_y],
+                    normalized_pos: [norm_x, norm_y],
+                })
+            }
             _ => None,
         })
+    }
+
+    /// Calculates local coordinates and delta on a `CustomPaint` surface during pointer move/drag.
+    pub fn custom_paint_pointer_at(
+        &self,
+        root: NodeId,
+        target_id: &str,
+        point: (f32, f32),
+        prev_point: (f32, f32),
+    ) -> Result<Option<UiEvent>, ui_layout::LayoutError> {
+        let effective = self.effective_bounds(root)?;
+        for (node, _) in &effective {
+            if let Some(WidgetKind::CustomPaint { id, .. }) = self.layout().payload(*node) {
+                if id.as_str() == target_id {
+                    let bounds = effective[node].visual;
+                    let local_x = point.0 - bounds[0];
+                    let local_y = point.1 - bounds[1];
+                    let delta_x = point.0 - prev_point.0;
+                    let delta_y = point.1 - prev_point.1;
+                    return Ok(Some(UiEvent::CustomPaintPointerMove {
+                        widget_id: id.to_string(),
+                        local_pos: [local_x, local_y],
+                        delta: [delta_x, delta_y],
+                    }));
+                }
+            }
+        }
+        Ok(None)
     }
 
     /// Computes the new split ratio of a Splitter under pointer drag.

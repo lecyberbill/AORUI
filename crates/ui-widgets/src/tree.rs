@@ -1144,6 +1144,22 @@ impl WidgetTree {
             },
         )
     }
+
+    /// 2D Custom drawing and graphics surface (`CustomPaint`).
+    pub fn custom_paint(
+        &mut self,
+        id: impl Into<WidgetId>,
+        commands: impl IntoIterator<Item = crate::paint::PaintCommand>,
+        style: Style,
+    ) -> Result<NodeId, LayoutError> {
+        self.layout.insert_leaf(
+            style,
+            WidgetKind::CustomPaint {
+                id: id.into(),
+                commands: commands.into_iter().collect(),
+            },
+        )
+    }
 }
 
 impl Default for WidgetTree {

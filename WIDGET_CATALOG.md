@@ -60,6 +60,31 @@ pub fn grid(
 ```
 - **Layout Mechanics**: Uses Taffy `Display::Grid` with `grid_template_columns = vec![fr(1.0); columns]` for automated pixel-perfect column alignment.
 
+#### `WidgetTree::custom_paint`
+2D Custom drawing and graphics surface allowing developers to render custom graphics, shapes, lines, Bézier curves, polylines, and receive local/normalized interaction events.
+```rust
+pub fn custom_paint(
+    &mut self,
+    id: impl Into<WidgetId>,
+    commands: impl IntoIterator<Item = PaintCommand>,
+    style: Style,
+) -> Result<NodeId, LayoutError>
+```
+- **Painter Builder API**:
+```rust
+let mut painter = Painter::new();
+painter.line([0.0, 0.0], [100.0, 100.0], 2.0, [0.0, 1.0, 0.8, 1.0])
+    .rect([10.0, 10.0, 80.0, 40.0], 4.0, Some([0.1, 0.2, 0.3, 0.8]), Some(([0.0, 0.85, 1.0, 1.0], 1.5)))
+    .circle([50.0, 50.0], 20.0, Some([1.0, 0.0, 0.5, 0.8]), None)
+    .bezier([0.0, 50.0], [40.0, 10.0], [60.0, 90.0], [100.0, 50.0], 3.0, [0.4, 0.8, 1.0, 1.0])
+    .polyline(points, 2.0, [0.06, 0.72, 0.51, 1.0], false)
+    .text([10.0, 80.0], "Signal Telemetry", 12.0, [0.9, 0.9, 0.9, 1.0]);
+let canvas = tree.custom_paint("my_canvas", painter.finish(), leaf(400.0, 200.0)).unwrap();
+```
+- **Events**:
+  - `UiEvent::CustomPaintPointerDown { widget_id, local_pos, normalized_pos }`
+  - `UiEvent::CustomPaintPointerMove { widget_id, local_pos, delta }`
+
 #### `WidgetTree::split_view`
 Resizable split container with draggable separator bar (`SplitOrientation::Horizontal` or `SplitOrientation::Vertical`).
 ```rust
