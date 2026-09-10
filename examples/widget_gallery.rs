@@ -1692,7 +1692,7 @@ impl App {
             })
             .collect();
 
-        let background = wgpu::Color { r: 0.02, g: 0.03, b: 0.06, a: 1.0 };
+        let background = wgpu::Color::TRANSPARENT;
 
         if self.state.show_modal {
             // --- Layer 1: Modal Overlay ---
@@ -2134,6 +2134,7 @@ impl ApplicationHandler for App {
         let attrs = WindowAttributes::default()
             .with_title("AORUI — Widget Gallery")
             .with_decorations(false)
+            .with_transparent(true)
             .with_inner_size(winit::dpi::PhysicalSize::new(WINDOW_WIDTH as u32, WINDOW_HEIGHT as u32));
         let window = Arc::new(event_loop.create_window(attrs).expect("failed to create OS window"));
         let renderer = GpuRenderer::new(window.clone());
