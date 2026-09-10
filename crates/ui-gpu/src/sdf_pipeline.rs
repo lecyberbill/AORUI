@@ -142,7 +142,10 @@ impl SdfPipeline {
     }
 
     pub fn set_screen_size(&self, queue: &wgpu::Queue, width: f32, height: f32) {
-        let globals = GlobalsGpu { screen_size: [width, height], _pad: [0.0, 0.0] };
+        let globals = GlobalsGpu {
+            screen_size: [width, height],
+            _pad: [0.0, 0.0],
+        };
         queue.write_buffer(&self.globals_buffer, 0, bytemuck::bytes_of(&globals));
     }
 
@@ -205,7 +208,10 @@ impl SdfPipeline {
             color_attachments: &[Some(wgpu::RenderPassColorAttachment {
                 view: target_view,
                 resolve_target: None,
-                ops: wgpu::Operations { load: wgpu::LoadOp::Load, store: wgpu::StoreOp::Store },
+                ops: wgpu::Operations {
+                    load: wgpu::LoadOp::Load,
+                    store: wgpu::StoreOp::Store,
+                },
             })],
             depth_stencil_attachment: None,
             timestamp_writes: None,

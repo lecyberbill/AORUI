@@ -6,7 +6,11 @@ use serde_json::Value;
 #[derive(Debug, thiserror::Error)]
 pub enum SchemaError {
     #[error("expected type '{expected}' but received '{actual}' at path '{path}'")]
-    TypeMismatch { path: String, expected: String, actual: String },
+    TypeMismatch {
+        path: String,
+        expected: String,
+        actual: String,
+    },
     #[error("missing required property '{0}'")]
     MissingRequired(String),
 }
@@ -117,7 +121,9 @@ mod tests {
             "properties": { "name": { "type": "string" } }
         });
         let val = json!({ "age": 42 });
-        assert!(matches!(validate(&schema, &val), Err(SchemaError::MissingRequired(k)) if k == "name"));
+        assert!(
+            matches!(validate(&schema, &val), Err(SchemaError::MissingRequired(k)) if k == "name")
+        );
     }
 
     #[test]
@@ -127,6 +133,9 @@ mod tests {
             "properties": { "age": { "type": "integer" } }
         });
         let val = json!({ "age": "not-an-int" });
-        assert!(matches!(validate(&schema, &val), Err(SchemaError::TypeMismatch { .. })));
+        assert!(matches!(
+            validate(&schema, &val),
+            Err(SchemaError::TypeMismatch { .. })
+        ));
     }
 }

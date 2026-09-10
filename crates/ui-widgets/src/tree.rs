@@ -1,7 +1,10 @@
 // [WFGY] Zone: TRANSIT | λ: 0.2 | Fallbacks: 0 | Action: Declarative widget builders (button, label, input, list, checkbox, window, tabs, scroll, menus, overlays)
 use std::collections::HashMap;
 
-use ui_layout::{auto, length, percent, AlignItems, AvailableSpace, LayoutError, LayoutTree, NodeId, Position, Rect, Size, Style};
+use ui_layout::{
+    auto, length, percent, AlignItems, AvailableSpace, LayoutError, LayoutTree, NodeId, Position,
+    Rect, Size, Style,
+};
 
 use crate::id::WidgetId;
 use crate::kind::WidgetKind;
@@ -18,14 +21,20 @@ pub struct WidgetTree {
 
 impl WidgetTree {
     pub fn new() -> Self {
-        Self { layout: LayoutTree::new() }
+        Self {
+            layout: LayoutTree::new(),
+        }
     }
 
     pub fn layout(&self) -> &LayoutTree<WidgetKind> {
         &self.layout
     }
 
-    pub fn compute(&mut self, root: NodeId, available_space: Size<AvailableSpace>) -> Result<(), LayoutError> {
+    pub fn compute(
+        &mut self,
+        root: NodeId,
+        available_space: Size<AvailableSpace>,
+    ) -> Result<(), LayoutError> {
         self.layout.compute(root, available_space)
     }
 
@@ -34,11 +43,27 @@ impl WidgetTree {
     }
 
     pub fn label(&mut self, text: impl Into<String>, style: Style) -> Result<NodeId, LayoutError> {
-        self.layout.insert_leaf(style, WidgetKind::Label { text: text.into(), muted: false })
+        self.layout.insert_leaf(
+            style,
+            WidgetKind::Label {
+                text: text.into(),
+                muted: false,
+            },
+        )
     }
 
-    pub fn label_muted(&mut self, text: impl Into<String>, style: Style) -> Result<NodeId, LayoutError> {
-        self.layout.insert_leaf(style, WidgetKind::Label { text: text.into(), muted: true })
+    pub fn label_muted(
+        &mut self,
+        text: impl Into<String>,
+        style: Style,
+    ) -> Result<NodeId, LayoutError> {
+        self.layout.insert_leaf(
+            style,
+            WidgetKind::Label {
+                text: text.into(),
+                muted: true,
+            },
+        )
     }
 
     pub fn button(
@@ -48,7 +73,14 @@ impl WidgetTree {
         enabled: bool,
         style: Style,
     ) -> Result<NodeId, LayoutError> {
-        self.layout.insert_leaf(style, WidgetKind::Button { id: id.into(), label: label.into(), enabled })
+        self.layout.insert_leaf(
+            style,
+            WidgetKind::Button {
+                id: id.into(),
+                label: label.into(),
+                enabled,
+            },
+        )
     }
 
     /// Icon button with hover glow and tactile press feedback.
@@ -59,7 +91,14 @@ impl WidgetTree {
         enabled: bool,
         style: Style,
     ) -> Result<NodeId, LayoutError> {
-        self.layout.insert_leaf(style, WidgetKind::IconButton { id: id.into(), icon, enabled })
+        self.layout.insert_leaf(
+            style,
+            WidgetKind::IconButton {
+                id: id.into(),
+                icon,
+                enabled,
+            },
+        )
     }
 
     /// Scalable cyber vector glyph icon.
@@ -70,7 +109,8 @@ impl WidgetTree {
         color: Option<[f32; 4]>,
         style: Style,
     ) -> Result<NodeId, LayoutError> {
-        self.layout.insert_leaf(style, WidgetKind::Icon { kind, size, color })
+        self.layout
+            .insert_leaf(style, WidgetKind::Icon { kind, size, color })
     }
 
     /// Multi-column data table grid with clickable sortable headers and selectable rows.
@@ -95,7 +135,10 @@ impl WidgetTree {
         let mut header_cells = Vec::with_capacity(columns.len());
         for (col_idx, (title, width, sorted_asc)) in columns.iter().enumerate() {
             let h_style = Style {
-                size: Size { width: length(*width), height: length(26.0) },
+                size: Size {
+                    width: length(*width),
+                    height: length(26.0),
+                },
                 ..Default::default()
             };
             let cell = self.layout.insert_leaf(
@@ -111,11 +154,19 @@ impl WidgetTree {
         }
         let header_row_style = Style {
             flex_direction: ui_layout::FlexDirection::Row,
-            size: Size { width: percent(1.0), height: length(26.0) },
-            gap: Size { width: length(4.0), height: length(0.0) },
+            size: Size {
+                width: percent(1.0),
+                height: length(26.0),
+            },
+            gap: Size {
+                width: length(4.0),
+                height: length(0.0),
+            },
             ..Default::default()
         };
-        let header_row = self.layout.insert_container(header_row_style, &header_cells, WidgetKind::Container)?;
+        let header_row =
+            self.layout
+                .insert_container(header_row_style, &header_cells, WidgetKind::Container)?;
         all_rows.push(header_row);
 
         // 2. Data rows
@@ -127,7 +178,10 @@ impl WidgetTree {
             for (c_idx, (text, badge)) in cells_data.iter().enumerate() {
                 let col_w = columns.get(c_idx).map(|c| c.1).unwrap_or(100.0);
                 let cell_style = Style {
-                    size: Size { width: length(col_w), height: length(row_height) },
+                    size: Size {
+                        width: length(col_w),
+                        height: length(row_height),
+                    },
                     ..Default::default()
                 };
                 let cell = self.layout.insert_leaf(
@@ -146,20 +200,32 @@ impl WidgetTree {
 
             let row_style = Style {
                 flex_direction: ui_layout::FlexDirection::Row,
-                size: Size { width: percent(1.0), height: length(row_height) },
-                gap: Size { width: length(4.0), height: length(0.0) },
+                size: Size {
+                    width: percent(1.0),
+                    height: length(row_height),
+                },
+                gap: Size {
+                    width: length(4.0),
+                    height: length(0.0),
+                },
                 ..Default::default()
             };
-            let r_node = self.layout.insert_container(row_style, &row_cells, WidgetKind::Container)?;
+            let r_node =
+                self.layout
+                    .insert_container(row_style, &row_cells, WidgetKind::Container)?;
             all_rows.push(r_node);
         }
 
         let style = Style {
             flex_direction: ui_layout::FlexDirection::Column,
-            gap: Size { width: length(0.0), height: length(2.0) },
+            gap: Size {
+                width: length(0.0),
+                height: length(2.0),
+            },
             ..container_style
         };
-        self.layout.insert_container(style, &all_rows, WidgetKind::Container)
+        self.layout
+            .insert_container(style, &all_rows, WidgetKind::Container)
     }
 
     /// Collapsible accordion section with animated indicator arrow and expandable body.
@@ -176,7 +242,10 @@ impl WidgetTree {
         let subtitle_str: Option<String> = subtitle.map(|s| s.into());
         let header_h = if subtitle_str.is_some() { 46.0 } else { 34.0 };
         let header_style = Style {
-            size: Size { width: percent(1.0), height: length(header_h) },
+            size: Size {
+                width: percent(1.0),
+                height: length(header_h),
+            },
             ..Default::default()
         };
         let header = self.layout.insert_leaf(
@@ -196,10 +265,14 @@ impl WidgetTree {
 
         let style = Style {
             flex_direction: ui_layout::FlexDirection::Column,
-            gap: Size { width: length(0.0), height: length(4.0) },
+            gap: Size {
+                width: length(0.0),
+                height: length(4.0),
+            },
             ..container_style
         };
-        self.layout.insert_container(style, &children, WidgetKind::Container)
+        self.layout
+            .insert_container(style, &children, WidgetKind::Container)
     }
 
     /// Breadcrumb navigation bar showing hierarchical path segments.
@@ -236,10 +309,14 @@ impl WidgetTree {
         let style = Style {
             flex_direction: ui_layout::FlexDirection::Row,
             align_items: Some(AlignItems::Center),
-            gap: Size { width: length(4.0), height: length(0.0) },
+            gap: Size {
+                width: length(4.0),
+                height: length(0.0),
+            },
             ..bar_style
         };
-        self.layout.insert_container(style, &child_nodes, WidgetKind::Container)
+        self.layout
+            .insert_container(style, &child_nodes, WidgetKind::Container)
     }
 
     /// Multi-page pagination bar.
@@ -300,10 +377,14 @@ impl WidgetTree {
         let style = Style {
             flex_direction: ui_layout::FlexDirection::Row,
             align_items: Some(AlignItems::Center),
-            gap: Size { width: length(4.0), height: length(0.0) },
+            gap: Size {
+                width: length(4.0),
+                height: length(0.0),
+            },
             ..bar_style
         };
-        self.layout.insert_container(style, &child_nodes, WidgetKind::Container)
+        self.layout
+            .insert_container(style, &child_nodes, WidgetKind::Container)
     }
 
     /// Standalone status badge / tag / capsule pill.
@@ -313,7 +394,13 @@ impl WidgetTree {
         badge: crate::kind::ListItemBadge,
         style: Style,
     ) -> Result<NodeId, LayoutError> {
-        self.layout.insert_leaf(style, WidgetKind::Badge { label: label.into(), badge })
+        self.layout.insert_leaf(
+            style,
+            WidgetKind::Badge {
+                label: label.into(),
+                badge,
+            },
+        )
     }
 
     /// Color preview swatch tile.
@@ -352,21 +439,71 @@ impl WidgetTree {
         )
     }
 
-    pub fn checkbox(&mut self, id: impl Into<WidgetId>, checked: bool, style: Style) -> Result<NodeId, LayoutError> {
-        self.layout.insert_leaf(style, WidgetKind::Checkbox { id: id.into(), checked })
+    pub fn checkbox(
+        &mut self,
+        id: impl Into<WidgetId>,
+        checked: bool,
+        style: Style,
+    ) -> Result<NodeId, LayoutError> {
+        self.layout.insert_leaf(
+            style,
+            WidgetKind::Checkbox {
+                id: id.into(),
+                checked,
+            },
+        )
     }
 
-    pub fn toggle(&mut self, id: impl Into<WidgetId>, active: bool, style: Style) -> Result<NodeId, LayoutError> {
-        self.layout.insert_leaf(style, WidgetKind::Toggle { id: id.into(), active })
+    pub fn toggle(
+        &mut self,
+        id: impl Into<WidgetId>,
+        active: bool,
+        style: Style,
+    ) -> Result<NodeId, LayoutError> {
+        self.layout.insert_leaf(
+            style,
+            WidgetKind::Toggle {
+                id: id.into(),
+                active,
+            },
+        )
     }
 
-    pub fn slider(&mut self, id: impl Into<WidgetId>, min: f32, max: f32, value: f32, style: Style) -> Result<NodeId, LayoutError> {
-        self.slider_oriented(id, min, max, value, crate::kind::SliderOrientation::Horizontal, style)
+    pub fn slider(
+        &mut self,
+        id: impl Into<WidgetId>,
+        min: f32,
+        max: f32,
+        value: f32,
+        style: Style,
+    ) -> Result<NodeId, LayoutError> {
+        self.slider_oriented(
+            id,
+            min,
+            max,
+            value,
+            crate::kind::SliderOrientation::Horizontal,
+            style,
+        )
     }
 
     /// Vertical fader slider (e.g. for audio mixers, equalizers, volume faders).
-    pub fn slider_vertical(&mut self, id: impl Into<WidgetId>, min: f32, max: f32, value: f32, style: Style) -> Result<NodeId, LayoutError> {
-        self.slider_oriented(id, min, max, value, crate::kind::SliderOrientation::Vertical, style)
+    pub fn slider_vertical(
+        &mut self,
+        id: impl Into<WidgetId>,
+        min: f32,
+        max: f32,
+        value: f32,
+        style: Style,
+    ) -> Result<NodeId, LayoutError> {
+        self.slider_oriented(
+            id,
+            min,
+            max,
+            value,
+            crate::kind::SliderOrientation::Vertical,
+            style,
+        )
     }
 
     /// Generic oriented slider (Horizontal or Vertical).
@@ -379,7 +516,16 @@ impl WidgetTree {
         orientation: crate::kind::SliderOrientation,
         style: Style,
     ) -> Result<NodeId, LayoutError> {
-        self.layout.insert_leaf(style, WidgetKind::Slider { id: id.into(), min, max, value, orientation })
+        self.layout.insert_leaf(
+            style,
+            WidgetKind::Slider {
+                id: id.into(),
+                min,
+                max,
+                value,
+                orientation,
+            },
+        )
     }
 
     pub fn progress_bar(&mut self, progress: f32, style: Style) -> Result<NodeId, LayoutError> {
@@ -387,18 +533,42 @@ impl WidgetTree {
     }
 
     /// Vertical progress bar filling from bottom to top.
-    pub fn progress_bar_vertical(&mut self, progress: f32, style: Style) -> Result<NodeId, LayoutError> {
+    pub fn progress_bar_vertical(
+        &mut self,
+        progress: f32,
+        style: Style,
+    ) -> Result<NodeId, LayoutError> {
         self.progress_bar_custom(progress, crate::kind::ProgressKind::Vertical, None, style)
     }
 
     /// Circular donut ring progress indicator with optional center label.
-    pub fn progress_ring(&mut self, progress: f32, label: Option<impl Into<String>>, style: Style) -> Result<NodeId, LayoutError> {
-        self.progress_bar_custom(progress, crate::kind::ProgressKind::Ring, label.map(|s| s.into()), style)
+    pub fn progress_ring(
+        &mut self,
+        progress: f32,
+        label: Option<impl Into<String>>,
+        style: Style,
+    ) -> Result<NodeId, LayoutError> {
+        self.progress_bar_custom(
+            progress,
+            crate::kind::ProgressKind::Ring,
+            label.map(|s| s.into()),
+            style,
+        )
     }
 
     /// Circular pie / camembert progress indicator with optional center label.
-    pub fn progress_pie(&mut self, progress: f32, label: Option<impl Into<String>>, style: Style) -> Result<NodeId, LayoutError> {
-        self.progress_bar_custom(progress, crate::kind::ProgressKind::Pie, label.map(|s| s.into()), style)
+    pub fn progress_pie(
+        &mut self,
+        progress: f32,
+        label: Option<impl Into<String>>,
+        style: Style,
+    ) -> Result<NodeId, LayoutError> {
+        self.progress_bar_custom(
+            progress,
+            crate::kind::ProgressKind::Pie,
+            label.map(|s| s.into()),
+            style,
+        )
     }
 
     /// Generic custom progress indicator (Horizontal, Vertical, Ring, Pie).
@@ -409,7 +579,14 @@ impl WidgetTree {
         label: Option<String>,
         style: Style,
     ) -> Result<NodeId, LayoutError> {
-        self.layout.insert_leaf(style, WidgetKind::ProgressBar { progress, kind, label })
+        self.layout.insert_leaf(
+            style,
+            WidgetKind::ProgressBar {
+                progress,
+                kind,
+                label,
+            },
+        )
     }
 
     pub fn metric_card(
@@ -420,7 +597,14 @@ impl WidgetTree {
         style: Style,
     ) -> Result<NodeId, LayoutError> {
         let delta = delta.map(|(text, positive)| (text.into(), positive));
-        self.layout.insert_leaf(style, WidgetKind::MetricCard { title: title.into(), value: value.into(), delta })
+        self.layout.insert_leaf(
+            style,
+            WidgetKind::MetricCard {
+                title: title.into(),
+                value: value.into(),
+                delta,
+            },
+        )
     }
 
     /// Vertical scrollbar for the `ScrollView` identified by `id`.
@@ -433,7 +617,15 @@ impl WidgetTree {
         offset: f32,
         style: Style,
     ) -> Result<NodeId, LayoutError> {
-        self.layout.insert_leaf(style, WidgetKind::Scrollbar { id: id.into(), content_size, viewport_size, offset })
+        self.layout.insert_leaf(
+            style,
+            WidgetKind::Scrollbar {
+                id: id.into(),
+                content_size,
+                viewport_size,
+                offset,
+            },
+        )
     }
 
     pub fn text_input(
@@ -486,7 +678,16 @@ impl WidgetTree {
     ) -> Result<NodeId, LayoutError> {
         let val_str = value.into();
         let cursor = val_str.len();
-        self.text_area_with_cursor(id, val_str, placeholder, focused, line_numbers, cursor, None, style)
+        self.text_area_with_cursor(
+            id,
+            val_str,
+            placeholder,
+            focused,
+            line_numbers,
+            cursor,
+            None,
+            style,
+        )
     }
 
     pub fn text_area_with_cursor(
@@ -634,7 +835,8 @@ impl WidgetTree {
     }
 
     pub fn divider(&mut self, vertical: bool, style: Style) -> Result<NodeId, LayoutError> {
-        self.layout.insert_leaf(style, WidgetKind::Divider { vertical })
+        self.layout
+            .insert_leaf(style, WidgetKind::Divider { vertical })
     }
 
     pub fn segmented_control(
@@ -656,7 +858,8 @@ impl WidgetTree {
             };
             items.push(self.layout.insert_leaf(option_style.clone(), kind)?);
         }
-        self.layout.insert_container(bar_style, &items, WidgetKind::Container)
+        self.layout
+            .insert_container(bar_style, &items, WidgetKind::Container)
     }
 
     pub fn modal(
@@ -671,21 +874,41 @@ impl WidgetTree {
 
         let close_button_style = Style {
             position: Position::Absolute,
-            inset: Rect { top: length(8.0), right: length(8.0), bottom: auto(), left: auto() },
-            size: Size { width: length(CLOSE_BUTTON_SIZE), height: length(CLOSE_BUTTON_SIZE) },
+            inset: Rect {
+                top: length(8.0),
+                right: length(8.0),
+                bottom: auto(),
+                left: auto(),
+            },
+            size: Size {
+                width: length(CLOSE_BUTTON_SIZE),
+                height: length(CLOSE_BUTTON_SIZE),
+            },
             ..Default::default()
         };
-        let close_button =
-            self.layout.insert_leaf(close_button_style, WidgetKind::ModalBackdrop { owner: id.clone() })?;
+        let close_button = self.layout.insert_leaf(
+            close_button_style,
+            WidgetKind::ModalBackdrop { owner: id.clone() },
+        )?;
 
         let mut all_children = Vec::with_capacity(children.len() + 1);
         all_children.extend_from_slice(children);
         all_children.push(close_button);
 
-        let dialog =
-            self.layout.insert_container(dialog_style, &all_children, WidgetKind::Modal { id: id.clone(), title: title.into() })?;
+        let dialog = self.layout.insert_container(
+            dialog_style,
+            &all_children,
+            WidgetKind::Modal {
+                id: id.clone(),
+                title: title.into(),
+            },
+        )?;
 
-        self.layout.insert_container(backdrop_style, &[dialog], WidgetKind::ModalBackdrop { owner: id })
+        self.layout.insert_container(
+            backdrop_style,
+            &[dialog],
+            WidgetKind::ModalBackdrop { owner: id },
+        )
     }
 
     /// Standard modal overlay dialog: automatically creates a 100% viewport backdrop,
@@ -699,15 +922,24 @@ impl WidgetTree {
     ) -> Result<NodeId, LayoutError> {
         let backdrop_style = Style {
             position: Position::Absolute,
-            inset: Rect { top: length(0.0), right: length(0.0), bottom: length(0.0), left: length(0.0) },
-            size: Size { width: percent(1.0), height: percent(1.0) },
+            inset: Rect {
+                top: length(0.0),
+                right: length(0.0),
+                bottom: length(0.0),
+                left: length(0.0),
+            },
+            size: Size {
+                width: percent(1.0),
+                height: percent(1.0),
+            },
             ..Default::default()
         };
         self.modal(id, title, children, dialog_style, backdrop_style)
     }
 
     pub fn container(&mut self, children: &[NodeId], style: Style) -> Result<NodeId, LayoutError> {
-        self.layout.insert_container(style, children, WidgetKind::Container)
+        self.layout
+            .insert_container(style, children, WidgetKind::Container)
     }
 
     /// High-level CSS Grid container helper with N equal-fraction columns and customizable row/col gaps.
@@ -722,10 +954,14 @@ impl WidgetTree {
         let grid_style = Style {
             display: ui_layout::Display::Grid,
             grid_template_columns: vec![ui_layout::fr(1.0); columns.max(1)],
-            gap: Size { width: length(column_gap), height: length(row_gap) },
+            gap: Size {
+                width: length(column_gap),
+                height: length(row_gap),
+            },
             ..base_style
         };
-        self.layout.insert_container(grid_style, children, WidgetKind::Container)
+        self.layout
+            .insert_container(grid_style, children, WidgetKind::Container)
     }
 
     /// Resizable split view container with a draggable splitter bar.
@@ -743,18 +979,30 @@ impl WidgetTree {
 
         let splitter_style = match orientation {
             crate::kind::SplitOrientation::Horizontal => Style {
-                size: Size { width: length(splitter_size), height: percent(1.0) },
+                size: Size {
+                    width: length(splitter_size),
+                    height: percent(1.0),
+                },
                 flex_shrink: 0.0,
                 ..Default::default()
             },
             crate::kind::SplitOrientation::Vertical => Style {
-                size: Size { width: percent(1.0), height: length(splitter_size) },
+                size: Size {
+                    width: percent(1.0),
+                    height: length(splitter_size),
+                },
                 flex_shrink: 0.0,
                 ..Default::default()
             },
         };
 
-        let splitter = self.layout.insert_leaf(splitter_style, WidgetKind::Splitter { owner: id.clone(), orientation })?;
+        let splitter = self.layout.insert_leaf(
+            splitter_style,
+            WidgetKind::Splitter {
+                owner: id.clone(),
+                orientation,
+            },
+        )?;
 
         let flex_dir = match orientation {
             crate::kind::SplitOrientation::Horizontal => ui_layout::FlexDirection::Row,
@@ -767,7 +1015,8 @@ impl WidgetTree {
             ..container_style
         };
 
-        self.layout.insert_container(style, &[first, splitter, second], WidgetKind::Container)
+        self.layout
+            .insert_container(style, &[first, splitter, second], WidgetKind::Container)
     }
 
     /// Hierarchical tree view container.
@@ -800,7 +1049,8 @@ impl WidgetTree {
             flex_direction: ui_layout::FlexDirection::Column,
             ..container_style
         };
-        self.layout.insert_container(style, &child_nodes, WidgetKind::Container)
+        self.layout
+            .insert_container(style, &child_nodes, WidgetKind::Container)
     }
 
     /// Window container: cyber-glass frame with title bar and top-right close button.
@@ -815,18 +1065,35 @@ impl WidgetTree {
 
         let close_button_style = Style {
             position: Position::Absolute,
-            inset: Rect { top: length(8.0), right: length(8.0), bottom: auto(), left: auto() },
-            size: Size { width: length(CLOSE_BUTTON_SIZE), height: length(CLOSE_BUTTON_SIZE) },
+            inset: Rect {
+                top: length(8.0),
+                right: length(8.0),
+                bottom: auto(),
+                left: auto(),
+            },
+            size: Size {
+                width: length(CLOSE_BUTTON_SIZE),
+                height: length(CLOSE_BUTTON_SIZE),
+            },
             ..Default::default()
         };
-        let close_button =
-            self.layout.insert_leaf(close_button_style, WidgetKind::WindowCloseButton { owner: id.clone() })?;
+        let close_button = self.layout.insert_leaf(
+            close_button_style,
+            WidgetKind::WindowCloseButton { owner: id.clone() },
+        )?;
 
         let mut all_children = Vec::with_capacity(children.len() + 1);
         all_children.extend_from_slice(children);
         all_children.push(close_button);
 
-        self.layout.insert_container(style, &all_children, WidgetKind::Window { id, title: title.into() })
+        self.layout.insert_container(
+            style,
+            &all_children,
+            WidgetKind::Window {
+                id,
+                title: title.into(),
+            },
+        )
     }
 
     /// Horizontal application menu bar.
@@ -849,7 +1116,8 @@ impl WidgetTree {
             };
             menu_nodes.push(self.layout.insert_leaf(item_style.clone(), kind)?);
         }
-        self.layout.insert_container(bar_style, &menu_nodes, WidgetKind::MenuBar)
+        self.layout
+            .insert_container(bar_style, &menu_nodes, WidgetKind::MenuBar)
     }
 
     /// Floating dropdown contextual menu (popover).
@@ -877,7 +1145,8 @@ impl WidgetTree {
             };
             item_nodes.push(self.layout.insert_leaf(item_style.clone(), kind)?);
         }
-        self.layout.insert_container(popover_style, &item_nodes, WidgetKind::MenuPopover)
+        self.layout
+            .insert_container(popover_style, &item_nodes, WidgetKind::MenuPopover)
     }
 
     /// Dropdown / Select input box.
@@ -926,7 +1195,8 @@ impl WidgetTree {
         text: impl Into<String>,
         style: Style,
     ) -> Result<NodeId, LayoutError> {
-        self.layout.insert_leaf(style, WidgetKind::Tooltip { text: text.into() })
+        self.layout
+            .insert_leaf(style, WidgetKind::Tooltip { text: text.into() })
     }
 
     /// Tab selection bar container.
@@ -949,7 +1219,8 @@ impl WidgetTree {
             };
             items.push(self.layout.insert_leaf(tab_style.clone(), kind)?);
         }
-        self.layout.insert_container(bar_style, &items, WidgetKind::Container)
+        self.layout
+            .insert_container(bar_style, &items, WidgetKind::Container)
     }
 
     /// Scrollable rich list with status badges.
@@ -973,7 +1244,8 @@ impl WidgetTree {
             };
             rows.push(self.layout.insert_leaf(item_style.clone(), kind)?);
         }
-        self.layout.insert_container(list_style, &rows, WidgetKind::Container)
+        self.layout
+            .insert_container(list_style, &rows, WidgetKind::Container)
     }
 
     pub fn list(
@@ -984,7 +1256,10 @@ impl WidgetTree {
         item_style: Style,
         list_style: Style,
     ) -> Result<NodeId, LayoutError> {
-        let items_with_badges: Vec<_> = items.iter().map(|s| (s, crate::kind::ListItemBadge::None)).collect();
+        let items_with_badges: Vec<_> = items
+            .iter()
+            .map(|s| (s, crate::kind::ListItemBadge::None))
+            .collect();
         self.rich_list(id, &items_with_badges, selected, item_style, list_style)
     }
 
@@ -996,8 +1271,18 @@ impl WidgetTree {
         children: &[NodeId],
         style: Style,
     ) -> Result<NodeId, LayoutError> {
-        let style = Style { align_items: Some(AlignItems::FlexStart), ..style };
-        self.layout.insert_container(style, children, WidgetKind::ScrollView { id: id.into(), offset })
+        let style = Style {
+            align_items: Some(AlignItems::FlexStart),
+            ..style
+        };
+        self.layout.insert_container(
+            style,
+            children,
+            WidgetKind::ScrollView {
+                id: id.into(),
+                offset,
+            },
+        )
     }
 
     /// Floating Tool Palette (Photoshop / Blender style sub-window).
@@ -1015,7 +1300,10 @@ impl WidgetTree {
 
         let header_node = self.layout.insert_leaf(
             Style {
-                size: Size { width: ui_layout::percent(1.0), height: ui_layout::length(28.0) },
+                size: Size {
+                    width: ui_layout::percent(1.0),
+                    height: ui_layout::length(28.0),
+                },
                 ..Default::default()
             },
             WidgetKind::PaletteHeader {
@@ -1039,7 +1327,10 @@ impl WidgetTree {
                         left: ui_layout::auto(),
                         top: ui_layout::auto(),
                     },
-                    size: Size { width: ui_layout::length(14.0), height: ui_layout::length(14.0) },
+                    size: Size {
+                        width: ui_layout::length(14.0),
+                        height: ui_layout::length(14.0),
+                    },
                     ..Default::default()
                 },
                 WidgetKind::ResizeGrip { owner: wid.clone() },

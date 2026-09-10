@@ -56,7 +56,11 @@ impl GpuContext {
             .alpha_modes
             .iter()
             .copied()
-            .find(|&a| a == wgpu::CompositeAlphaMode::PreMultiplied || a == wgpu::CompositeAlphaMode::PostMultiplied || a == wgpu::CompositeAlphaMode::Inherit)
+            .find(|&a| {
+                a == wgpu::CompositeAlphaMode::PreMultiplied
+                    || a == wgpu::CompositeAlphaMode::PostMultiplied
+                    || a == wgpu::CompositeAlphaMode::Inherit
+            })
             .unwrap_or(surface_caps.alpha_modes[0]);
 
         let config = wgpu::SurfaceConfiguration {
@@ -71,7 +75,13 @@ impl GpuContext {
         };
         surface.configure(&device, &config);
 
-        Self { surface, device, queue, config, size }
+        Self {
+            surface,
+            device,
+            queue,
+            config,
+            size,
+        }
     }
 
     pub fn resize(&mut self, new_size: winit::dpi::PhysicalSize<u32>) {

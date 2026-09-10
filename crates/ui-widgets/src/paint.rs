@@ -59,12 +59,25 @@ impl Painter {
     /// Create a new empty painter.
     #[inline]
     pub fn new() -> Self {
-        Self { commands: Vec::new() }
+        Self {
+            commands: Vec::new(),
+        }
     }
 
     /// Add a line segment.
-    pub fn line(&mut self, from: [f32; 2], to: [f32; 2], stroke_width: f32, color: [f32; 4]) -> &mut Self {
-        self.commands.push(PaintCommand::Line { from, to, stroke_width, color });
+    pub fn line(
+        &mut self,
+        from: [f32; 2],
+        to: [f32; 2],
+        stroke_width: f32,
+        color: [f32; 4],
+    ) -> &mut Self {
+        self.commands.push(PaintCommand::Line {
+            from,
+            to,
+            stroke_width,
+            color,
+        });
         self
     }
 
@@ -76,7 +89,12 @@ impl Painter {
         fill: Option<[f32; 4]>,
         stroke: Option<([f32; 4], f32)>,
     ) -> &mut Self {
-        self.commands.push(PaintCommand::Rect { bounds, corner_radius, fill, stroke });
+        self.commands.push(PaintCommand::Rect {
+            bounds,
+            corner_radius,
+            fill,
+            stroke,
+        });
         self
     }
 
@@ -88,7 +106,12 @@ impl Painter {
         fill: Option<[f32; 4]>,
         stroke: Option<([f32; 4], f32)>,
     ) -> &mut Self {
-        self.commands.push(PaintCommand::Circle { center, radius, fill, stroke });
+        self.commands.push(PaintCommand::Circle {
+            center,
+            radius,
+            fill,
+            stroke,
+        });
         self
     }
 
@@ -102,7 +125,14 @@ impl Painter {
         stroke_width: f32,
         color: [f32; 4],
     ) -> &mut Self {
-        self.commands.push(PaintCommand::Bezier { start, ctrl1, ctrl2, end, stroke_width, color });
+        self.commands.push(PaintCommand::Bezier {
+            start,
+            ctrl1,
+            ctrl2,
+            end,
+            stroke_width,
+            color,
+        });
         self
     }
 
@@ -114,7 +144,12 @@ impl Painter {
         color: [f32; 4],
         closed: bool,
     ) -> &mut Self {
-        self.commands.push(PaintCommand::Polyline { points, stroke_width, color, closed });
+        self.commands.push(PaintCommand::Polyline {
+            points,
+            stroke_width,
+            color,
+            closed,
+        });
         self
     }
 
@@ -144,7 +179,13 @@ impl Painter {
 
 /// Helper function to evaluate a cubic Bézier point at parameter `t` in `[0.0, 1.0]`.
 #[inline]
-pub fn eval_cubic_bezier(p0: [f32; 2], p1: [f32; 2], p2: [f32; 2], p3: [f32; 2], t: f32) -> [f32; 2] {
+pub fn eval_cubic_bezier(
+    p0: [f32; 2],
+    p1: [f32; 2],
+    p2: [f32; 2],
+    p3: [f32; 2],
+    t: f32,
+) -> [f32; 2] {
     let t2 = t * t;
     let t3 = t2 * t;
     let u = 1.0 - t;

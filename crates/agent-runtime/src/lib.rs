@@ -1,10 +1,8 @@
-// [WFGY] Zone: RISK | λ: 0.3 | Fallbacks: 0 | Action: Tokio cognitive loop implementation (FSM, Tool, budget, timeout)
 //! Agent cognitive runtime, decoupled from the Render Thread (INV-CORE-1):
 //! this crate depends neither on `wgpu` nor on `winit`.
 //!
 //! INV-SEC-3: all tool executions pass through JSON schema validation
-//! ([`schema::validate`]) and mandatory timeout limits
-//! (`tokio::time::timeout`), see [`agent::Agent::execute_tool`].
+//! and mandatory timeout limits (`tokio::time::timeout`), handled by [`Agent`].
 
 mod agent;
 mod error;
@@ -95,15 +93,18 @@ mod tests {
         tools.register(std::sync::Arc::new(EchoTool));
         tools.register(std::sync::Arc::new(SleepyTool));
 
-        let config = AgentConfig { max_steps, tool_timeout, max_scratchpad_entries: 50 };
+        let config = AgentConfig {
+            max_steps,
+            tool_timeout,
+            max_scratchpad_entries: 50,
+        };
         let agent = Agent::new(config, tools, tx_patches);
         (agent, tx_events, rx_events, rx_patches)
     }
 
     #[tokio::test]
     async fn nominal_run_completes_after_scripted_tool_calls() {
-        let (agent, tx_events, rx_events, rx_patches) =
-            make_test_setup(5, Duration::from_secs(5));
+        let (agent, tx_events, rx_events, rx_patches) = make_test_setup(5, Duration::from_secs(5));
 
         let planner = Box::new(ScriptedPlanner::new(vec![
             PlanDecision::CallTool {
@@ -115,7 +116,10 @@ mod tests {
 
         let handle = tokio::spawn(async move { agent.run(rx_events, planner).await });
 
-        tx_events.send(UiEvent::UserPromptSubmitted("say hello".into())).await.unwrap();
+        tx_events
+            .send(UiEvent::UserPromptSubmitted("say hello".into()))
+            .await
+            .unwrap();
         drop(tx_events);
 
         let res = handle.await.unwrap();
@@ -127,19 +131,22 @@ mod tests {
         }
 
         assert!(
-            received.iter().any(|p| matches!(p, UiPatch::StatusChanged { state, .. } if state == "Idle")),
+            received
+                .iter()
+                .any(|p| matches!(p, UiPatch::StatusChanged { state, .. } if state == "Idle")),
             "agent should transition through Idle"
         );
         assert!(
-            received.iter().any(|p| matches!(p, UiPatch::StepLogged { tool, .. } if tool == "echo")),
+            received
+                .iter()
+                .any(|p| matches!(p, UiPatch::StepLogged { tool, .. } if tool == "echo")),
             "agent should log the tool execution"
         );
     }
 
     #[tokio::test]
     async fn step_budget_is_enforced() {
-        let (agent, tx_events, rx_events, rx_patches) =
-            make_test_setup(2, Duration::from_secs(5));
+        let (agent, tx_events, rx_events, rx_patches) = make_test_setup(2, Duration::from_secs(5));
 
         let infinite_tool_calls: Vec<_> = (0..10)
             .map(|_| PlanDecision::CallTool {
@@ -150,17 +157,28 @@ mod tests {
         let planner = Box::new(ScriptedPlanner::new(infinite_tool_calls));
 
         let handle = tokio::spawn(async move { agent.run(rx_events, planner).await });
-        tx_events.send(UiEvent::UserPromptSubmitted("spin".into())).await.unwrap();
+        tx_events
+            .send(UiEvent::UserPromptSubmitted("spin".into()))
+            .await
+            .unwrap();
         drop(tx_events);
 
         let res = handle.await.unwrap();
-        assert!(matches!(res, Err(AgentError::StepBudgetExceeded { steps: 2, max_steps: 2 })));
+        assert!(matches!(
+            res,
+            Err(AgentError::StepBudgetExceeded {
+                steps: 2,
+                max_steps: 2
+            })
+        ));
 
         let mut received = Vec::new();
         while let Ok(patch) = rx_patches.try_recv() {
             received.push(patch);
         }
-        assert!(received.iter().any(|p| matches!(p, UiPatch::StatusChanged { state, .. } if state == "Failed")));
+        assert!(received
+            .iter()
+            .any(|p| matches!(p, UiPatch::StatusChanged { state, .. } if state == "Failed")));
     }
 
     #[tokio::test]
@@ -174,7 +192,10 @@ mod tests {
         }]));
 
         let handle = tokio::spawn(async move { agent.run(rx_events, planner).await });
-        tx_events.send(UiEvent::UserPromptSubmitted("sleep".into())).await.unwrap();
+        tx_events
+            .send(UiEvent::UserPromptSubmitted("sleep".into()))
+            .await
+            .unwrap();
         drop(tx_events);
 
         let res = handle.await.unwrap();
@@ -186,8 +207,7 @@ mod tests {
 
     #[tokio::test]
     async fn unknown_tool_is_rejected_before_any_schema_check() {
-        let (agent, tx_events, rx_events, _rx_patches) =
-            make_test_setup(5, Duration::from_secs(5));
+        let (agent, tx_events, rx_events, _rx_patches) = make_test_setup(5, Duration::from_secs(5));
 
         let planner = Box::new(ScriptedPlanner::new(vec![PlanDecision::CallTool {
             tool: "does_not_exist".into(),
@@ -195,7 +215,10 @@ mod tests {
         }]));
 
         let handle = tokio::spawn(async move { agent.run(rx_events, planner).await });
-        tx_events.send(UiEvent::UserPromptSubmitted("run missing".into())).await.unwrap();
+        tx_events
+            .send(UiEvent::UserPromptSubmitted("run missing".into()))
+            .await
+            .unwrap();
         drop(tx_events);
 
         let res = handle.await.unwrap();

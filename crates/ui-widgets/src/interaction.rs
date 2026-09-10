@@ -8,7 +8,11 @@ use crate::tree::WidgetTree;
 impl WidgetTree {
     /// Stable interaction key for the interactive widget under `point`, or `None`.
     /// Used for hover calculations and pressed state tracking (see [`crate::kind::InteractionKey`]).
-    pub fn interaction_key_at(&self, root: NodeId, point: (f32, f32)) -> Result<Option<InteractionKey>, ui_layout::LayoutError> {
+    pub fn interaction_key_at(
+        &self,
+        root: NodeId,
+        point: (f32, f32),
+    ) -> Result<Option<InteractionKey>, ui_layout::LayoutError> {
         let Some(node) = self.hit_test_effective(root, point)? else {
             return Ok(None);
         };
@@ -22,7 +26,11 @@ impl WidgetTree {
     /// via `hit_test_effective` and the [`WidgetKind`] payload.
     ///
     /// The exact same code path handles both human mouse clicks and programmatic agent actions.
-    pub fn dispatch_click(&self, root: NodeId, point: (f32, f32)) -> Result<Option<UiEvent>, ui_layout::LayoutError> {
+    pub fn dispatch_click(
+        &self,
+        root: NodeId,
+        point: (f32, f32),
+    ) -> Result<Option<UiEvent>, ui_layout::LayoutError> {
         let Some(node) = self.hit_test_effective(root, point)? else {
             return Ok(None);
         };
@@ -34,64 +42,125 @@ impl WidgetTree {
         }
 
         Ok(match kind {
-            WidgetKind::Button { id, enabled: true, .. } | WidgetKind::IconButton { id, enabled: true, .. } => {
-                Some(UiEvent::ButtonClicked { widget_id: id.to_string() })
+            WidgetKind::Button {
+                id, enabled: true, ..
             }
-            WidgetKind::Button { enabled: false, .. } | WidgetKind::IconButton { enabled: false, .. } => None,
-            WidgetKind::Checkbox { id, checked } => {
-                Some(UiEvent::CheckboxToggled { widget_id: id.to_string(), checked: !checked })
-            }
-            WidgetKind::Toggle { id, active } => {
-                Some(UiEvent::ToggleSwitched { widget_id: id.to_string(), active: !active })
-            }
-            WidgetKind::Slider { id, min, max, orientation, .. } => {
+            | WidgetKind::IconButton {
+                id, enabled: true, ..
+            } => Some(UiEvent::ButtonClicked {
+                widget_id: id.to_string(),
+            }),
+            WidgetKind::Button { enabled: false, .. }
+            | WidgetKind::IconButton { enabled: false, .. } => None,
+            WidgetKind::Checkbox { id, checked } => Some(UiEvent::CheckboxToggled {
+                widget_id: id.to_string(),
+                checked: !checked,
+            }),
+            WidgetKind::Toggle { id, active } => Some(UiEvent::ToggleSwitched {
+                widget_id: id.to_string(),
+                active: !active,
+            }),
+            WidgetKind::Slider {
+                id,
+                min,
+                max,
+                orientation,
+                ..
+            } => {
                 let effective = self.effective_bounds(root)?;
                 let bounds = effective[&node].visual;
                 let ratio = match orientation {
                     crate::kind::SliderOrientation::Horizontal => {
                         let track_w = bounds[2];
-                        if track_w > 0.0 { ((point.0 - bounds[0]) / track_w).clamp(0.0, 1.0) } else { 0.0 }
+                        if track_w > 0.0 {
+                            ((point.0 - bounds[0]) / track_w).clamp(0.0, 1.0)
+                        } else {
+                            0.0
+                        }
                     }
                     crate::kind::SliderOrientation::Vertical => {
                         let track_h = bounds[3];
-                        if track_h > 0.0 { (1.0 - (point.1 - bounds[1]) / track_h).clamp(0.0, 1.0) } else { 0.0 }
+                        if track_h > 0.0 {
+                            (1.0 - (point.1 - bounds[1]) / track_h).clamp(0.0, 1.0)
+                        } else {
+                            0.0
+                        }
                     }
                 };
                 let value = min + ratio * (max - min);
-                Some(UiEvent::SliderChanged { widget_id: id.to_string(), value })
+                Some(UiEvent::SliderChanged {
+                    widget_id: id.to_string(),
+                    value,
+                })
             }
-            WidgetKind::WindowCloseButton { owner } => Some(UiEvent::WindowCloseRequested { widget_id: owner.to_string() }),
-            WidgetKind::ModalBackdrop { owner } => Some(UiEvent::ModalDismissed { modal_id: owner.to_string() }),
-            WidgetKind::TabItem { owner, index, .. } => Some(UiEvent::TabSelected { widget_id: owner.to_string(), tab_index: *index }),
-            WidgetKind::ListItem { owner, index, .. } => {
-                Some(UiEvent::ListItemSelected { widget_id: owner.to_string(), item_index: *index })
-            }
-            WidgetKind::TableHeader { owner, column_index, .. } => {
-                Some(UiEvent::TableHeaderClicked { table_id: owner.to_string(), column_index: *column_index })
-            }
-            WidgetKind::TableCell { owner, row_index, .. } => {
-                Some(UiEvent::TableRowSelected { table_id: owner.to_string(), row_index: *row_index })
-            }
-            WidgetKind::AccordionHeader { id, expanded, .. } => {
-                Some(UiEvent::AccordionToggled { id: id.to_string(), expanded: !expanded })
-            }
-            WidgetKind::BreadcrumbItem { owner, index, id, is_last, .. } => {
+            WidgetKind::WindowCloseButton { owner } => Some(UiEvent::WindowCloseRequested {
+                widget_id: owner.to_string(),
+            }),
+            WidgetKind::ModalBackdrop { owner } => Some(UiEvent::ModalDismissed {
+                modal_id: owner.to_string(),
+            }),
+            WidgetKind::TabItem { owner, index, .. } => Some(UiEvent::TabSelected {
+                widget_id: owner.to_string(),
+                tab_index: *index,
+            }),
+            WidgetKind::ListItem { owner, index, .. } => Some(UiEvent::ListItemSelected {
+                widget_id: owner.to_string(),
+                item_index: *index,
+            }),
+            WidgetKind::TableHeader {
+                owner,
+                column_index,
+                ..
+            } => Some(UiEvent::TableHeaderClicked {
+                table_id: owner.to_string(),
+                column_index: *column_index,
+            }),
+            WidgetKind::TableCell {
+                owner, row_index, ..
+            } => Some(UiEvent::TableRowSelected {
+                table_id: owner.to_string(),
+                row_index: *row_index,
+            }),
+            WidgetKind::AccordionHeader { id, expanded, .. } => Some(UiEvent::AccordionToggled {
+                id: id.to_string(),
+                expanded: !expanded,
+            }),
+            WidgetKind::BreadcrumbItem {
+                owner,
+                index,
+                id,
+                is_last,
+                ..
+            } => {
                 if !*is_last {
-                    Some(UiEvent::BreadcrumbClicked { bar_id: owner.to_string(), index: *index, item_id: id.clone() })
+                    Some(UiEvent::BreadcrumbClicked {
+                        bar_id: owner.to_string(),
+                        index: *index,
+                        item_id: id.clone(),
+                    })
                 } else {
                     None
                 }
             }
-            WidgetKind::PaginationItem { owner, page, disabled, .. } => {
+            WidgetKind::PaginationItem {
+                owner,
+                page,
+                disabled,
+                ..
+            } => {
                 if !*disabled {
-                    Some(UiEvent::PageSelected { widget_id: owner.to_string(), page: *page })
+                    Some(UiEvent::PageSelected {
+                        widget_id: owner.to_string(),
+                        page: *page,
+                    })
                 } else {
                     None
                 }
             }
-            WidgetKind::ColorSwatch { id, color, .. } => {
-                Some(UiEvent::ColorSelected { widget_id: id.to_string(), color: *color })
-            }
+            WidgetKind::ColorSwatch { id, color, .. } => Some(UiEvent::ColorSelected {
+                widget_id: id.to_string(),
+                color: *color,
+            }),
             WidgetKind::ColorPicker { id, color, .. } => {
                 let effective = self.effective_bounds(root)?;
                 let bounds = effective[&node].visual;
@@ -118,9 +187,21 @@ impl WidgetTree {
                 let card_w = (bounds[2] - 2.0 * pad - 3.0 * card_gap) / 4.0;
 
                 // 1. Click on 2D SV Canvas
-                if point.0 >= sv_x && point.0 <= sv_x + sv_w && point.1 >= sv_y && point.1 <= sv_y + sv_h {
-                    let s = if sv_w > 0.0 { ((point.0 - sv_x) / sv_w).clamp(0.0, 1.0) } else { 0.0 };
-                    let v = if sv_h > 0.0 { (1.0 - (point.1 - sv_y) / sv_h).clamp(0.0, 1.0) } else { 0.0 };
+                if point.0 >= sv_x
+                    && point.0 <= sv_x + sv_w
+                    && point.1 >= sv_y
+                    && point.1 <= sv_y + sv_h
+                {
+                    let s = if sv_w > 0.0 {
+                        ((point.0 - sv_x) / sv_w).clamp(0.0, 1.0)
+                    } else {
+                        0.0
+                    };
+                    let v = if sv_h > 0.0 {
+                        (1.0 - (point.1 - sv_y) / sv_h).clamp(0.0, 1.0)
+                    } else {
+                        0.0
+                    };
                     let new_col = crate::color::Color::from_hsv(cur_h, s, v, color[3]).to_array();
                     return Ok(Some(UiEvent::ColorChanged {
                         widget_id: id.to_string(),
@@ -129,10 +210,19 @@ impl WidgetTree {
                 }
 
                 // 2. Click on Rainbow Hue Slider Bar
-                if point.0 >= hue_x && point.0 <= hue_x + hue_w && point.1 >= hue_y - 4.0 && point.1 <= hue_y + hue_h + 4.0 {
-                    let ratio = if hue_w > 0.0 { ((point.0 - hue_x) / hue_w).clamp(0.0, 1.0) } else { 0.0 };
+                if point.0 >= hue_x
+                    && point.0 <= hue_x + hue_w
+                    && point.1 >= hue_y - 4.0
+                    && point.1 <= hue_y + hue_h + 4.0
+                {
+                    let ratio = if hue_w > 0.0 {
+                        ((point.0 - hue_x) / hue_w).clamp(0.0, 1.0)
+                    } else {
+                        0.0
+                    };
                     let h = ratio * 360.0;
-                    let new_col = crate::color::Color::from_hsv(h, cur_s, cur_v, color[3]).to_array();
+                    let new_col =
+                        crate::color::Color::from_hsv(h, cur_s, cur_v, color[3]).to_array();
                     return Ok(Some(UiEvent::ColorChanged {
                         widget_id: id.to_string(),
                         color: new_col,
@@ -153,28 +243,48 @@ impl WidgetTree {
                     }
                 }
 
-                Some(UiEvent::ColorSelected { widget_id: id.to_string(), color: *color })
+                Some(UiEvent::ColorSelected {
+                    widget_id: id.to_string(),
+                    color: *color,
+                })
             }
-            WidgetKind::SegmentItem { owner, index, .. } => {
-                Some(UiEvent::SegmentSelected { widget_id: owner.to_string(), selected_index: *index })
-            }
-            WidgetKind::RadioButton { id, group_id, .. } => {
-                Some(UiEvent::RadioSelected { group_id: group_id.clone(), selected_id: id.to_string() })
-            }
+            WidgetKind::SegmentItem { owner, index, .. } => Some(UiEvent::SegmentSelected {
+                widget_id: owner.to_string(),
+                selected_index: *index,
+            }),
+            WidgetKind::RadioButton { id, group_id, .. } => Some(UiEvent::RadioSelected {
+                group_id: group_id.clone(),
+                selected_id: id.to_string(),
+            }),
             WidgetKind::TextInput { id, .. } | WidgetKind::TextArea { id, .. } => {
-                Some(UiEvent::FocusChanged { widget_id: Some(id.to_string()) })
+                Some(UiEvent::FocusChanged {
+                    widget_id: Some(id.to_string()),
+                })
             }
             WidgetKind::PasswordInput { id, revealed, .. } => {
                 let effective = self.effective_bounds(root)?;
                 let bounds = effective[&node].visual;
                 // Eye button is in the rightmost 28px
                 if point.0 >= bounds[0] + bounds[2] - 28.0 {
-                    Some(UiEvent::PasswordRevealed { widget_id: id.to_string(), revealed: !revealed })
+                    Some(UiEvent::PasswordRevealed {
+                        widget_id: id.to_string(),
+                        revealed: !revealed,
+                    })
                 } else {
-                    Some(UiEvent::FocusChanged { widget_id: Some(id.to_string()) })
+                    Some(UiEvent::FocusChanged {
+                        widget_id: Some(id.to_string()),
+                    })
                 }
             }
-            WidgetKind::NumberInput { id, value, min, max, step, enabled, .. } => {
+            WidgetKind::NumberInput {
+                id,
+                value,
+                min,
+                max,
+                step,
+                enabled,
+                ..
+            } => {
                 if !*enabled {
                     return Ok(None);
                 }
@@ -185,33 +295,67 @@ impl WidgetTree {
                     let mid_y = bounds[1] + bounds[3] * 0.5;
                     if point.1 < mid_y {
                         let new_val = (*value + *step).min(*max);
-                        Some(UiEvent::NumberChanged { widget_id: id.to_string(), value: new_val })
+                        Some(UiEvent::NumberChanged {
+                            widget_id: id.to_string(),
+                            value: new_val,
+                        })
                     } else {
                         let new_val = (*value - *step).max(*min);
-                        Some(UiEvent::NumberChanged { widget_id: id.to_string(), value: new_val })
+                        Some(UiEvent::NumberChanged {
+                            widget_id: id.to_string(),
+                            value: new_val,
+                        })
                     }
                 } else {
-                    Some(UiEvent::FocusChanged { widget_id: Some(id.to_string()) })
+                    Some(UiEvent::FocusChanged {
+                        widget_id: Some(id.to_string()),
+                    })
                 }
             }
-            WidgetKind::MenuBarItem { owner, index, active, .. } => {
-                Some(UiEvent::MenuToggled { menu_id: format!("{}:{}", owner, index), open: !active })
-            }
-            WidgetKind::MenuItem { owner, id, enabled: true, .. } => {
-                Some(UiEvent::MenuItemClicked { menu_id: owner.to_string(), item_id: id.to_string() })
-            }
+            WidgetKind::MenuBarItem {
+                owner,
+                index,
+                active,
+                ..
+            } => Some(UiEvent::MenuToggled {
+                menu_id: format!("{}:{}", owner, index),
+                open: !active,
+            }),
+            WidgetKind::MenuItem {
+                owner,
+                id,
+                enabled: true,
+                ..
+            } => Some(UiEvent::MenuItemClicked {
+                menu_id: owner.to_string(),
+                item_id: id.to_string(),
+            }),
             WidgetKind::MenuItem { enabled: false, .. } => None,
-            WidgetKind::Dropdown { id, open, .. } => {
-                Some(UiEvent::MenuToggled { menu_id: id.to_string(), open: !open })
-            }
-            WidgetKind::Toast { id, .. } => {
-                Some(UiEvent::ToastDismissed { toast_id: id.to_string() })
-            }
-            WidgetKind::TreeNode { owner, id, is_dir, expanded, .. } => {
+            WidgetKind::Dropdown { id, open, .. } => Some(UiEvent::MenuToggled {
+                menu_id: id.to_string(),
+                open: !open,
+            }),
+            WidgetKind::Toast { id, .. } => Some(UiEvent::ToastDismissed {
+                toast_id: id.to_string(),
+            }),
+            WidgetKind::TreeNode {
+                owner,
+                id,
+                is_dir,
+                expanded,
+                ..
+            } => {
                 if *is_dir {
-                    Some(UiEvent::TreeNodeToggled { tree_id: owner.to_string(), node_id: id.to_string(), expanded: !expanded })
+                    Some(UiEvent::TreeNodeToggled {
+                        tree_id: owner.to_string(),
+                        node_id: id.to_string(),
+                        expanded: !expanded,
+                    })
                 } else {
-                    Some(UiEvent::TreeNodeSelected { tree_id: owner.to_string(), node_id: id.to_string() })
+                    Some(UiEvent::TreeNodeSelected {
+                        tree_id: owner.to_string(),
+                        node_id: id.to_string(),
+                    })
                 }
             }
             WidgetKind::PaletteHeader { owner, folded, .. } => {
@@ -219,20 +363,26 @@ impl WidgetTree {
                 let bounds = effective[&node].visual;
                 // Close button is in rightmost 22px
                 if point.0 >= bounds[0] + bounds[2] - 24.0 {
-                    Some(UiEvent::PaletteClosed { palette_id: owner.to_string() })
+                    Some(UiEvent::PaletteClosed {
+                        palette_id: owner.to_string(),
+                    })
                 } else if point.0 >= bounds[0] + bounds[2] - 44.0 {
                     // Fold button is in [rightmost - 44 .. rightmost - 24]
-                    Some(UiEvent::PaletteFoldToggled { palette_id: owner.to_string(), folded: !folded })
+                    Some(UiEvent::PaletteFoldToggled {
+                        palette_id: owner.to_string(),
+                        folded: !folded,
+                    })
                 } else {
                     None
                 }
             }
-            WidgetKind::PaletteFoldButton { owner, folded } => {
-                Some(UiEvent::PaletteFoldToggled { palette_id: owner.to_string(), folded: !folded })
-            }
-            WidgetKind::PaletteCloseButton { owner } => {
-                Some(UiEvent::PaletteClosed { palette_id: owner.to_string() })
-            }
+            WidgetKind::PaletteFoldButton { owner, folded } => Some(UiEvent::PaletteFoldToggled {
+                palette_id: owner.to_string(),
+                folded: !folded,
+            }),
+            WidgetKind::PaletteCloseButton { owner } => Some(UiEvent::PaletteClosed {
+                palette_id: owner.to_string(),
+            }),
             WidgetKind::VideoPlayer { id, playing, .. } => {
                 let effective = self.effective_bounds(root)?;
                 let bounds = effective[&node].visual;
@@ -242,20 +392,29 @@ impl WidgetTree {
                 if point.1 >= bar_y && point.1 <= bar_y + bar_h {
                     let bar_x = bounds[0] + 8.0;
                     if point.0 >= bar_x && point.0 <= bar_x + 32.0 {
-                        Some(UiEvent::MediaPlayToggled { widget_id: id.to_string(), playing: !playing })
+                        Some(UiEvent::MediaPlayToggled {
+                            widget_id: id.to_string(),
+                            playing: !playing,
+                        })
                     } else {
                         let time_w = 90.0;
                         let track_x = bar_x + 34.0;
                         let track_w = (bounds[2] - 16.0 - 34.0 - time_w - 14.0).max(10.0);
                         if point.0 >= track_x && point.0 <= track_x + track_w {
                             let prog = ((point.0 - track_x) / track_w).clamp(0.0, 1.0);
-                            Some(UiEvent::MediaSeeked { widget_id: id.to_string(), progress: prog })
+                            Some(UiEvent::MediaSeeked {
+                                widget_id: id.to_string(),
+                                progress: prog,
+                            })
                         } else {
                             None
                         }
                     }
                 } else {
-                    Some(UiEvent::MediaPlayToggled { widget_id: id.to_string(), playing: !playing })
+                    Some(UiEvent::MediaPlayToggled {
+                        widget_id: id.to_string(),
+                        playing: !playing,
+                    })
                 }
             }
             WidgetKind::CustomPaint { id, .. } => {
@@ -263,8 +422,16 @@ impl WidgetTree {
                 let bounds = effective[&node].visual;
                 let local_x = point.0 - bounds[0];
                 let local_y = point.1 - bounds[1];
-                let norm_x = if bounds[2] > 0.0 { (local_x / bounds[2]).clamp(0.0, 1.0) } else { 0.0 };
-                let norm_y = if bounds[3] > 0.0 { (local_y / bounds[3]).clamp(0.0, 1.0) } else { 0.0 };
+                let norm_x = if bounds[2] > 0.0 {
+                    (local_x / bounds[2]).clamp(0.0, 1.0)
+                } else {
+                    0.0
+                };
+                let norm_y = if bounds[3] > 0.0 {
+                    (local_y / bounds[3]).clamp(0.0, 1.0)
+                } else {
+                    0.0
+                };
                 Some(UiEvent::CustomPaintPointerDown {
                     widget_id: id.to_string(),
                     local_pos: [local_x, local_y],
@@ -312,21 +479,24 @@ impl WidgetTree {
     ) -> Result<Option<f32>, ui_layout::LayoutError> {
         let effective = self.effective_bounds(root)?;
         for (node, _) in &effective {
-            if let Some(WidgetKind::Splitter { owner, orientation }) = self.layout().payload(*node) {
+            if let Some(WidgetKind::Splitter { owner, orientation }) = self.layout().payload(*node)
+            {
                 if owner.as_str() == splitter_owner {
                     if let Ok(Some(parent)) = self.layout().parent(*node) {
                         let parent_bounds = effective[&parent].visual;
                         let ratio = match orientation {
                             crate::kind::SplitOrientation::Horizontal => {
                                 if parent_bounds[2] > 0.0 {
-                                    ((point.0 - parent_bounds[0]) / parent_bounds[2]).clamp(0.1, 0.9)
+                                    ((point.0 - parent_bounds[0]) / parent_bounds[2])
+                                        .clamp(0.1, 0.9)
                                 } else {
                                     0.5
                                 }
                             }
                             crate::kind::SplitOrientation::Vertical => {
                                 if parent_bounds[3] > 0.0 {
-                                    ((point.1 - parent_bounds[1]) / parent_bounds[3]).clamp(0.1, 0.9)
+                                    ((point.1 - parent_bounds[1]) / parent_bounds[3])
+                                        .clamp(0.1, 0.9)
                                 } else {
                                     0.5
                                 }
@@ -349,7 +519,14 @@ impl WidgetTree {
         let Some(node) = self.hit_test_effective(root, point)? else {
             return Ok(None);
         };
-        let Some(WidgetKind::Slider { id, min, max, orientation, .. }) = self.layout().payload(node) else {
+        let Some(WidgetKind::Slider {
+            id,
+            min,
+            max,
+            orientation,
+            ..
+        }) = self.layout().payload(node)
+        else {
             return Ok(None);
         };
         let effective = self.effective_bounds(root)?;
@@ -357,11 +534,19 @@ impl WidgetTree {
         let ratio = match orientation {
             crate::kind::SliderOrientation::Horizontal => {
                 let track_w = bounds[2];
-                if track_w > 0.0 { ((point.0 - bounds[0]) / track_w).clamp(0.0, 1.0) } else { 0.0 }
+                if track_w > 0.0 {
+                    ((point.0 - bounds[0]) / track_w).clamp(0.0, 1.0)
+                } else {
+                    0.0
+                }
             }
             crate::kind::SliderOrientation::Vertical => {
                 let track_h = bounds[3];
-                if track_h > 0.0 { (1.0 - (point.1 - bounds[1]) / track_h).clamp(0.0, 1.0) } else { 0.0 }
+                if track_h > 0.0 {
+                    (1.0 - (point.1 - bounds[1]) / track_h).clamp(0.0, 1.0)
+                } else {
+                    0.0
+                }
             }
         };
         let value = min + ratio * (max - min);
@@ -379,17 +564,32 @@ impl WidgetTree {
     ) -> Result<Option<f32>, ui_layout::LayoutError> {
         let effective = self.effective_bounds(root)?;
         for (node, entry) in effective.iter() {
-            if let Some(WidgetKind::Slider { id, min, max, orientation, .. }) = self.layout().payload(*node) {
+            if let Some(WidgetKind::Slider {
+                id,
+                min,
+                max,
+                orientation,
+                ..
+            }) = self.layout().payload(*node)
+            {
                 if id.as_str() == target_id {
                     let bounds = entry.visual;
                     let ratio = match orientation {
                         crate::kind::SliderOrientation::Horizontal => {
                             let track_w = bounds[2];
-                            if track_w > 0.0 { ((point.0 - bounds[0]) / track_w).clamp(0.0, 1.0) } else { 0.0 }
+                            if track_w > 0.0 {
+                                ((point.0 - bounds[0]) / track_w).clamp(0.0, 1.0)
+                            } else {
+                                0.0
+                            }
                         }
                         crate::kind::SliderOrientation::Vertical => {
                             let track_h = bounds[3];
-                            if track_h > 0.0 { (1.0 - (point.1 - bounds[1]) / track_h).clamp(0.0, 1.0) } else { 0.0 }
+                            if track_h > 0.0 {
+                                (1.0 - (point.1 - bounds[1]) / track_h).clamp(0.0, 1.0)
+                            } else {
+                                0.0
+                            }
                         }
                     };
                     let value = min + ratio * (max - min);
@@ -430,16 +630,36 @@ impl WidgetTree {
         let hue_w = bounds[2] - 2.0 * pad;
 
         // 1. Drag / click on 2D Saturation / Value Canvas
-        if point.0 >= sv_x - 4.0 && point.0 <= sv_x + sv_w + 4.0 && point.1 >= sv_y - 4.0 && point.1 <= sv_y + sv_h + 4.0 {
-            let s = if sv_w > 0.0 { ((point.0 - sv_x) / sv_w).clamp(0.0, 1.0) } else { 0.0 };
-            let v = if sv_h > 0.0 { (1.0 - (point.1 - sv_y) / sv_h).clamp(0.0, 1.0) } else { 0.0 };
+        if point.0 >= sv_x - 4.0
+            && point.0 <= sv_x + sv_w + 4.0
+            && point.1 >= sv_y - 4.0
+            && point.1 <= sv_y + sv_h + 4.0
+        {
+            let s = if sv_w > 0.0 {
+                ((point.0 - sv_x) / sv_w).clamp(0.0, 1.0)
+            } else {
+                0.0
+            };
+            let v = if sv_h > 0.0 {
+                (1.0 - (point.1 - sv_y) / sv_h).clamp(0.0, 1.0)
+            } else {
+                0.0
+            };
             let new_col = crate::color::Color::from_hsv(cur_h, s, v, color[3]).to_array();
             return Ok(Some((id.to_string(), new_col)));
         }
 
         // 2. Drag / click on Rainbow Hue Slider Bar
-        if point.0 >= hue_x - 4.0 && point.0 <= hue_x + hue_w + 4.0 && point.1 >= hue_y - 6.0 && point.1 <= hue_y + hue_h + 6.0 {
-            let ratio = if hue_w > 0.0 { ((point.0 - hue_x) / hue_w).clamp(0.0, 1.0) } else { 0.0 };
+        if point.0 >= hue_x - 4.0
+            && point.0 <= hue_x + hue_w + 4.0
+            && point.1 >= hue_y - 6.0
+            && point.1 <= hue_y + hue_h + 6.0
+        {
+            let ratio = if hue_w > 0.0 {
+                ((point.0 - hue_x) / hue_w).clamp(0.0, 1.0)
+            } else {
+                0.0
+            };
             let h = ratio * 360.0;
             let new_col = crate::color::Color::from_hsv(h, cur_s, cur_v, color[3]).to_array();
             return Ok(Some((id.to_string(), new_col)));
@@ -470,7 +690,11 @@ impl WidgetTree {
 
     /// Checks whether `point` lies inside the draggable title bar of a window
     /// (excluding interactive child controls and buttons).
-    pub fn is_window_title_bar(&self, root: NodeId, point: (f32, f32)) -> Result<bool, ui_layout::LayoutError> {
+    pub fn is_window_title_bar(
+        &self,
+        root: NodeId,
+        point: (f32, f32),
+    ) -> Result<bool, ui_layout::LayoutError> {
         let effective = self.effective_bounds(root)?;
         let Some(hit_node) = self.hit_test_effective(root, point)? else {
             return Ok(false);
@@ -490,7 +714,11 @@ impl WidgetTree {
 
     /// Checks whether `point` lies inside the draggable header of a modal dialog
     /// (excluding close buttons and controls).
-    pub fn is_modal_title_bar(&self, modal_root: NodeId, point: (f32, f32)) -> Result<bool, ui_layout::LayoutError> {
+    pub fn is_modal_title_bar(
+        &self,
+        modal_root: NodeId,
+        point: (f32, f32),
+    ) -> Result<bool, ui_layout::LayoutError> {
         let effective = self.effective_bounds(modal_root)?;
         for (node, bounds) in &effective {
             if let Some(WidgetKind::Modal { .. }) = self.layout().payload(*node) {
@@ -512,7 +740,12 @@ impl WidgetTree {
     }
 
     /// Returns the next or previous focusable widget ID in depth-first layout order.
-    pub fn next_focusable(&self, root: NodeId, current_focused: Option<&str>, backward: bool) -> Result<Option<String>, ui_layout::LayoutError> {
+    pub fn next_focusable(
+        &self,
+        root: NodeId,
+        current_focused: Option<&str>,
+        backward: bool,
+    ) -> Result<Option<String>, ui_layout::LayoutError> {
         let mut focusable = Vec::new();
         self.collect_focusable(root, &mut focusable)?;
 
@@ -521,7 +754,11 @@ impl WidgetTree {
         }
 
         let Some(current) = current_focused else {
-            return Ok(Some(if backward { focusable.last().unwrap().clone() } else { focusable.first().unwrap().clone() }));
+            return Ok(Some(if backward {
+                focusable.last().unwrap().clone()
+            } else {
+                focusable.first().unwrap().clone()
+            }));
         };
 
         let pos = focusable.iter().position(|id| id.as_str() == current);
@@ -557,12 +794,22 @@ impl WidgetTree {
             if let Some(WidgetKind::PaletteHeader { owner, .. }) = self.layout().payload(*node) {
                 let hb = bounds.visual;
                 // Exclude the rightmost 46px (fold and close buttons)
-                if point.0 >= hb[0] && point.0 <= hb[0] + hb[2] - 46.0 && point.1 >= hb[1] && point.1 <= hb[1] + hb[3] {
+                if point.0 >= hb[0]
+                    && point.0 <= hb[0] + hb[2] - 46.0
+                    && point.1 >= hb[1]
+                    && point.1 <= hb[1] + hb[3]
+                {
                     if let Ok(Some(parent)) = self.layout().parent(*node) {
                         let pb = effective[&parent].visual;
-                        return Ok(Some((owner.to_string(), (point.0 - pb[0], point.1 - pb[1]))));
+                        return Ok(Some((
+                            owner.to_string(),
+                            (point.0 - pb[0], point.1 - pb[1]),
+                        )));
                     }
-                    return Ok(Some((owner.to_string(), (point.0 - hb[0], point.1 - hb[1]))));
+                    return Ok(Some((
+                        owner.to_string(),
+                        (point.0 - hb[0], point.1 - hb[1]),
+                    )));
                 }
             }
         }
@@ -580,7 +827,11 @@ impl WidgetTree {
         for (node, bounds) in &effective {
             if let Some(WidgetKind::ResizeGrip { owner }) = self.layout().payload(*node) {
                 let gb = bounds.visual;
-                if point.0 >= gb[0] - 4.0 && point.0 <= gb[0] + gb[2] + 4.0 && point.1 >= gb[1] - 4.0 && point.1 <= gb[1] + gb[3] + 4.0 {
+                if point.0 >= gb[0] - 4.0
+                    && point.0 <= gb[0] + gb[2] + 4.0
+                    && point.1 >= gb[1] - 4.0
+                    && point.1 <= gb[1] + gb[3] + 4.0
+                {
                     if let Ok(Some(parent)) = self.layout().parent(*node) {
                         let pb = effective[&parent].visual;
                         return Ok(Some((owner.to_string(), (pb[2], pb[3]))));
@@ -616,7 +867,12 @@ impl WidgetTree {
                         let idx = m.hit_test(value, font_family, body_font_size, rel_x, 0.0);
                         return Ok(Some((id.to_string(), idx)));
                     }
-                    WidgetKind::PasswordInput { id, value, revealed, .. } => {
+                    WidgetKind::PasswordInput {
+                        id,
+                        value,
+                        revealed,
+                        ..
+                    } => {
                         let text_start_x = b[0] + 12.0;
                         let rel_x = (point.0 - text_start_x).max(0.0);
                         let idx = if *revealed {
@@ -627,7 +883,12 @@ impl WidgetTree {
                         };
                         return Ok(Some((id.to_string(), idx)));
                     }
-                    WidgetKind::TextArea { id, value, line_numbers, .. } => {
+                    WidgetKind::TextArea {
+                        id,
+                        value,
+                        line_numbers,
+                        ..
+                    } => {
                         let gutter_w = if *line_numbers { 32.0 } else { 0.0 };
                         let text_offset_x = b[0] + gutter_w + 10.0;
                         let line_h = 20.0;
@@ -661,15 +922,25 @@ impl WidgetTree {
         Ok(None)
     }
 
-    fn collect_focusable(&self, node: NodeId, list: &mut Vec<String>) -> Result<(), ui_layout::LayoutError> {
+    fn collect_focusable(
+        &self,
+        node: NodeId,
+        list: &mut Vec<String>,
+    ) -> Result<(), ui_layout::LayoutError> {
         if let Some(kind) = self.layout().payload(node) {
             match kind {
                 WidgetKind::TextInput { id, .. }
                 | WidgetKind::TextArea { id, .. }
                 | WidgetKind::PasswordInput { id, .. }
-                | WidgetKind::NumberInput { id, enabled: true, .. }
-                | WidgetKind::Button { id, enabled: true, .. }
-                | WidgetKind::IconButton { id, enabled: true, .. }
+                | WidgetKind::NumberInput {
+                    id, enabled: true, ..
+                }
+                | WidgetKind::Button {
+                    id, enabled: true, ..
+                }
+                | WidgetKind::IconButton {
+                    id, enabled: true, ..
+                }
                 | WidgetKind::AccordionHeader { id, .. }
                 | WidgetKind::Checkbox { id, .. }
                 | WidgetKind::Toggle { id, .. }

@@ -115,70 +115,286 @@ impl IconKind {
 pub enum WidgetKind {
     Container,
 
-    Button { id: WidgetId, label: String, enabled: bool },
-    IconButton { id: WidgetId, icon: IconKind, enabled: bool },
-    Icon { kind: IconKind, size: f32, color: Option<[f32; 4]> },
-    Label { text: String, muted: bool },
-    Checkbox { id: WidgetId, checked: bool },
-    TextInput { id: WidgetId, value: String, placeholder: String, focused: bool, cursor: usize, selection: Option<(usize, usize)> },
-    TextArea { id: WidgetId, value: String, placeholder: String, focused: bool, line_numbers: bool, cursor: usize, selection: Option<(usize, usize)> },
-    PasswordInput { id: WidgetId, value: String, placeholder: String, focused: bool, revealed: bool, cursor: usize },
-    NumberInput { id: WidgetId, value: f64, min: f64, max: f64, step: f64, precision: usize, focused: bool, enabled: bool },
+    Button {
+        id: WidgetId,
+        label: String,
+        enabled: bool,
+    },
+    IconButton {
+        id: WidgetId,
+        icon: IconKind,
+        enabled: bool,
+    },
+    Icon {
+        kind: IconKind,
+        size: f32,
+        color: Option<[f32; 4]>,
+    },
+    Label {
+        text: String,
+        muted: bool,
+    },
+    Checkbox {
+        id: WidgetId,
+        checked: bool,
+    },
+    TextInput {
+        id: WidgetId,
+        value: String,
+        placeholder: String,
+        focused: bool,
+        cursor: usize,
+        selection: Option<(usize, usize)>,
+    },
+    TextArea {
+        id: WidgetId,
+        value: String,
+        placeholder: String,
+        focused: bool,
+        line_numbers: bool,
+        cursor: usize,
+        selection: Option<(usize, usize)>,
+    },
+    PasswordInput {
+        id: WidgetId,
+        value: String,
+        placeholder: String,
+        focused: bool,
+        revealed: bool,
+        cursor: usize,
+    },
+    NumberInput {
+        id: WidgetId,
+        value: f64,
+        min: f64,
+        max: f64,
+        step: f64,
+        precision: usize,
+        focused: bool,
+        enabled: bool,
+    },
 
-    Window { id: WidgetId, title: String },
-    WindowCloseButton { owner: WidgetId },
+    Window {
+        id: WidgetId,
+        title: String,
+    },
+    WindowCloseButton {
+        owner: WidgetId,
+    },
 
     MenuBar,
     MenuPopover,
 
-    TabItem { owner: WidgetId, index: usize, label: String, active: bool },
-    ListItem { owner: WidgetId, index: usize, text: String, selected: bool, badge: ListItemBadge },
-    SegmentItem { owner: WidgetId, index: usize, label: String, selected: bool },
-    RadioButton { id: WidgetId, group_id: String, label: String, selected: bool },
+    TabItem {
+        owner: WidgetId,
+        index: usize,
+        label: String,
+        active: bool,
+    },
+    ListItem {
+        owner: WidgetId,
+        index: usize,
+        text: String,
+        selected: bool,
+        badge: ListItemBadge,
+    },
+    SegmentItem {
+        owner: WidgetId,
+        index: usize,
+        label: String,
+        selected: bool,
+    },
+    RadioButton {
+        id: WidgetId,
+        group_id: String,
+        label: String,
+        selected: bool,
+    },
 
-    TableHeader { owner: WidgetId, column_index: usize, title: String, sorted_asc: Option<bool> },
-    TableCell { owner: WidgetId, row_index: usize, column_index: usize, text: String, badge: ListItemBadge, selected: bool },
-    AccordionHeader { id: WidgetId, title: String, subtitle: Option<String>, expanded: bool },
+    TableHeader {
+        owner: WidgetId,
+        column_index: usize,
+        title: String,
+        sorted_asc: Option<bool>,
+    },
+    TableCell {
+        owner: WidgetId,
+        row_index: usize,
+        column_index: usize,
+        text: String,
+        badge: ListItemBadge,
+        selected: bool,
+    },
+    AccordionHeader {
+        id: WidgetId,
+        title: String,
+        subtitle: Option<String>,
+        expanded: bool,
+    },
 
-    MenuBarItem { owner: WidgetId, index: usize, label: String, active: bool },
-    MenuItem { owner: WidgetId, id: WidgetId, label: String, shortcut: Option<String>, enabled: bool },
-    Dropdown { id: WidgetId, label: String, selected_text: String, open: bool },
-    Toast { id: WidgetId, title: String, message: String, kind: ToastKind },
-    Tooltip { text: String },
+    MenuBarItem {
+        owner: WidgetId,
+        index: usize,
+        label: String,
+        active: bool,
+    },
+    MenuItem {
+        owner: WidgetId,
+        id: WidgetId,
+        label: String,
+        shortcut: Option<String>,
+        enabled: bool,
+    },
+    Dropdown {
+        id: WidgetId,
+        label: String,
+        selected_text: String,
+        open: bool,
+    },
+    Toast {
+        id: WidgetId,
+        title: String,
+        message: String,
+        kind: ToastKind,
+    },
+    Tooltip {
+        text: String,
+    },
 
-    Splitter { owner: WidgetId, orientation: SplitOrientation },
-    TreeNode { owner: WidgetId, id: WidgetId, label: String, depth: usize, is_dir: bool, expanded: bool, selected: bool },
+    Splitter {
+        owner: WidgetId,
+        orientation: SplitOrientation,
+    },
+    TreeNode {
+        owner: WidgetId,
+        id: WidgetId,
+        label: String,
+        depth: usize,
+        is_dir: bool,
+        expanded: bool,
+        selected: bool,
+    },
 
-    Toggle { id: WidgetId, active: bool },
-    Slider { id: WidgetId, min: f32, max: f32, value: f32, orientation: SliderOrientation },
-    ProgressBar { progress: f32, kind: ProgressKind, label: Option<String> },
-    MetricCard { title: String, value: String, delta: Option<(String, bool)> },
-    Divider { vertical: bool },
-    BreadcrumbItem { owner: WidgetId, index: usize, id: String, label: String, is_last: bool },
-    PaginationItem { owner: WidgetId, page: usize, label: String, active: bool, disabled: bool },
-    Badge { label: String, badge: ListItemBadge },
-    ColorSwatch { id: WidgetId, color: [f32; 4], label: Option<String> },
-    ColorPicker { id: WidgetId, color: [f32; 4], space: crate::color::ColorSpace },
+    Toggle {
+        id: WidgetId,
+        active: bool,
+    },
+    Slider {
+        id: WidgetId,
+        min: f32,
+        max: f32,
+        value: f32,
+        orientation: SliderOrientation,
+    },
+    ProgressBar {
+        progress: f32,
+        kind: ProgressKind,
+        label: Option<String>,
+    },
+    MetricCard {
+        title: String,
+        value: String,
+        delta: Option<(String, bool)>,
+    },
+    Divider {
+        vertical: bool,
+    },
+    BreadcrumbItem {
+        owner: WidgetId,
+        index: usize,
+        id: String,
+        label: String,
+        is_last: bool,
+    },
+    PaginationItem {
+        owner: WidgetId,
+        page: usize,
+        label: String,
+        active: bool,
+        disabled: bool,
+    },
+    Badge {
+        label: String,
+        badge: ListItemBadge,
+    },
+    ColorSwatch {
+        id: WidgetId,
+        color: [f32; 4],
+        label: Option<String>,
+    },
+    ColorPicker {
+        id: WidgetId,
+        color: [f32; 4],
+        space: crate::color::ColorSpace,
+    },
 
-    Modal { id: WidgetId, title: String },
-    ModalBackdrop { owner: WidgetId },
+    Modal {
+        id: WidgetId,
+        title: String,
+    },
+    ModalBackdrop {
+        owner: WidgetId,
+    },
 
-    Palette { id: WidgetId, title: String, folded: bool },
-    PaletteHeader { owner: WidgetId, title: String, folded: bool },
-    PaletteFoldButton { owner: WidgetId, folded: bool },
-    PaletteCloseButton { owner: WidgetId },
-    ResizeGrip { owner: WidgetId },
+    Palette {
+        id: WidgetId,
+        title: String,
+        folded: bool,
+    },
+    PaletteHeader {
+        owner: WidgetId,
+        title: String,
+        folded: bool,
+    },
+    PaletteFoldButton {
+        owner: WidgetId,
+        folded: bool,
+    },
+    PaletteCloseButton {
+        owner: WidgetId,
+    },
+    ResizeGrip {
+        owner: WidgetId,
+    },
 
-    ScrollView { id: WidgetId, offset: [f32; 2] },
-    Scrollbar { id: WidgetId, content_size: f32, viewport_size: f32, offset: f32 },
-    Media { id: WidgetId, kind: MediaKind, resource_id: String, fit: crate::media::MediaFit, radius: Option<f32> },
-    VideoPlayer { id: WidgetId, resource_id: String, playing: bool, progress: f32, duration_sec: f32, volume: f32 },
-    AudioVisualizer { id: WidgetId, values: Vec<f32>, peak: f32 },
-    CustomPaint { id: WidgetId, commands: Vec<crate::paint::PaintCommand> },
+    ScrollView {
+        id: WidgetId,
+        offset: [f32; 2],
+    },
+    Scrollbar {
+        id: WidgetId,
+        content_size: f32,
+        viewport_size: f32,
+        offset: f32,
+    },
+    Media {
+        id: WidgetId,
+        kind: MediaKind,
+        resource_id: String,
+        fit: crate::media::MediaFit,
+        radius: Option<f32>,
+    },
+    VideoPlayer {
+        id: WidgetId,
+        resource_id: String,
+        playing: bool,
+        progress: f32,
+        duration_sec: f32,
+        volume: f32,
+    },
+    AudioVisualizer {
+        id: WidgetId,
+        values: Vec<f32>,
+        peak: f32,
+    },
+    CustomPaint {
+        id: WidgetId,
+        commands: Vec<crate::paint::PaintCommand>,
+    },
 }
 
 /// Stable identity of an interactive widget across frames, used
-/// for hover and pressed state tracking (see [`crate::interaction`]).
+/// for hover and pressed state tracking.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct InteractionKey {
     pub widget_id: WidgetId,
@@ -187,7 +403,7 @@ pub struct InteractionKey {
 
 impl WidgetKind {
     /// `true` if a pointer click on this node produces a [`ui_core::UiEvent`]
-    /// (dispatched by [`crate::interaction::dispatch_click`]).
+    /// (dispatched by `WidgetTree::dispatch_click`).
     pub fn is_interactive(&self) -> bool {
         matches!(
             self,
@@ -210,7 +426,10 @@ impl WidgetKind {
                 | WidgetKind::TableCell { .. }
                 | WidgetKind::AccordionHeader { .. }
                 | WidgetKind::BreadcrumbItem { is_last: false, .. }
-                | WidgetKind::PaginationItem { disabled: false, .. }
+                | WidgetKind::PaginationItem {
+                    disabled: false,
+                    ..
+                }
                 | WidgetKind::ColorSwatch { .. }
                 | WidgetKind::ColorPicker { .. }
                 | WidgetKind::MenuBarItem { .. }
@@ -240,7 +459,9 @@ impl WidgetKind {
             | WidgetKind::TextInput { id, .. }
             | WidgetKind::TextArea { id, .. }
             | WidgetKind::PasswordInput { id, .. }
-            | WidgetKind::NumberInput { id, enabled: true, .. }
+            | WidgetKind::NumberInput {
+                id, enabled: true, ..
+            }
             | WidgetKind::RadioButton { id, .. }
             | WidgetKind::Dropdown { id, .. }
             | WidgetKind::AccordionHeader { id, .. }
@@ -249,11 +470,15 @@ impl WidgetKind {
             | WidgetKind::Toast { id, .. }
             | WidgetKind::VideoPlayer { id, .. }
             | WidgetKind::Media { id, .. }
-            | WidgetKind::CustomPaint { id, .. } => {
-                Some(InteractionKey { widget_id: id.clone(), index: None })
-            }
+            | WidgetKind::CustomPaint { id, .. } => Some(InteractionKey {
+                widget_id: id.clone(),
+                index: None,
+            }),
             WidgetKind::MenuItem { id, .. } | WidgetKind::TreeNode { id, .. } => {
-                Some(InteractionKey { widget_id: id.clone(), index: None })
+                Some(InteractionKey {
+                    widget_id: id.clone(),
+                    index: None,
+                })
             }
             WidgetKind::WindowCloseButton { owner }
             | WidgetKind::ModalBackdrop { owner }
@@ -261,22 +486,36 @@ impl WidgetKind {
             | WidgetKind::PaletteHeader { owner, .. }
             | WidgetKind::PaletteFoldButton { owner, .. }
             | WidgetKind::PaletteCloseButton { owner, .. }
-            | WidgetKind::ResizeGrip { owner, .. } => {
-                Some(InteractionKey { widget_id: owner.clone(), index: None })
-            }
-            WidgetKind::Scrollbar { id, .. } => Some(InteractionKey { widget_id: id.clone(), index: None }),
+            | WidgetKind::ResizeGrip { owner, .. } => Some(InteractionKey {
+                widget_id: owner.clone(),
+                index: None,
+            }),
+            WidgetKind::Scrollbar { id, .. } => Some(InteractionKey {
+                widget_id: id.clone(),
+                index: None,
+            }),
             WidgetKind::TabItem { owner, index, .. }
             | WidgetKind::ListItem { owner, index, .. }
             | WidgetKind::SegmentItem { owner, index, .. }
             | WidgetKind::MenuBarItem { owner, index, .. }
             | WidgetKind::BreadcrumbItem { owner, index, .. }
-            | WidgetKind::PaginationItem { owner, page: index, .. }
-            | WidgetKind::TableHeader { owner, column_index: index, .. } => {
-                Some(InteractionKey { widget_id: owner.clone(), index: Some(*index) })
+            | WidgetKind::PaginationItem {
+                owner, page: index, ..
             }
-            WidgetKind::TableCell { owner, row_index, .. } => {
-                Some(InteractionKey { widget_id: owner.clone(), index: Some(*row_index) })
-            }
+            | WidgetKind::TableHeader {
+                owner,
+                column_index: index,
+                ..
+            } => Some(InteractionKey {
+                widget_id: owner.clone(),
+                index: Some(*index),
+            }),
+            WidgetKind::TableCell {
+                owner, row_index, ..
+            } => Some(InteractionKey {
+                widget_id: owner.clone(),
+                index: Some(*row_index),
+            }),
             WidgetKind::Container
             | WidgetKind::Icon { .. }
             | WidgetKind::MenuBar

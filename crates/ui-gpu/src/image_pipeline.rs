@@ -1,6 +1,6 @@
 // [WFGY] Zone: SAFE | λ: 0.2 | Fallbacks: 0 | Action: Image & Video GPU rendering pipeline implementing MediaPipeline
-use std::sync::Arc;
 use bytemuck::{Pod, Zeroable};
+use std::sync::Arc;
 
 use crate::media_pipeline::{MediaInstance, MediaPipeline};
 use crate::resources::ResourceTable;
@@ -46,7 +46,11 @@ pub struct ImagePipeline {
 }
 
 impl ImagePipeline {
-    pub fn new(device: &wgpu::Device, format: wgpu::TextureFormat, kind_name: &'static str) -> Self {
+    pub fn new(
+        device: &wgpu::Device,
+        format: wgpu::TextureFormat,
+        kind_name: &'static str,
+    ) -> Self {
         let shader = device.create_shader_module(wgpu::ShaderModuleDescriptor {
             label: Some("image_quad shader"),
             source: wgpu::ShaderSource::Wgsl(include_str!("shaders/image_quad.wgsl").into()),
@@ -167,7 +171,11 @@ impl ImagePipeline {
         queue.write_buffer(&self.globals_buffer, 0, bytemuck::bytes_of(&globals));
     }
 
-    fn create_texture_bind_group(&self, device: &wgpu::Device, view: &wgpu::TextureView) -> wgpu::BindGroup {
+    fn create_texture_bind_group(
+        &self,
+        device: &wgpu::Device,
+        view: &wgpu::TextureView,
+    ) -> wgpu::BindGroup {
         device.create_bind_group(&wgpu::BindGroupDescriptor {
             label: Some("image texture bind group"),
             layout: &self.texture_layout,
@@ -262,7 +270,11 @@ impl MediaPipeline for ImagePipeline {
 
         for (bind_group, gpu_instance) in &batches {
             queue.write_buffer(&self.instance_buffer, 0, bytemuck::bytes_of(gpu_instance));
-            pass.set_vertex_buffer(0, self.instance_buffer.slice(..std::mem::size_of::<GpuImageInstance>() as u64));
+            pass.set_vertex_buffer(
+                0,
+                self.instance_buffer
+                    .slice(..std::mem::size_of::<GpuImageInstance>() as u64),
+            );
             pass.set_bind_group(1, bind_group, &[]);
             pass.draw(0..6, 0..1);
         }

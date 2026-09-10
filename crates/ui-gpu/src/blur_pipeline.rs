@@ -25,7 +25,9 @@ impl BlurPipeline {
     pub fn new(device: &wgpu::Device, format: wgpu::TextureFormat) -> Self {
         let shader = device.create_shader_module(wgpu::ShaderModuleDescriptor {
             label: Some("blur_dual_kawase"),
-            source: wgpu::ShaderSource::Wgsl(include_str!("../shaders/blur_dual_kawase.wgsl").into()),
+            source: wgpu::ShaderSource::Wgsl(
+                include_str!("../shaders/blur_dual_kawase.wgsl").into(),
+            ),
         });
 
         let bind_group_layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
@@ -103,7 +105,13 @@ impl BlurPipeline {
             mapped_at_creation: false,
         });
 
-        Self { bind_group_layout, downsample_pipeline, upsample_pipeline, sampler, uniform_buffer }
+        Self {
+            bind_group_layout,
+            downsample_pipeline,
+            upsample_pipeline,
+            sampler,
+            uniform_buffer,
+        }
     }
 
     fn run_pass(
@@ -118,7 +126,12 @@ impl BlurPipeline {
         radius: f32,
     ) {
         let params = BlurParamsGpu {
-            texel_size_and_radius: [1.0 / src_size.0 as f32, 1.0 / src_size.1 as f32, radius, 0.0],
+            texel_size_and_radius: [
+                1.0 / src_size.0 as f32,
+                1.0 / src_size.1 as f32,
+                radius,
+                0.0,
+            ],
         };
         queue.write_buffer(&self.uniform_buffer, 0, bytemuck::bytes_of(&params));
 
@@ -126,9 +139,18 @@ impl BlurPipeline {
             label: Some("blur bind group"),
             layout: &self.bind_group_layout,
             entries: &[
-                wgpu::BindGroupEntry { binding: 0, resource: self.uniform_buffer.as_entire_binding() },
-                wgpu::BindGroupEntry { binding: 1, resource: wgpu::BindingResource::TextureView(src_view) },
-                wgpu::BindGroupEntry { binding: 2, resource: wgpu::BindingResource::Sampler(&self.sampler) },
+                wgpu::BindGroupEntry {
+                    binding: 0,
+                    resource: self.uniform_buffer.as_entire_binding(),
+                },
+                wgpu::BindGroupEntry {
+                    binding: 1,
+                    resource: wgpu::BindingResource::TextureView(src_view),
+                },
+                wgpu::BindGroupEntry {
+                    binding: 2,
+                    resource: wgpu::BindingResource::Sampler(&self.sampler),
+                },
             ],
         });
 
@@ -137,7 +159,10 @@ impl BlurPipeline {
             color_attachments: &[Some(wgpu::RenderPassColorAttachment {
                 view: dst_view,
                 resolve_target: None,
-                ops: wgpu::Operations { load: wgpu::LoadOp::Clear(wgpu::Color::BLACK), store: wgpu::StoreOp::Store },
+                ops: wgpu::Operations {
+                    load: wgpu::LoadOp::Clear(wgpu::Color::BLACK),
+                    store: wgpu::StoreOp::Store,
+                },
             })],
             depth_stencil_attachment: None,
             timestamp_writes: None,
@@ -158,7 +183,16 @@ impl BlurPipeline {
         src_size: (u32, u32),
         dst_view: &wgpu::TextureView,
     ) {
-        self.run_pass(device, queue, encoder, &self.downsample_pipeline, src_view, src_size, dst_view, 1.0);
+        self.run_pass(
+            device,
+            queue,
+            encoder,
+            &self.downsample_pipeline,
+            src_view,
+            src_size,
+            dst_view,
+            1.0,
+        );
     }
 
     /// Upsample : `src` (résolution réduite) -> `dst` (résolution pleine).
@@ -171,6 +205,15 @@ impl BlurPipeline {
         src_size: (u32, u32),
         dst_view: &wgpu::TextureView,
     ) {
-        self.run_pass(device, queue, encoder, &self.upsample_pipeline, src_view, src_size, dst_view, 1.0);
+        self.run_pass(
+            device,
+            queue,
+            encoder,
+            &self.upsample_pipeline,
+            src_view,
+            src_size,
+            dst_view,
+            1.0,
+        );
     }
 }

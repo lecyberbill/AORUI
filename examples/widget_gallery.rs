@@ -4,7 +4,9 @@ use std::sync::Arc;
 use ui_core::UiEvent;
 use ui_gpu::GpuRenderer;
 use ui_layout::{length, AlignItems, AvailableSpace, FlexDirection, Rect, Size, Style};
-use ui_widgets::{ColorSpace, InteractionKey, InteractionState, MediaFit, Theme, ToastKind, WidgetId, WidgetTree};
+use ui_widgets::{
+    ColorSpace, InteractionKey, InteractionState, MediaFit, Theme, ToastKind, WidgetId, WidgetTree,
+};
 use winit::application::ApplicationHandler;
 use winit::event::{ElementState, MouseButton, MouseScrollDelta, WindowEvent};
 use winit::event_loop::{ActiveEventLoop, ControlFlow, EventLoop};
@@ -106,10 +108,10 @@ fn generate_plasma_frame(width: u32, height: u32, time: f32) -> Vec<u8> {
 
             let wave = (v1 + v2 + v3) / 3.0;
 
-            // Cyber Neon Palette (Cyan -> Purple -> Deep Indigo)
-            let r = ((wave * 3.14159).sin() * 180.0 + 30.0).clamp(0.0, 255.0) as u8;
-            let g = (((wave + 0.33) * 3.14159).sin() * 220.0 + 35.0).clamp(0.0, 255.0) as u8;
-            let b = (((wave + 0.66) * 3.14159).sin() * 255.0 + 50.0).clamp(0.0, 255.0) as u8;
+            let pi = std::f32::consts::PI;
+            let r = ((wave * pi).sin() * 180.0 + 30.0).clamp(0.0, 255.0) as u8;
+            let g = (((wave + 0.33) * pi).sin() * 220.0 + 35.0).clamp(0.0, 255.0) as u8;
+            let b = (((wave + 0.66) * pi).sin() * 255.0 + 50.0).clamp(0.0, 255.0) as u8;
 
             buffer[idx] = r;
             buffer[idx + 1] = g;
@@ -132,28 +134,52 @@ fn font_family(family: &ui_widgets::FontFamily) -> glyphon::Family<'_> {
 }
 
 fn leaf(w: f32, h: f32) -> Style {
-    Style { size: Size { width: length(w), height: length(h) }, ..Default::default() }
+    Style {
+        size: Size {
+            width: length(w),
+            height: length(h),
+        },
+        ..Default::default()
+    }
 }
 
 fn row(gap: f32) -> Style {
     Style {
         flex_direction: FlexDirection::Row,
         align_items: Some(AlignItems::Center),
-        gap: Size { width: length(gap), height: length(0.0) },
+        gap: Size {
+            width: length(gap),
+            height: length(0.0),
+        },
         ..Default::default()
     }
 }
 
 fn column(gap: f32) -> Style {
-    Style { flex_direction: FlexDirection::Column, gap: Size { width: length(0.0), height: length(gap) }, ..Default::default() }
+    Style {
+        flex_direction: FlexDirection::Column,
+        gap: Size {
+            width: length(0.0),
+            height: length(gap),
+        },
+        ..Default::default()
+    }
 }
 
 /// Root window content container with generous padding.
 fn window_content(gap: f32) -> Style {
     Style {
         flex_direction: FlexDirection::Column,
-        gap: Size { width: length(0.0), height: length(gap) },
-        padding: Rect { left: length(24.0), right: length(24.0), top: length(48.0), bottom: length(20.0) },
+        gap: Size {
+            width: length(0.0),
+            height: length(gap),
+        },
+        padding: Rect {
+            left: length(24.0),
+            right: length(24.0),
+            top: length(48.0),
+            bottom: length(20.0),
+        },
         ..Default::default()
     }
 }
@@ -167,10 +193,21 @@ fn palette_style(x: f32, y: f32, w: f32, h: f32) -> Style {
             right: ui_layout::auto(),
             bottom: ui_layout::auto(),
         },
-        size: Size { width: length(w), height: length(h) },
+        size: Size {
+            width: length(w),
+            height: length(h),
+        },
         flex_direction: FlexDirection::Column,
-        gap: Size { width: length(0.0), height: length(4.0) },
-        padding: Rect { left: length(4.0), right: length(4.0), top: length(4.0), bottom: length(4.0) },
+        gap: Size {
+            width: length(0.0),
+            height: length(4.0),
+        },
+        padding: Rect {
+            left: length(4.0),
+            right: length(4.0),
+            top: length(4.0),
+            bottom: length(4.0),
+        },
         ..Default::default()
     }
 }
@@ -184,10 +221,21 @@ fn popover_style(x: f32, y: f32, w: f32, h: f32) -> Style {
             right: ui_layout::auto(),
             bottom: ui_layout::auto(),
         },
-        size: Size { width: length(w), height: length(h) },
+        size: Size {
+            width: length(w),
+            height: length(h),
+        },
         flex_direction: FlexDirection::Column,
-        gap: Size { width: length(0.0), height: length(2.0) },
-        padding: Rect { left: length(4.0), right: length(4.0), top: length(4.0), bottom: length(4.0) },
+        gap: Size {
+            width: length(0.0),
+            height: length(2.0),
+        },
+        padding: Rect {
+            left: length(4.0),
+            right: length(4.0),
+            top: length(4.0),
+            bottom: length(4.0),
+        },
         ..Default::default()
     }
 }
@@ -201,7 +249,10 @@ fn toast_style(x: f32, y: f32, w: f32, h: f32) -> Style {
             right: ui_layout::auto(),
             bottom: ui_layout::auto(),
         },
-        size: Size { width: length(w), height: length(h) },
+        size: Size {
+            width: length(w),
+            height: length(h),
+        },
         ..Default::default()
     }
 }
@@ -211,7 +262,8 @@ const LIST_ITEM_HEIGHT: f32 = 32.0;
 const LIST_ITEM_GAP: f32 = 8.0;
 const LIST_ITEM_COUNT: usize = 6;
 const LIST_VIEWPORT_HEIGHT: f32 = 120.0;
-const LIST_CONTENT_HEIGHT: f32 = LIST_ITEM_COUNT as f32 * LIST_ITEM_HEIGHT + (LIST_ITEM_COUNT as f32 - 1.0) * LIST_ITEM_GAP;
+const LIST_CONTENT_HEIGHT: f32 =
+    LIST_ITEM_COUNT as f32 * LIST_ITEM_HEIGHT + (LIST_ITEM_COUNT as f32 - 1.0) * LIST_ITEM_GAP;
 const LIST_MAX_SCROLL_Y: f32 = LIST_CONTENT_HEIGHT - LIST_VIEWPORT_HEIGHT;
 const LIST_SCROLL_ID: &str = "demo_list_scroll";
 
@@ -232,7 +284,11 @@ impl TextEditorState {
     fn new(initial: impl Into<String>) -> Self {
         let text = initial.into();
         let cursor = text.len();
-        Self { text, cursor, selection: None }
+        Self {
+            text,
+            cursor,
+            selection: None,
+        }
     }
 
     fn insert_char(&mut self, ch: char) {
@@ -374,7 +430,10 @@ impl TextEditorState {
             self.cursor
         };
 
-        let prev_newline = self.text[..self.cursor].rfind('\n').map(|i| i + 1).unwrap_or(0);
+        let prev_newline = self.text[..self.cursor]
+            .rfind('\n')
+            .map(|i| i + 1)
+            .unwrap_or(0);
         self.cursor = prev_newline;
 
         if select {
@@ -394,7 +453,10 @@ impl TextEditorState {
             self.cursor
         };
 
-        let next_newline = self.text[self.cursor..].find('\n').map(|i| self.cursor + i).unwrap_or(self.text.len());
+        let next_newline = self.text[self.cursor..]
+            .find('\n')
+            .map(|i| self.cursor + i)
+            .unwrap_or(self.text.len());
         self.cursor = next_newline;
 
         if select {
@@ -578,24 +640,40 @@ struct DemoState {
 impl DemoState {
     fn apply(&mut self, event: UiEvent) {
         match event {
-            UiEvent::CustomPaintPointerDown { widget_id, local_pos, .. } => {
+            UiEvent::CustomPaintPointerDown {
+                widget_id,
+                local_pos,
+                ..
+            } => {
                 if widget_id == "studio_canvas" {
                     if self.active_tool == "eraser" {
                         let r = (self.brush_intensity * 0.35).max(12.0);
                         self.canvas_strokes.retain(|(pts, _, _)| {
-                            !pts.iter().any(|p| ((p[0] - local_pos[0]).powi(2) + (p[1] - local_pos[1]).powi(2)).sqrt() <= r)
+                            !pts.iter().any(|p| {
+                                ((p[0] - local_pos[0]).powi(2) + (p[1] - local_pos[1]).powi(2))
+                                    .sqrt()
+                                    <= r
+                            })
                         });
                     } else {
                         self.canvas_active_stroke = vec![local_pos];
                     }
                 }
             }
-            UiEvent::CustomPaintPointerMove { widget_id, local_pos, .. } => {
+            UiEvent::CustomPaintPointerMove {
+                widget_id,
+                local_pos,
+                ..
+            } => {
                 if widget_id == "studio_canvas" {
                     if self.active_tool == "eraser" {
                         let r = (self.brush_intensity * 0.35).max(12.0);
                         self.canvas_strokes.retain(|(pts, _, _)| {
-                            !pts.iter().any(|p| ((p[0] - local_pos[0]).powi(2) + (p[1] - local_pos[1]).powi(2)).sqrt() <= r)
+                            !pts.iter().any(|p| {
+                                ((p[0] - local_pos[0]).powi(2) + (p[1] - local_pos[1]).powi(2))
+                                    .sqrt()
+                                    <= r
+                            })
                         });
                     } else if !self.canvas_active_stroke.is_empty() {
                         self.canvas_active_stroke.push(local_pos);
@@ -626,15 +704,13 @@ impl DemoState {
                     self.firewall_toggle = active;
                 }
             }
-            UiEvent::SliderChanged { widget_id, value } => {
-                match widget_id.as_str() {
-                    "palette_intensity_slider" => self.brush_intensity = value,
-                    "fader_low" => self.fader_low = value,
-                    "fader_mid" => self.fader_mid = value,
-                    "fader_high" => self.fader_high = value,
-                    _ => self.network_intensity = value,
-                }
-            }
+            UiEvent::SliderChanged { widget_id, value } => match widget_id.as_str() {
+                "palette_intensity_slider" => self.brush_intensity = value,
+                "fader_low" => self.fader_low = value,
+                "fader_mid" => self.fader_mid = value,
+                "fader_high" => self.fader_high = value,
+                _ => self.network_intensity = value,
+            },
             UiEvent::NumberChanged { widget_id, value } => {
                 if widget_id == "concurrency_spin" {
                     self.concurrency_spin = value;
@@ -655,7 +731,11 @@ impl DemoState {
                 self.context_menu = None;
             }
             UiEvent::ListItemSelected { item_index, .. } => self.selected_item = Some(item_index),
-            UiEvent::SegmentSelected { widget_id, selected_index, .. } => {
+            UiEvent::SegmentSelected {
+                widget_id,
+                selected_index,
+                ..
+            } => {
                 if widget_id == "media_fit_selector" {
                     self.media_fit_mode = match selected_index {
                         0 => MediaFit::Cover,
@@ -671,7 +751,10 @@ impl DemoState {
                     self.video_playing = playing;
                 }
             }
-            UiEvent::MediaSeeked { widget_id, progress } => {
+            UiEvent::MediaSeeked {
+                widget_id,
+                progress,
+            } => {
                 if widget_id == "stream_video" {
                     self.video_progress = progress;
                 }
@@ -723,14 +806,20 @@ impl DemoState {
                     self.inspector_palette_pos = (x, y);
                 }
             }
-            UiEvent::PaletteResized { palette_id, width, height } => {
+            UiEvent::PaletteResized {
+                palette_id,
+                width,
+                height,
+            } => {
                 if palette_id == "tools_palette" {
                     self.tools_palette_size = (width.max(120.0), height.max(120.0));
                 } else if palette_id == "inspector_palette" {
                     self.inspector_palette_size = (width.max(140.0), height.max(120.0));
                 }
             }
-            UiEvent::TreeNodeToggled { node_id, expanded, .. } => {
+            UiEvent::TreeNodeToggled {
+                node_id, expanded, ..
+            } => {
                 if expanded {
                     self.expanded_nodes.insert(node_id.clone());
                 } else {
@@ -755,7 +844,15 @@ impl DemoState {
                 }
                 self.active_toast = Some((
                     "Table Sorted".to_string(),
-                    format!("Column #{} ordered {}", column_index + 1, if self.table_sort_asc { "Ascending ▲" } else { "Descending ▼" }),
+                    format!(
+                        "Column #{} ordered {}",
+                        column_index + 1,
+                        if self.table_sort_asc {
+                            "Ascending ▲"
+                        } else {
+                            "Descending ▼"
+                        }
+                    ),
                     ToastKind::Info,
                 ));
             }
@@ -788,7 +885,10 @@ impl DemoState {
                 self.selected_color = color;
                 self.active_toast = Some((
                     "Color Accent Selected".to_string(),
-                    format!("Picked RGBA({:.2}, {:.2}, {:.2}, {:.2})", color[0], color[1], color[2], color[3]),
+                    format!(
+                        "Picked RGBA({:.2}, {:.2}, {:.2}, {:.2})",
+                        color[0], color[1], color[2], color[3]
+                    ),
                     ToastKind::Success,
                 ));
             }
@@ -817,16 +917,35 @@ impl DemoState {
                 } else if widget_id == "clear_canvas_btn" {
                     self.canvas_strokes.clear();
                     self.canvas_active_stroke.clear();
-                    self.active_toast = Some(("Canvas Cleared".to_string(), "All vector strokes removed.".to_string(), ToastKind::Info));
+                    self.active_toast = Some((
+                        "Canvas Cleared".to_string(),
+                        "All vector strokes removed.".to_string(),
+                        ToastKind::Info,
+                    ));
                 } else if widget_id == "lock_btn" {
-                    self.active_toast = Some(("Security Lock".to_string(), "All inbound endpoints locked.".to_string(), ToastKind::Warning));
+                    self.active_toast = Some((
+                        "Security Lock".to_string(),
+                        "All inbound endpoints locked.".to_string(),
+                        ToastKind::Warning,
+                    ));
                 } else if widget_id == "refresh_btn" {
-                    self.active_toast = Some(("Subsystem Sync".to_string(), "Cluster telemetry synchronized.".to_string(), ToastKind::Info));
+                    self.active_toast = Some((
+                        "Subsystem Sync".to_string(),
+                        "Cluster telemetry synchronized.".to_string(),
+                        ToastKind::Info,
+                    ));
                 } else if widget_id == "shield_btn" {
-                    self.active_toast = Some(("Firewall Shield".to_string(), "Full shield mesh online.".to_string(), ToastKind::Success));
+                    self.active_toast = Some((
+                        "Firewall Shield".to_string(),
+                        "Full shield mesh online.".to_string(),
+                        ToastKind::Success,
+                    ));
                 } else {
                     self.click_count += 1;
-                    println!("[widget_gallery] button '{widget_id}' clicked ({} times)", self.click_count);
+                    println!(
+                        "[widget_gallery] button '{widget_id}' clicked ({} times)",
+                        self.click_count
+                    );
                 }
             }
             UiEvent::MenuToggled { menu_id, open } => {
@@ -938,7 +1057,10 @@ impl DemoState {
                     _ => println!("[widget_gallery] selected menu item: {item_id}"),
                 }
             }
-            UiEvent::SelectChanged { widget_id, selected_id } => {
+            UiEvent::SelectChanged {
+                widget_id,
+                selected_id,
+            } => {
                 if widget_id == "main_peeker" {
                     self.color_space = match selected_id.as_str() {
                         "rgb" => ColorSpace::Rgb,
@@ -969,8 +1091,15 @@ impl DemoState {
     }
 }
 
-fn build_base_ui(tree: &mut WidgetTree, state: &DemoState, width: f32, height: f32) -> ui_layout::NodeId {
-    let title = tree.label("AORUI — An Other Rust UI Control Center", leaf(400.0, 20.0)).unwrap();
+fn build_base_ui(
+    tree: &mut WidgetTree,
+    state: &DemoState,
+    width: f32,
+    height: f32,
+) -> ui_layout::NodeId {
+    let title = tree
+        .label("AORUI — An Other Rust UI Control Center", leaf(400.0, 20.0))
+        .unwrap();
 
     // Primary horizontal menu bar
     let menu_items = ["File", "Security", "View", "Help"];
@@ -981,11 +1110,22 @@ fn build_base_ui(tree: &mut WidgetTree, state: &DemoState, width: f32, height: f
             state.active_menu,
             leaf(76.0, 24.0),
             Style {
-                size: Size { width: length(508.0), height: length(28.0) },
+                size: Size {
+                    width: length(508.0),
+                    height: length(28.0),
+                },
                 flex_direction: FlexDirection::Row,
                 align_items: Some(AlignItems::Center),
-                gap: Size { width: length(4.0), height: length(0.0) },
-                padding: Rect { left: length(4.0), right: length(4.0), top: length(2.0), bottom: length(2.0) },
+                gap: Size {
+                    width: length(4.0),
+                    height: length(0.0),
+                },
+                padding: Rect {
+                    left: length(4.0),
+                    right: length(4.0),
+                    top: length(2.0),
+                    bottom: length(2.0),
+                },
                 ..Default::default()
             },
         )
@@ -994,8 +1134,14 @@ fn build_base_ui(tree: &mut WidgetTree, state: &DemoState, width: f32, height: f
     // Breadcrumb navigation path
     let tab_names = ["General", "Security", "Network", "Studio", "Media"];
     let current_tab_name = tab_names.get(state.active_tab).unwrap_or(&"General");
-    let crumbs = [("nav_home", "Workspace"), ("nav_cluster", "US-East-01"), ("nav_active", *current_tab_name)];
-    let breadcrumb_node = tree.breadcrumb("main_breadcrumb", &crumbs, leaf(80.0, 18.0), row(2.0)).unwrap();
+    let crumbs = [
+        ("nav_home", "Workspace"),
+        ("nav_cluster", "US-East-01"),
+        ("nav_active", *current_tab_name),
+    ];
+    let breadcrumb_node = tree
+        .breadcrumb("main_breadcrumb", &crumbs, leaf(80.0, 18.0), row(2.0))
+        .unwrap();
 
     let search_focused = state.focused_input.as_deref() == Some("global_search");
     let search_input = tree
@@ -1013,36 +1159,112 @@ fn build_base_ui(tree: &mut WidgetTree, state: &DemoState, width: f32, height: f
     let divider1 = tree.divider(false, leaf(508.0, 1.0)).unwrap();
 
     let tabs = ["General", "Security", "Network", "Studio", "Media"];
-    let tabbar =
-        tree.tabbar(WidgetId::new("settings_tabs"), &tabs, state.active_tab, leaf(96.0, 30.0), row(4.0)).unwrap();
+    let tabbar = tree
+        .tabbar(
+            WidgetId::new("settings_tabs"),
+            &tabs,
+            state.active_tab,
+            leaf(96.0, 30.0),
+            row(4.0),
+        )
+        .unwrap();
 
     let tab_content = match state.active_tab {
         0 => {
             // --- Tab General: Controls, Dropdowns, Swatches & Modals ---
-            let button = tree.button(WidgetId::new("hello_button"), "Quick Action", true, leaf(164.0, 30.0)).unwrap();
-            let modal_btn = tree.button(WidgetId::new("open_modal_btn"), "Open Modal", true, leaf(164.0, 30.0)).unwrap();
-            let toast_btn = tree.button(WidgetId::new("toast_btn"), "Trigger Toast", true, leaf(164.0, 30.0)).unwrap();
-            let buttons_grid = tree.grid(3, 8.0, 0.0, &[button, modal_btn, toast_btn], leaf(508.0, 30.0)).unwrap();
+            let button = tree
+                .button(
+                    WidgetId::new("hello_button"),
+                    "Quick Action",
+                    true,
+                    leaf(164.0, 30.0),
+                )
+                .unwrap();
+            let modal_btn = tree
+                .button(
+                    WidgetId::new("open_modal_btn"),
+                    "Open Modal",
+                    true,
+                    leaf(164.0, 30.0),
+                )
+                .unwrap();
+            let toast_btn = tree
+                .button(
+                    WidgetId::new("toast_btn"),
+                    "Trigger Toast",
+                    true,
+                    leaf(164.0, 30.0),
+                )
+                .unwrap();
+            let buttons_grid = tree
+                .grid(
+                    3,
+                    8.0,
+                    0.0,
+                    &[button, modal_btn, toast_btn],
+                    leaf(508.0, 30.0),
+                )
+                .unwrap();
 
             // Interactive Pro 2D Color Peeker (2D Saturation/Value Canvas, Hue Slider, HEX & 4-Space Matrix)
-            let color_peeker = tree.color_picker(
-                WidgetId::new("main_peeker"),
-                state.selected_color,
-                state.color_space,
-                leaf(508.0, 208.0),
-            ).unwrap();
+            let color_peeker = tree
+                .color_picker(
+                    WidgetId::new("main_peeker"),
+                    state.selected_color,
+                    state.color_space,
+                    leaf(508.0, 208.0),
+                )
+                .unwrap();
 
             // Preset Swatches & Status Badge Row
             let color_label = tree.label_muted("Presets:", leaf(54.0, 24.0)).unwrap();
-            let c1 = tree.color_swatch("cyan_swatch", [0.0, 0.85, 1.0, 1.0], Some("Cyan"), leaf(44.0, 32.0)).unwrap();
-            let c2 = tree.color_swatch("purple_swatch", [0.55, 0.36, 0.96, 1.0], Some("Violet"), leaf(44.0, 32.0)).unwrap();
-            let c3 = tree.color_swatch("green_swatch", [0.06, 0.72, 0.51, 1.0], Some("Emerald"), leaf(44.0, 32.0)).unwrap();
-            let c4 = tree.color_swatch("amber_swatch", [0.96, 0.62, 0.04, 1.0], Some("Amber"), leaf(44.0, 32.0)).unwrap();
+            let c1 = tree
+                .color_swatch(
+                    "cyan_swatch",
+                    [0.0, 0.85, 1.0, 1.0],
+                    Some("Cyan"),
+                    leaf(44.0, 32.0),
+                )
+                .unwrap();
+            let c2 = tree
+                .color_swatch(
+                    "purple_swatch",
+                    [0.55, 0.36, 0.96, 1.0],
+                    Some("Violet"),
+                    leaf(44.0, 32.0),
+                )
+                .unwrap();
+            let c3 = tree
+                .color_swatch(
+                    "green_swatch",
+                    [0.06, 0.72, 0.51, 1.0],
+                    Some("Emerald"),
+                    leaf(44.0, 32.0),
+                )
+                .unwrap();
+            let c4 = tree
+                .color_swatch(
+                    "amber_swatch",
+                    [0.96, 0.62, 0.04, 1.0],
+                    Some("Amber"),
+                    leaf(44.0, 32.0),
+                )
+                .unwrap();
             let swatches = tree.container(&[c1, c2, c3, c4], row(6.0)).unwrap();
-            let badge_status = tree.badge("ONLINE", ui_widgets::ListItemBadge::Success, leaf(72.0, 24.0)).unwrap();
-            let palette_row = tree.container(&[color_label, swatches, badge_status], row(8.0)).unwrap();
+            let badge_status = tree
+                .badge(
+                    "ONLINE",
+                    ui_widgets::ListItemBadge::Success,
+                    leaf(72.0, 24.0),
+                )
+                .unwrap();
+            let palette_row = tree
+                .container(&[color_label, swatches, badge_status], row(8.0))
+                .unwrap();
 
-            let env_label = tree.label_muted("Target Cluster:", leaf(120.0, 28.0)).unwrap();
+            let env_label = tree
+                .label_muted("Target Cluster:", leaf(120.0, 28.0))
+                .unwrap();
             let env_dropdown = tree
                 .dropdown(
                     WidgetId::new("env_dropdown"),
@@ -1052,148 +1274,370 @@ fn build_base_ui(tree: &mut WidgetTree, state: &DemoState, width: f32, height: f
                     leaf(378.0, 28.0),
                 )
                 .unwrap();
-            let env_row = tree.container(&[env_label, env_dropdown], row(10.0)).unwrap();
+            let env_row = tree
+                .container(&[env_label, env_dropdown], row(10.0))
+                .unwrap();
 
             // Password Input with eye reveal toggle
             let pwd_focused = state.focused_input.as_deref() == Some("master_token_pwd");
-            let pwd_input = tree.password_input_with_cursor(
-                WidgetId::new("master_token_pwd"),
-                &state.password_editor.text,
-                "Master Access Token [Click eye to reveal]...",
-                pwd_focused,
-                state.password_revealed,
-                state.password_editor.cursor,
-                leaf(378.0, 28.0),
-            ).unwrap();
+            let pwd_input = tree
+                .password_input_with_cursor(
+                    WidgetId::new("master_token_pwd"),
+                    &state.password_editor.text,
+                    "Master Access Token [Click eye to reveal]...",
+                    pwd_focused,
+                    state.password_revealed,
+                    state.password_editor.cursor,
+                    leaf(378.0, 28.0),
+                )
+                .unwrap();
             let pwd_label = tree.label_muted("Auth Token:", leaf(120.0, 28.0)).unwrap();
             let pwd_row = tree.container(&[pwd_label, pwd_input], row(10.0)).unwrap();
 
             // Numeric Spinners: Workers limit and Proxy port
             let spin1_focused = state.focused_input.as_deref() == Some("concurrency_spin");
-            let spin1_input = tree.number_input_state(WidgetId::new("concurrency_spin"), state.concurrency_spin, 1.0, 64.0, 1.0, 0, spin1_focused, state.spinners_enabled, leaf(138.0, 28.0)).unwrap();
-            let spin1_label = tree.label_muted("Workers (1-64):", leaf(100.0, 28.0)).unwrap();
-            let spin1_box = tree.container(&[spin1_label, spin1_input], row(6.0)).unwrap();
+            let spin1_input = tree
+                .number_input_state(
+                    WidgetId::new("concurrency_spin"),
+                    state.concurrency_spin,
+                    1.0,
+                    64.0,
+                    1.0,
+                    0,
+                    spin1_focused,
+                    state.spinners_enabled,
+                    leaf(138.0, 28.0),
+                )
+                .unwrap();
+            let spin1_label = tree
+                .label_muted("Workers (1-64):", leaf(100.0, 28.0))
+                .unwrap();
+            let spin1_box = tree
+                .container(&[spin1_label, spin1_input], row(6.0))
+                .unwrap();
 
             let spin2_focused = state.focused_input.as_deref() == Some("port_spin");
-            let spin2_input = tree.number_input_state(WidgetId::new("port_spin"), state.port_spin, 1024.0, 65535.0, 10.0, 0, spin2_focused, state.spinners_enabled, leaf(138.0, 28.0)).unwrap();
+            let spin2_input = tree
+                .number_input_state(
+                    WidgetId::new("port_spin"),
+                    state.port_spin,
+                    1024.0,
+                    65535.0,
+                    10.0,
+                    0,
+                    spin2_focused,
+                    state.spinners_enabled,
+                    leaf(138.0, 28.0),
+                )
+                .unwrap();
             let spin2_label = tree.label_muted("Port (1024+):", leaf(90.0, 28.0)).unwrap();
-            let spin2_box = tree.container(&[spin2_label, spin2_input], row(6.0)).unwrap();
+            let spin2_box = tree
+                .container(&[spin2_label, spin2_input], row(6.0))
+                .unwrap();
 
-            let spinners_grid = tree.grid(2, 12.0, 0.0, &[spin1_box, spin2_box], leaf(508.0, 28.0)).unwrap();
+            let spinners_grid = tree
+                .grid(2, 12.0, 0.0, &[spin1_box, spin2_box], leaf(508.0, 28.0))
+                .unwrap();
 
-            let spin_toggle = tree.checkbox(WidgetId::new("spinners_toggle"), state.spinners_enabled, leaf(18.0, 18.0)).unwrap();
-            let spin_toggle_lbl = tree.label_muted(if state.spinners_enabled { "Hybrid Input: Enabled (Type Digits or Up/Down Arrows / Steppers)" } else { "Hybrid Input: Disabled (Locked)" }, leaf(480.0, 18.0)).unwrap();
-            let spin_toggle_row = tree.container(&[spin_toggle, spin_toggle_lbl], row(8.0)).unwrap();
-            let spinners_section = tree.container(&[spinners_grid, spin_toggle_row], column(4.0)).unwrap();
+            let spin_toggle = tree
+                .checkbox(
+                    WidgetId::new("spinners_toggle"),
+                    state.spinners_enabled,
+                    leaf(18.0, 18.0),
+                )
+                .unwrap();
+            let spin_toggle_lbl = tree
+                .label_muted(
+                    if state.spinners_enabled {
+                        "Hybrid Input: Enabled (Type Digits or Up/Down Arrows / Steppers)"
+                    } else {
+                        "Hybrid Input: Disabled (Locked)"
+                    },
+                    leaf(480.0, 18.0),
+                )
+                .unwrap();
+            let spin_toggle_row = tree
+                .container(&[spin_toggle, spin_toggle_lbl], row(8.0))
+                .unwrap();
+            let spinners_section = tree
+                .container(&[spinners_grid, spin_toggle_row], column(4.0))
+                .unwrap();
 
-            let checkbox = tree.checkbox(WidgetId::new("accept_terms"), state.accept_checked, leaf(18.0, 18.0)).unwrap();
-            let checkbox_label = tree.label("Enable continuous diagnostics telemetry", leaf(340.0, 18.0)).unwrap();
-            let checkbox_row = tree.container(&[checkbox, checkbox_label], row(10.0)).unwrap();
+            let checkbox = tree
+                .checkbox(
+                    WidgetId::new("accept_terms"),
+                    state.accept_checked,
+                    leaf(18.0, 18.0),
+                )
+                .unwrap();
+            let checkbox_label = tree
+                .label("Enable continuous diagnostics telemetry", leaf(340.0, 18.0))
+                .unwrap();
+            let checkbox_row = tree
+                .container(&[checkbox, checkbox_label], row(10.0))
+                .unwrap();
 
-            let toggle = tree.toggle(WidgetId::new("turbo_toggle"), state.turbo_toggle, leaf(38.0, 20.0)).unwrap();
-            let toggle_label = tree.label("GPU Turbo Hardware Acceleration", leaf(280.0, 20.0)).unwrap();
+            let toggle = tree
+                .toggle(
+                    WidgetId::new("turbo_toggle"),
+                    state.turbo_toggle,
+                    leaf(38.0, 20.0),
+                )
+                .unwrap();
+            let toggle_label = tree
+                .label("GPU Turbo Hardware Acceleration", leaf(280.0, 20.0))
+                .unwrap();
             let toggle_row = tree.container(&[toggle, toggle_label], row(10.0)).unwrap();
 
             let slider_label = tree
                 .label("Controls & Multi-Shape Progress (Horizontal, Vertical Faders, Donut Ring, Pie):", leaf(508.0, 16.0))
                 .unwrap();
             let slider = tree
-                .slider(WidgetId::new("brightness_slider"), 0.0, 100.0, state.network_intensity, leaf(170.0, 16.0))
+                .slider(
+                    WidgetId::new("brightness_slider"),
+                    0.0,
+                    100.0,
+                    state.network_intensity,
+                    leaf(170.0, 16.0),
+                )
                 .unwrap();
-            let progress_h = tree.progress_bar(state.network_intensity / 100.0, leaf(170.0, 6.0)).unwrap();
+            let progress_h = tree
+                .progress_bar(state.network_intensity / 100.0, leaf(170.0, 6.0))
+                .unwrap();
             let slider_h_box = tree.container(&[slider, progress_h], column(8.0)).unwrap();
 
             // 3-Band Audio EQ Vertical Faders (Low / Mid / High)
-            let f1 = tree.slider_vertical(WidgetId::new("fader_low"), 0.0, 100.0, state.fader_low, leaf(20.0, 42.0)).unwrap();
+            let f1 = tree
+                .slider_vertical(
+                    WidgetId::new("fader_low"),
+                    0.0,
+                    100.0,
+                    state.fader_low,
+                    leaf(20.0, 42.0),
+                )
+                .unwrap();
             let f1_lbl = tree.label_muted("Lo", leaf(20.0, 12.0)).unwrap();
             let f1_box = tree.container(&[f1, f1_lbl], column(2.0)).unwrap();
 
-            let f2 = tree.slider_vertical(WidgetId::new("fader_mid"), 0.0, 100.0, state.fader_mid, leaf(20.0, 42.0)).unwrap();
+            let f2 = tree
+                .slider_vertical(
+                    WidgetId::new("fader_mid"),
+                    0.0,
+                    100.0,
+                    state.fader_mid,
+                    leaf(20.0, 42.0),
+                )
+                .unwrap();
             let f2_lbl = tree.label_muted("Mid", leaf(20.0, 12.0)).unwrap();
             let f2_box = tree.container(&[f2, f2_lbl], column(2.0)).unwrap();
 
-            let f3 = tree.slider_vertical(WidgetId::new("fader_high"), 0.0, 100.0, state.fader_high, leaf(20.0, 42.0)).unwrap();
+            let f3 = tree
+                .slider_vertical(
+                    WidgetId::new("fader_high"),
+                    0.0,
+                    100.0,
+                    state.fader_high,
+                    leaf(20.0, 42.0),
+                )
+                .unwrap();
             let f3_lbl = tree.label_muted("Hi", leaf(20.0, 12.0)).unwrap();
             let f3_box = tree.container(&[f3, f3_lbl], column(2.0)).unwrap();
 
             let faders_row = tree.container(&[f1_box, f2_box, f3_box], row(4.0)).unwrap();
 
             // Progress Indicators: Vertical Bar, Ring Donut, Pie Disc
-            let progress_v = tree.progress_bar_vertical(state.fader_mid / 100.0, leaf(8.0, 46.0)).unwrap();
-            let ring_gauge = tree.progress_ring(state.network_intensity / 100.0, None::<&str>, leaf(46.0, 46.0)).unwrap();
-            let pie_disc = tree.progress_pie(state.brush_intensity / 100.0, None::<&str>, leaf(46.0, 46.0)).unwrap();
+            let progress_v = tree
+                .progress_bar_vertical(state.fader_mid / 100.0, leaf(8.0, 46.0))
+                .unwrap();
+            let ring_gauge = tree
+                .progress_ring(
+                    state.network_intensity / 100.0,
+                    None::<&str>,
+                    leaf(46.0, 46.0),
+                )
+                .unwrap();
+            let pie_disc = tree
+                .progress_pie(
+                    state.brush_intensity / 100.0,
+                    None::<&str>,
+                    leaf(46.0, 46.0),
+                )
+                .unwrap();
 
-            let control_row = tree.container(&[slider_h_box, faders_row, progress_v, ring_gauge, pie_disc], row(10.0)).unwrap();
-            let slider_group = tree.container(&[slider_label, control_row], column(4.0)).unwrap();
+            let control_row = tree
+                .container(
+                    &[slider_h_box, faders_row, progress_v, ring_gauge, pie_disc],
+                    row(10.0),
+                )
+                .unwrap();
+            let slider_group = tree
+                .container(&[slider_label, control_row], column(4.0))
+                .unwrap();
 
-            tree.container(&[buttons_grid, color_peeker, palette_row, env_row, pwd_row, spinners_section, checkbox_row, toggle_row, slider_group], column(4.0)).unwrap()
+            tree.container(
+                &[
+                    buttons_grid,
+                    color_peeker,
+                    palette_row,
+                    env_row,
+                    pwd_row,
+                    spinners_section,
+                    checkbox_row,
+                    toggle_row,
+                    slider_group,
+                ],
+                column(4.0),
+            )
+            .unwrap()
         }
         1 => {
             // --- Tab Security: Firewall, RadioGroup, Action Icons & Accordion ---
-            let toggle = tree.toggle(WidgetId::new("firewall_toggle"), state.firewall_toggle, leaf(42.0, 22.0)).unwrap();
-            let toggle_label = tree.label("Heuristic Shield & Core Firewall", leaf(280.0, 20.0)).unwrap();
+            let toggle = tree
+                .toggle(
+                    WidgetId::new("firewall_toggle"),
+                    state.firewall_toggle,
+                    leaf(42.0, 22.0),
+                )
+                .unwrap();
+            let toggle_label = tree
+                .label("Heuristic Shield & Core Firewall", leaf(280.0, 20.0))
+                .unwrap();
             let toggle_row = tree.container(&[toggle, toggle_label], row(10.0)).unwrap();
 
-            let radio_title = tree.label_muted("Cluster Security Enforcement Mode:", leaf(400.0, 16.0)).unwrap();
-            let r1 = tree.radio(
-                WidgetId::new("strict"),
-                "sec_policy",
-                "Strict (Zero-Trust)",
-                state.security_policy == "strict",
-                leaf(164.0, 22.0),
-            ).unwrap();
-            let r2 = tree.radio(
-                WidgetId::new("adaptive"),
-                "sec_policy",
-                "Adaptive (AI)",
-                state.security_policy == "adaptive",
-                leaf(164.0, 22.0),
-            ).unwrap();
-            let r3 = tree.radio(
-                WidgetId::new("audit"),
-                "sec_policy",
-                "Audit Only",
-                state.security_policy == "audit",
-                leaf(164.0, 22.0),
-            ).unwrap();
-            let radio_grid = tree.grid(3, 8.0, 0.0, &[r1, r2, r3], leaf(508.0, 22.0)).unwrap();
-            let radio_group = tree.container(&[radio_title, radio_grid], column(4.0)).unwrap();
+            let radio_title = tree
+                .label_muted("Cluster Security Enforcement Mode:", leaf(400.0, 16.0))
+                .unwrap();
+            let r1 = tree
+                .radio(
+                    WidgetId::new("strict"),
+                    "sec_policy",
+                    "Strict (Zero-Trust)",
+                    state.security_policy == "strict",
+                    leaf(164.0, 22.0),
+                )
+                .unwrap();
+            let r2 = tree
+                .radio(
+                    WidgetId::new("adaptive"),
+                    "sec_policy",
+                    "Adaptive (AI)",
+                    state.security_policy == "adaptive",
+                    leaf(164.0, 22.0),
+                )
+                .unwrap();
+            let r3 = tree
+                .radio(
+                    WidgetId::new("audit"),
+                    "sec_policy",
+                    "Audit Only",
+                    state.security_policy == "audit",
+                    leaf(164.0, 22.0),
+                )
+                .unwrap();
+            let radio_grid = tree
+                .grid(3, 8.0, 0.0, &[r1, r2, r3], leaf(508.0, 22.0))
+                .unwrap();
+            let radio_group = tree
+                .container(&[radio_title, radio_grid], column(4.0))
+                .unwrap();
 
             let divider_sec = tree.divider(false, leaf(508.0, 1.0)).unwrap();
 
             // Accordion section with icon action buttons
-            let lock_btn = tree.icon_button("lock_btn", ui_widgets::IconKind::Lock, true, leaf(30.0, 30.0)).unwrap();
-            let refresh_btn = tree.icon_button("refresh_btn", ui_widgets::IconKind::Refresh, true, leaf(30.0, 30.0)).unwrap();
-            let shield_btn = tree.icon_button("shield_btn", ui_widgets::IconKind::Shield, true, leaf(30.0, 30.0)).unwrap();
-            let action_icons = tree.container(&[lock_btn, refresh_btn, shield_btn], row(8.0)).unwrap();
+            let lock_btn = tree
+                .icon_button(
+                    "lock_btn",
+                    ui_widgets::IconKind::Lock,
+                    true,
+                    leaf(30.0, 30.0),
+                )
+                .unwrap();
+            let refresh_btn = tree
+                .icon_button(
+                    "refresh_btn",
+                    ui_widgets::IconKind::Refresh,
+                    true,
+                    leaf(30.0, 30.0),
+                )
+                .unwrap();
+            let shield_btn = tree
+                .icon_button(
+                    "shield_btn",
+                    ui_widgets::IconKind::Shield,
+                    true,
+                    leaf(30.0, 30.0),
+                )
+                .unwrap();
+            let action_icons = tree
+                .container(&[lock_btn, refresh_btn, shield_btn], row(8.0))
+                .unwrap();
 
             let items = [
-                ("TLS 1.3 Certificate valid", ui_widgets::ListItemBadge::Success),
-                ("Unauthorized port scan blocked", ui_widgets::ListItemBadge::Warning),
-                ("Memory analysis active", ui_widgets::ListItemBadge::Active("Active".to_string())),
-                ("Firewall rule #104 allowed", ui_widgets::ListItemBadge::None),
+                (
+                    "TLS 1.3 Certificate valid",
+                    ui_widgets::ListItemBadge::Success,
+                ),
+                (
+                    "Unauthorized port scan blocked",
+                    ui_widgets::ListItemBadge::Warning,
+                ),
+                (
+                    "Memory analysis active",
+                    ui_widgets::ListItemBadge::Active("Active".to_string()),
+                ),
+                (
+                    "Firewall rule #104 allowed",
+                    ui_widgets::ListItemBadge::None,
+                ),
             ];
             let list = tree
-                .rich_list(WidgetId::new("sec_list"), &items, state.selected_item, leaf(488.0, 28.0), column(4.0))
+                .rich_list(
+                    WidgetId::new("sec_list"),
+                    &items,
+                    state.selected_item,
+                    leaf(488.0, 28.0),
+                    column(4.0),
+                )
                 .unwrap();
 
             let acc_content = tree.container(&[action_icons, list], column(6.0)).unwrap();
             let acc_style = Style {
                 size: Size {
                     width: length(508.0),
-                    height: if state.accordion_open { ui_layout::auto() } else { length(46.0) },
+                    height: if state.accordion_open {
+                        ui_layout::auto()
+                    } else {
+                        length(46.0)
+                    },
                 },
                 padding: Rect {
                     left: length(0.0),
                     right: length(0.0),
                     top: length(0.0),
-                    bottom: if state.accordion_open { length(8.0) } else { length(0.0) },
+                    bottom: if state.accordion_open {
+                        length(8.0)
+                    } else {
+                        length(0.0)
+                    },
                 },
                 ..Default::default()
             };
-            let accordion = tree.accordion("firewall_acc", "Heuristic Firewall Policies", Some("4 containment rules"), state.accordion_open, acc_content, acc_style).unwrap();
+            let accordion = tree
+                .accordion(
+                    "firewall_acc",
+                    "Heuristic Firewall Policies",
+                    Some("4 containment rules"),
+                    state.accordion_open,
+                    acc_content,
+                    acc_style,
+                )
+                .unwrap();
 
-            tree.container(&[toggle_row, radio_group, divider_sec, accordion], column(8.0)).unwrap()
+            tree.container(
+                &[toggle_row, radio_group, divider_sec, accordion],
+                column(8.0),
+            )
+            .unwrap()
         }
         2 => {
             // --- Tab Network: Metrics, SegmentedControl, Data Table & Pagination ---
@@ -1208,16 +1652,64 @@ fn build_base_ui(tree: &mut WidgetTree, state: &DemoState, width: f32, height: f
                 )
                 .unwrap();
 
-            let card1 = tree.metric_card("Inbound Bandwidth", "1.24 Gbps", Some(("+18%", true)), leaf(248.0, 56.0)).unwrap();
-            let card2 = tree.metric_card("Average Latency", "3.8 ms", Some(("-12%", true)), leaf(248.0, 56.0)).unwrap();
-            let metrics_grid = tree.grid(2, 12.0, 0.0, &[card1, card2], leaf(508.0, 56.0)).unwrap();
+            let card1 = tree
+                .metric_card(
+                    "Inbound Bandwidth",
+                    "1.24 Gbps",
+                    Some(("+18%", true)),
+                    leaf(248.0, 56.0),
+                )
+                .unwrap();
+            let card2 = tree
+                .metric_card(
+                    "Average Latency",
+                    "3.8 ms",
+                    Some(("-12%", true)),
+                    leaf(248.0, 56.0),
+                )
+                .unwrap();
+            let metrics_grid = tree
+                .grid(2, 12.0, 0.0, &[card1, card2], leaf(508.0, 56.0))
+                .unwrap();
 
             // Multi-column sortable data TableView
             let cols = [
-                ("Service / Node", 180.0, if state.table_sort_col == 0 { Some(state.table_sort_asc) } else { None }),
-                ("Status", 100.0, if state.table_sort_col == 1 { Some(state.table_sort_asc) } else { None }),
-                ("Latency", 96.0, if state.table_sort_col == 2 { Some(state.table_sort_asc) } else { None }),
-                ("Traffic", 112.0, if state.table_sort_col == 3 { Some(state.table_sort_asc) } else { None }),
+                (
+                    "Service / Node",
+                    180.0,
+                    if state.table_sort_col == 0 {
+                        Some(state.table_sort_asc)
+                    } else {
+                        None
+                    },
+                ),
+                (
+                    "Status",
+                    100.0,
+                    if state.table_sort_col == 1 {
+                        Some(state.table_sort_asc)
+                    } else {
+                        None
+                    },
+                ),
+                (
+                    "Latency",
+                    96.0,
+                    if state.table_sort_col == 2 {
+                        Some(state.table_sort_asc)
+                    } else {
+                        None
+                    },
+                ),
+                (
+                    "Traffic",
+                    112.0,
+                    if state.table_sort_col == 3 {
+                        Some(state.table_sort_asc)
+                    } else {
+                        None
+                    },
+                ),
             ];
             let row1 = [
                 ("Primary Core Node (Tokyo)", ui_widgets::ListItemBadge::None),
@@ -1244,11 +1736,26 @@ fn build_base_ui(tree: &mut WidgetTree, state: &DemoState, width: f32, height: f
                 ("120 Mbps", ui_widgets::ListItemBadge::None),
             ];
             let rows = [row1, row2, row3, row4];
-            let table_node = tree.table("net_table", &cols, &rows, state.table_selected_row, 26.0, leaf(508.0, 140.0)).unwrap();
+            let table_node = tree
+                .table(
+                    "net_table",
+                    &cols,
+                    &rows,
+                    state.table_selected_row,
+                    26.0,
+                    leaf(508.0, 140.0),
+                )
+                .unwrap();
 
-            let pag_node = tree.pagination("net_pag", state.current_page, 4, leaf(32.0, 26.0), row(6.0)).unwrap();
+            let pag_node = tree
+                .pagination("net_pag", state.current_page, 4, leaf(32.0, 26.0), row(6.0))
+                .unwrap();
 
-            tree.container(&[segment_bar, metrics_grid, table_node, pag_node], column(10.0)).unwrap()
+            tree.container(
+                &[segment_bar, metrics_grid, table_node, pag_node],
+                column(10.0),
+            )
+            .unwrap()
         }
         3 => {
             // --- Tab Studio: Resizable SplitView & TreeView ---
@@ -1257,30 +1764,114 @@ fn build_base_ui(tree: &mut WidgetTree, state: &DemoState, width: f32, height: f
             let is_examples_open = state.expanded_nodes.contains("examples_dir");
 
             let mut tree_nodes: Vec<(&str, &str, usize, bool, bool, bool)> = Vec::new();
-            tree_nodes.push(("crates_dir", "crates/", 0, true, is_crates_open, state.selected_tree_node.as_deref() == Some("crates_dir")));
+            tree_nodes.push((
+                "crates_dir",
+                "crates/",
+                0,
+                true,
+                is_crates_open,
+                state.selected_tree_node.as_deref() == Some("crates_dir"),
+            ));
             if is_crates_open {
-                tree_nodes.push(("core_rs", "ui-core", 1, false, false, state.selected_tree_node.as_deref() == Some("core_rs")));
-                tree_nodes.push(("layout_rs", "ui-layout", 1, false, false, state.selected_tree_node.as_deref() == Some("layout_rs")));
-                tree_nodes.push(("widgets_dir", "ui-widgets/", 1, true, is_widgets_open, state.selected_tree_node.as_deref() == Some("widgets_dir")));
+                tree_nodes.push((
+                    "core_rs",
+                    "ui-core",
+                    1,
+                    false,
+                    false,
+                    state.selected_tree_node.as_deref() == Some("core_rs"),
+                ));
+                tree_nodes.push((
+                    "layout_rs",
+                    "ui-layout",
+                    1,
+                    false,
+                    false,
+                    state.selected_tree_node.as_deref() == Some("layout_rs"),
+                ));
+                tree_nodes.push((
+                    "widgets_dir",
+                    "ui-widgets/",
+                    1,
+                    true,
+                    is_widgets_open,
+                    state.selected_tree_node.as_deref() == Some("widgets_dir"),
+                ));
                 if is_widgets_open {
-                    tree_nodes.push(("tree_rs", "tree.rs", 2, false, false, state.selected_tree_node.as_deref() == Some("tree_rs")));
-                    tree_nodes.push(("frame_rs", "frame.rs", 2, false, false, state.selected_tree_node.as_deref() == Some("frame_rs")));
-                    tree_nodes.push(("kind_rs", "kind.rs", 2, false, false, state.selected_tree_node.as_deref() == Some("kind_rs")));
+                    tree_nodes.push((
+                        "tree_rs",
+                        "tree.rs",
+                        2,
+                        false,
+                        false,
+                        state.selected_tree_node.as_deref() == Some("tree_rs"),
+                    ));
+                    tree_nodes.push((
+                        "frame_rs",
+                        "frame.rs",
+                        2,
+                        false,
+                        false,
+                        state.selected_tree_node.as_deref() == Some("frame_rs"),
+                    ));
+                    tree_nodes.push((
+                        "kind_rs",
+                        "kind.rs",
+                        2,
+                        false,
+                        false,
+                        state.selected_tree_node.as_deref() == Some("kind_rs"),
+                    ));
                 }
-                tree_nodes.push(("gpu_rs", "ui-gpu", 1, false, false, state.selected_tree_node.as_deref() == Some("gpu_rs")));
+                tree_nodes.push((
+                    "gpu_rs",
+                    "ui-gpu",
+                    1,
+                    false,
+                    false,
+                    state.selected_tree_node.as_deref() == Some("gpu_rs"),
+                ));
             }
-            tree_nodes.push(("examples_dir", "examples/", 0, true, is_examples_open, state.selected_tree_node.as_deref() == Some("examples_dir")));
+            tree_nodes.push((
+                "examples_dir",
+                "examples/",
+                0,
+                true,
+                is_examples_open,
+                state.selected_tree_node.as_deref() == Some("examples_dir"),
+            ));
             if is_examples_open {
-                tree_nodes.push(("gallery_rs", "widget_gallery.rs", 1, false, false, state.selected_tree_node.as_deref() == Some("gallery_rs")));
+                tree_nodes.push((
+                    "gallery_rs",
+                    "widget_gallery.rs",
+                    1,
+                    false,
+                    false,
+                    state.selected_tree_node.as_deref() == Some("gallery_rs"),
+                ));
             }
-            tree_nodes.push(("cargo_toml", "Cargo.toml", 0, false, false, state.selected_tree_node.as_deref() == Some("cargo_toml")));
+            tree_nodes.push((
+                "cargo_toml",
+                "Cargo.toml",
+                0,
+                false,
+                false,
+                state.selected_tree_node.as_deref() == Some("cargo_toml"),
+            ));
 
             let left_w = (508.0 * state.split_ratio).clamp(120.0, 360.0);
             let right_w = (508.0 - left_w - 6.0).max(120.0);
             let canvas_w = (right_w - 20.0).max(100.0);
             let canvas_h = 176.0;
 
-            let tree_list = tree.tree_view("studio_tree", &tree_nodes, leaf(left_w - 8.0, 22.0), column(2.0)).unwrap();
+            let tree_list = tree
+                .tree_view(
+                    "studio_tree",
+                    &tree_nodes,
+                    leaf(left_w - 8.0, 22.0),
+                    column(2.0),
+                )
+                .unwrap();
 
             // Right panel: 2D CustomPaint Canvas Workspace
             let mut painter = ui_widgets::Painter::new();
@@ -1308,7 +1899,12 @@ fn build_base_ui(tree: &mut WidgetTree, state: &DemoState, width: f32, height: f
                 [0.0, 0.85, 1.0, 0.7],
             );
             painter.circle([14.0, 36.0], 4.5, Some([0.0, 0.85, 1.0, 1.0]), None);
-            painter.circle([canvas_w - 18.0, canvas_h - 40.0], 4.5, Some([0.55, 0.36, 0.96, 1.0]), None);
+            painter.circle(
+                [canvas_w - 18.0, canvas_h - 40.0],
+                4.5,
+                Some([0.55, 0.36, 0.96, 1.0]),
+                None,
+            );
 
             // 3. Parametric Waveform Polyline
             let wave_pts: Vec<[f32; 2]> = (0..20)
@@ -1334,9 +1930,19 @@ fn build_base_ui(tree: &mut WidgetTree, state: &DemoState, width: f32, height: f
             if !state.canvas_active_stroke.is_empty() {
                 let stroke_w = (state.brush_intensity * 0.05).clamp(1.5, 12.0);
                 if state.canvas_active_stroke.len() >= 2 {
-                    painter.polyline(state.canvas_active_stroke.clone(), stroke_w, state.selected_color, false);
+                    painter.polyline(
+                        state.canvas_active_stroke.clone(),
+                        stroke_w,
+                        state.selected_color,
+                        false,
+                    );
                 } else {
-                    painter.circle(state.canvas_active_stroke[0], stroke_w * 0.5, Some(state.selected_color), None);
+                    painter.circle(
+                        state.canvas_active_stroke[0],
+                        stroke_w * 0.5,
+                        Some(state.selected_color),
+                        None,
+                    );
                 }
             }
 
@@ -1349,93 +1955,197 @@ fn build_base_ui(tree: &mut WidgetTree, state: &DemoState, width: f32, height: f
             );
             painter.text(
                 [8.0, canvas_h - 14.0],
-                format!("Tool: {} | Intensity: {:.0}%", state.active_tool.to_uppercase(), state.brush_intensity),
+                format!(
+                    "Tool: {} | Intensity: {:.0}%",
+                    state.active_tool.to_uppercase(),
+                    state.brush_intensity
+                ),
                 10.0,
                 [0.6, 0.7, 0.8, 0.7],
             );
 
-            let canvas_widget = tree.custom_paint("studio_canvas", painter.finish(), leaf(canvas_w, canvas_h)).unwrap();
+            let canvas_widget = tree
+                .custom_paint("studio_canvas", painter.finish(), leaf(canvas_w, canvas_h))
+                .unwrap();
 
-            let clear_btn = tree.button(WidgetId::new("clear_canvas_btn"), "Clear Canvas", true, leaf(96.0, 24.0)).unwrap();
-            let tool_lbl = tree.label_muted(format!("Tool: {} (Draw/Erase)", state.active_tool.to_uppercase()), leaf(canvas_w - 106.0, 24.0)).unwrap();
+            let clear_btn = tree
+                .button(
+                    WidgetId::new("clear_canvas_btn"),
+                    "Clear Canvas",
+                    true,
+                    leaf(96.0, 24.0),
+                )
+                .unwrap();
+            let tool_lbl = tree
+                .label_muted(
+                    format!("Tool: {} (Draw/Erase)", state.active_tool.to_uppercase()),
+                    leaf(canvas_w - 106.0, 24.0),
+                )
+                .unwrap();
             let toolbar_row = tree.container(&[clear_btn, tool_lbl], row(8.0)).unwrap();
 
-            let inspector_content = tree.container(&[canvas_widget, toolbar_row], column(6.0)).unwrap();
+            let inspector_content = tree
+                .container(&[canvas_widget, toolbar_row], column(6.0))
+                .unwrap();
 
             let left_panel_style = Style {
-                size: Size { width: length(left_w), height: length(224.0) },
-                padding: Rect { left: length(2.0), right: length(6.0), top: length(0.0), bottom: length(0.0) },
+                size: Size {
+                    width: length(left_w),
+                    height: length(224.0),
+                },
+                padding: Rect {
+                    left: length(2.0),
+                    right: length(6.0),
+                    top: length(0.0),
+                    bottom: length(0.0),
+                },
                 ..Default::default()
             };
             let left_panel = tree.container(&[tree_list], left_panel_style).unwrap();
 
             let right_panel_style = Style {
-                size: Size { width: length(right_w), height: length(224.0) },
-                padding: Rect { left: length(16.0), right: length(4.0), top: length(0.0), bottom: length(0.0) },
+                size: Size {
+                    width: length(right_w),
+                    height: length(224.0),
+                },
+                padding: Rect {
+                    left: length(16.0),
+                    right: length(4.0),
+                    top: length(0.0),
+                    bottom: length(0.0),
+                },
                 ..Default::default()
             };
-            let right_panel = tree.container(&[inspector_content], right_panel_style).unwrap();
+            let right_panel = tree
+                .container(&[inspector_content], right_panel_style)
+                .unwrap();
 
-            let split = tree.split_view("studio_split", ui_widgets::SplitOrientation::Horizontal, state.split_ratio, left_panel, right_panel, leaf(508.0, 224.0)).unwrap();
-            let studio_hint = tree.label_muted("Click & drag to draw on Canvas | Use Tool Palette to switch Pencil/Eraser", leaf(508.0, 16.0)).unwrap();
+            let split = tree
+                .split_view(
+                    "studio_split",
+                    ui_widgets::SplitOrientation::Horizontal,
+                    state.split_ratio,
+                    left_panel,
+                    right_panel,
+                    leaf(508.0, 224.0),
+                )
+                .unwrap();
+            let studio_hint = tree
+                .label_muted(
+                    "Click & drag to draw on Canvas | Use Tool Palette to switch Pencil/Eraser",
+                    leaf(508.0, 16.0),
+                )
+                .unwrap();
 
             tree.container(&[split, studio_hint], column(6.0)).unwrap()
         }
         _ => {
             // --- Tab Media: GPU Video Streaming, Audio Spectrum & Aspect Fitting Images ---
             // 1. Dynamic Video Stream Player
-            let vid_badge = tree.badge(if state.video_playing { "STREAMING (60 FPS)" } else { "PAUSED" }, if state.video_playing { ui_widgets::ListItemBadge::Success } else { ui_widgets::ListItemBadge::Warning }, leaf(140.0, 22.0)).unwrap();
-            let vid_title = tree.label("Dynamic Plasma Stream (WGPU Pipeline):", leaf(340.0, 22.0)).unwrap();
+            let vid_badge = tree
+                .badge(
+                    if state.video_playing {
+                        "STREAMING (60 FPS)"
+                    } else {
+                        "PAUSED"
+                    },
+                    if state.video_playing {
+                        ui_widgets::ListItemBadge::Success
+                    } else {
+                        ui_widgets::ListItemBadge::Warning
+                    },
+                    leaf(140.0, 22.0),
+                )
+                .unwrap();
+            let vid_title = tree
+                .label("Dynamic Plasma Stream (WGPU Pipeline):", leaf(340.0, 22.0))
+                .unwrap();
             let vid_header = tree.container(&[vid_title, vid_badge], row(8.0)).unwrap();
 
-            let video_widget = tree.video_player(
-                "stream_video",
-                "stream_video",
-                state.video_playing,
-                state.video_progress,
-                90.0,
-                1.0,
-                leaf(508.0, 150.0),
-            ).unwrap();
+            let video_widget = tree
+                .video_player(
+                    "stream_video",
+                    "stream_video",
+                    state.video_playing,
+                    state.video_progress,
+                    90.0,
+                    1.0,
+                    leaf(508.0, 150.0),
+                )
+                .unwrap();
 
             // 2. Audio Spectrum Visualizer
-            let audio_title = tree.label("Audio Spectrum Visualizer (32 Band FFT Neon Glass):", leaf(508.0, 18.0)).unwrap();
-            let visualizer_widget = tree.audio_visualizer(
-                "audio_bars",
-                &state.audio_spectrum,
-                1.0,
-                leaf(508.0, 44.0),
-            ).unwrap();
+            let audio_title = tree
+                .label(
+                    "Audio Spectrum Visualizer (32 Band FFT Neon Glass):",
+                    leaf(508.0, 18.0),
+                )
+                .unwrap();
+            let visualizer_widget = tree
+                .audio_visualizer("audio_bars", &state.audio_spectrum, 1.0, leaf(508.0, 44.0))
+                .unwrap();
 
             // 3. Cyber Artwork Image with Aspect Fit Mode Selector
-            let fit_label = tree.label("Static Artwork Aspect Fitting:", leaf(200.0, 26.0)).unwrap();
+            let fit_label = tree
+                .label("Static Artwork Aspect Fitting:", leaf(200.0, 26.0))
+                .unwrap();
             let fit_options = ["Cover", "Contain", "Fill"];
             let fit_idx = match state.media_fit_mode {
                 MediaFit::Cover => 0,
                 MediaFit::Contain => 1,
                 MediaFit::Fill => 2,
             };
-            let fit_selector = tree.segmented_control(
-                WidgetId::new("media_fit_selector"),
-                &fit_options,
-                fit_idx,
-                leaf(86.0, 24.0),
-                row(4.0),
-            ).unwrap();
-            let fit_header = tree.container(&[fit_label, fit_selector], row(12.0)).unwrap();
+            let fit_selector = tree
+                .segmented_control(
+                    WidgetId::new("media_fit_selector"),
+                    &fit_options,
+                    fit_idx,
+                    leaf(86.0, 24.0),
+                    row(4.0),
+                )
+                .unwrap();
+            let fit_header = tree
+                .container(&[fit_label, fit_selector], row(12.0))
+                .unwrap();
 
-            let image_widget = tree.image(
-                "cyber_art",
-                "cyber_art",
-                state.media_fit_mode,
-                leaf(508.0, 126.0),
-            ).unwrap();
+            let image_widget = tree
+                .image(
+                    "cyber_art",
+                    "cyber_art",
+                    state.media_fit_mode,
+                    leaf(508.0, 126.0),
+                )
+                .unwrap();
 
-            tree.container(&[vid_header, video_widget, audio_title, visualizer_widget, fit_header, image_widget], column(6.0)).unwrap()
+            tree.container(
+                &[
+                    vid_header,
+                    video_widget,
+                    audio_title,
+                    visualizer_widget,
+                    fit_header,
+                    image_widget,
+                ],
+                column(6.0),
+            )
+            .unwrap()
         }
     };
 
-    let main_content = tree.container(&[title, menubar, breadcrumb_node, search_input, divider1, tabbar, tab_content], window_content(8.0)).unwrap();
+    let main_content = tree
+        .container(
+            &[
+                title,
+                menubar,
+                breadcrumb_node,
+                search_input,
+                divider1,
+                tabbar,
+                tab_content,
+            ],
+            window_content(8.0),
+        )
+        .unwrap();
     let win_w = (width - WINDOW_MARGIN * 2.0).max(100.0);
     let win_h = (height - WINDOW_MARGIN * 2.0).max(100.0);
     let win_style = Style {
@@ -1446,22 +2156,68 @@ fn build_base_ui(tree: &mut WidgetTree, state: &DemoState, width: f32, height: f
             right: ui_layout::auto(),
             bottom: ui_layout::auto(),
         },
-        size: Size { width: length(win_w), height: length(win_h) },
+        size: Size {
+            width: length(win_w),
+            height: length(win_h),
+        },
         ..Default::default()
     };
-    let window_card = tree.window(WidgetId::new("main_window"), "AORUI — An Other Rust UI", &[main_content], win_style).unwrap();
+    let window_card = tree
+        .window(
+            WidgetId::new("main_window"),
+            "AORUI — An Other Rust UI",
+            &[main_content],
+            win_style,
+        )
+        .unwrap();
     tree.container(&[window_card], leaf(width, height)).unwrap()
 }
 
-fn build_modal_ui(tree: &mut WidgetTree, state: &DemoState, width: f32, height: f32) -> ui_layout::NodeId {
+fn build_modal_ui(
+    tree: &mut WidgetTree,
+    state: &DemoState,
+    width: f32,
+    height: f32,
+) -> ui_layout::NodeId {
     let modal_title_div = tree.divider(false, leaf(390.0, 1.0)).unwrap();
-    let modal_msg1 = tree.label("Do you want to reset cluster network parameters", leaf(390.0, 20.0)).unwrap();
-    let modal_msg2 = tree.label_muted("and trigger a full heuristic cluster diagnostic?", leaf(390.0, 18.0)).unwrap();
-    let cancel_btn = tree.button(WidgetId::new("modal_cancel_btn"), "Cancel", true, leaf(120.0, 36.0)).unwrap();
-    let confirm_btn = tree.button(WidgetId::new("modal_confirm_btn"), "Confirm", true, leaf(130.0, 36.0)).unwrap();
-    let modal_btns = tree.container(&[cancel_btn, confirm_btn], row(16.0)).unwrap();
+    let modal_msg1 = tree
+        .label(
+            "Do you want to reset cluster network parameters",
+            leaf(390.0, 20.0),
+        )
+        .unwrap();
+    let modal_msg2 = tree
+        .label_muted(
+            "and trigger a full heuristic cluster diagnostic?",
+            leaf(390.0, 18.0),
+        )
+        .unwrap();
+    let cancel_btn = tree
+        .button(
+            WidgetId::new("modal_cancel_btn"),
+            "Cancel",
+            true,
+            leaf(120.0, 36.0),
+        )
+        .unwrap();
+    let confirm_btn = tree
+        .button(
+            WidgetId::new("modal_confirm_btn"),
+            "Confirm",
+            true,
+            leaf(130.0, 36.0),
+        )
+        .unwrap();
+    let modal_btns = tree
+        .container(&[cancel_btn, confirm_btn], row(16.0))
+        .unwrap();
 
-    let modal_dialog_content = tree.container(&[modal_title_div, modal_msg1, modal_msg2, modal_btns], column(10.0)).unwrap();
+    let modal_dialog_content = tree
+        .container(
+            &[modal_title_div, modal_msg1, modal_msg2, modal_btns],
+            column(10.0),
+        )
+        .unwrap();
 
     let dialog_w = 440.0;
     let dialog_h = 210.0;
@@ -1478,68 +2234,203 @@ fn build_modal_ui(tree: &mut WidgetTree, state: &DemoState, width: f32, height: 
             right: ui_layout::auto(),
             bottom: ui_layout::auto(),
         },
-        size: Size { width: length(dialog_w), height: length(dialog_h) },
-        padding: Rect { left: length(24.0), right: length(24.0), top: length(44.0), bottom: length(20.0) },
+        size: Size {
+            width: length(dialog_w),
+            height: length(dialog_h),
+        },
+        padding: Rect {
+            left: length(24.0),
+            right: length(24.0),
+            top: length(44.0),
+            bottom: length(20.0),
+        },
         ..Default::default()
     };
 
-    tree.modal_dialog(WidgetId::new("demo_modal"), "Confirmation Required", &[modal_dialog_content], dialog_style).unwrap()
+    tree.modal_dialog(
+        WidgetId::new("demo_modal"),
+        "Confirmation Required",
+        &[modal_dialog_content],
+        dialog_style,
+    )
+    .unwrap()
 }
 
-fn build_popover_ui(tree: &mut WidgetTree, state: &DemoState, width: f32, height: f32) -> Option<ui_layout::NodeId> {
+fn build_popover_ui(
+    tree: &mut WidgetTree,
+    state: &DemoState,
+    width: f32,
+    height: f32,
+) -> Option<ui_layout::NodeId> {
     let mut overlay_nodes = Vec::new();
 
     // 1. Floating Creative Tools Palette (Photoshop-like floating sub-window)
     if state.show_tools_palette {
         let content_node = if !state.tools_palette_folded {
-            let t1 = tree.button(WidgetId::new("tool_select"), "↖ Select", state.active_tool == "select", leaf(60.0, 26.0)).unwrap();
-            let t2 = tree.button(WidgetId::new("tool_brush"), "🖌 Brush", state.active_tool == "brush", leaf(60.0, 26.0)).unwrap();
-            let t3 = tree.button(WidgetId::new("tool_eraser"), "⌫ Eraser", state.active_tool == "eraser", leaf(60.0, 26.0)).unwrap();
-            let t4 = tree.button(WidgetId::new("tool_picker"), "⌖ Sample", state.active_tool == "picker", leaf(60.0, 26.0)).unwrap();
-            let t5 = tree.button(WidgetId::new("tool_gradient"), "◩ Grad", state.active_tool == "gradient", leaf(60.0, 26.0)).unwrap();
-            let t6 = tree.button(WidgetId::new("tool_shapes"), "⬡ Shape", state.active_tool == "shapes", leaf(60.0, 26.0)).unwrap();
-            let t7 = tree.button(WidgetId::new("tool_text"), "T Type", state.active_tool == "text", leaf(60.0, 26.0)).unwrap();
-            let t8 = tree.button(WidgetId::new("tool_bucket"), "🪣 Fill", state.active_tool == "bucket", leaf(60.0, 26.0)).unwrap();
+            let t1 = tree
+                .button(
+                    WidgetId::new("tool_select"),
+                    "↖ Select",
+                    state.active_tool == "select",
+                    leaf(60.0, 26.0),
+                )
+                .unwrap();
+            let t2 = tree
+                .button(
+                    WidgetId::new("tool_brush"),
+                    "🖌 Brush",
+                    state.active_tool == "brush",
+                    leaf(60.0, 26.0),
+                )
+                .unwrap();
+            let t3 = tree
+                .button(
+                    WidgetId::new("tool_eraser"),
+                    "⌫ Eraser",
+                    state.active_tool == "eraser",
+                    leaf(60.0, 26.0),
+                )
+                .unwrap();
+            let t4 = tree
+                .button(
+                    WidgetId::new("tool_picker"),
+                    "⌖ Sample",
+                    state.active_tool == "picker",
+                    leaf(60.0, 26.0),
+                )
+                .unwrap();
+            let t5 = tree
+                .button(
+                    WidgetId::new("tool_gradient"),
+                    "◩ Grad",
+                    state.active_tool == "gradient",
+                    leaf(60.0, 26.0),
+                )
+                .unwrap();
+            let t6 = tree
+                .button(
+                    WidgetId::new("tool_shapes"),
+                    "⬡ Shape",
+                    state.active_tool == "shapes",
+                    leaf(60.0, 26.0),
+                )
+                .unwrap();
+            let t7 = tree
+                .button(
+                    WidgetId::new("tool_text"),
+                    "T Type",
+                    state.active_tool == "text",
+                    leaf(60.0, 26.0),
+                )
+                .unwrap();
+            let t8 = tree
+                .button(
+                    WidgetId::new("tool_bucket"),
+                    "🪣 Fill",
+                    state.active_tool == "bucket",
+                    leaf(60.0, 26.0),
+                )
+                .unwrap();
 
             let grid_w = (state.tools_palette_size.0 - 12.0).max(120.0);
-            let tools_grid = tree.grid(2, 4.0, 4.0, &[t1, t2, t3, t4, t5, t6, t7, t8], leaf(grid_w, 120.0)).unwrap();
+            let tools_grid = tree
+                .grid(
+                    2,
+                    4.0,
+                    4.0,
+                    &[t1, t2, t3, t4, t5, t6, t7, t8],
+                    leaf(grid_w, 120.0),
+                )
+                .unwrap();
             Some(tools_grid)
         } else {
             None
         };
 
-        let pal_h = if state.tools_palette_folded { 28.0 } else { state.tools_palette_size.1 };
-        let tools_palette_node = tree.palette(
-            "tools_palette",
-            "Tools",
-            state.tools_palette_folded,
-            content_node,
-            palette_style(state.tools_palette_pos.0, state.tools_palette_pos.1, state.tools_palette_size.0, pal_h),
-        ).unwrap();
+        let pal_h = if state.tools_palette_folded {
+            28.0
+        } else {
+            state.tools_palette_size.1
+        };
+        let tools_palette_node = tree
+            .palette(
+                "tools_palette",
+                "Tools",
+                state.tools_palette_folded,
+                content_node,
+                palette_style(
+                    state.tools_palette_pos.0,
+                    state.tools_palette_pos.1,
+                    state.tools_palette_size.0,
+                    pal_h,
+                ),
+            )
+            .unwrap();
         overlay_nodes.push(tools_palette_node);
     }
 
     // 2. Floating Inspector Palette (Blend mode, Opacity & Properties)
     if state.show_inspector_palette {
         let content_node = if !state.inspector_palette_folded {
-            let active_tool_lbl = tree.label(format!("Tool: {}", state.active_tool.to_uppercase()), leaf(140.0, 18.0)).unwrap();
-            let opacity_lbl = tree.label_muted(format!("Intensity: {:.0}%", state.brush_intensity), leaf(140.0, 16.0)).unwrap();
-            let insp_slider = tree.slider(WidgetId::new("palette_intensity_slider"), 0.0, 100.0, state.brush_intensity, leaf(140.0, 16.0)).unwrap();
-            let insp_btn = tree.button(WidgetId::new("palette_preset_btn"), "Apply Blend", true, leaf(140.0, 26.0)).unwrap();
-            let insp_box = tree.container(&[active_tool_lbl, opacity_lbl, insp_slider, insp_btn], column(6.0)).unwrap();
+            let active_tool_lbl = tree
+                .label(
+                    format!("Tool: {}", state.active_tool.to_uppercase()),
+                    leaf(140.0, 18.0),
+                )
+                .unwrap();
+            let opacity_lbl = tree
+                .label_muted(
+                    format!("Intensity: {:.0}%", state.brush_intensity),
+                    leaf(140.0, 16.0),
+                )
+                .unwrap();
+            let insp_slider = tree
+                .slider(
+                    WidgetId::new("palette_intensity_slider"),
+                    0.0,
+                    100.0,
+                    state.brush_intensity,
+                    leaf(140.0, 16.0),
+                )
+                .unwrap();
+            let insp_btn = tree
+                .button(
+                    WidgetId::new("palette_preset_btn"),
+                    "Apply Blend",
+                    true,
+                    leaf(140.0, 26.0),
+                )
+                .unwrap();
+            let insp_box = tree
+                .container(
+                    &[active_tool_lbl, opacity_lbl, insp_slider, insp_btn],
+                    column(6.0),
+                )
+                .unwrap();
             Some(insp_box)
         } else {
             None
         };
 
-        let pal_h = if state.inspector_palette_folded { 28.0 } else { state.inspector_palette_size.1 };
-        let insp_palette_node = tree.palette(
-            "inspector_palette",
-            "Inspector",
-            state.inspector_palette_folded,
-            content_node,
-            palette_style(state.inspector_palette_pos.0, state.inspector_palette_pos.1, state.inspector_palette_size.0, pal_h),
-        ).unwrap();
+        let pal_h = if state.inspector_palette_folded {
+            28.0
+        } else {
+            state.inspector_palette_size.1
+        };
+        let insp_palette_node = tree
+            .palette(
+                "inspector_palette",
+                "Inspector",
+                state.inspector_palette_folded,
+                content_node,
+                palette_style(
+                    state.inspector_palette_pos.0,
+                    state.inspector_palette_pos.1,
+                    state.inspector_palette_size.0,
+                    pal_h,
+                ),
+            )
+            .unwrap();
         overlay_nodes.push(insp_palette_node);
     }
 
@@ -1551,7 +2442,12 @@ fn build_popover_ui(tree: &mut WidgetTree, state: &DemoState, width: f32, height
                 vec![
                     ("menu_new", "New Workspace", Some("Ctrl+N"), true),
                     ("open_modal_btn", "Open Modal Dialog", Some("Ctrl+M"), true),
-                    ("show_toast_btn", "Trigger Alert Toast", Some("Ctrl+T"), true),
+                    (
+                        "show_toast_btn",
+                        "Trigger Alert Toast",
+                        Some("Ctrl+T"),
+                        true,
+                    ),
                     ("quit_btn", "Exit Application", Some("Alt+F4"), true),
                 ],
             ),
@@ -1566,8 +2462,18 @@ fn build_popover_ui(tree: &mut WidgetTree, state: &DemoState, width: f32, height
             2 => (
                 188.0,
                 vec![
-                    ("toggle_tools_palette", "Toggle Tools Palette", Some("F2"), true),
-                    ("toggle_insp_palette", "Toggle Inspector Palette", Some("F3"), true),
+                    (
+                        "toggle_tools_palette",
+                        "Toggle Tools Palette",
+                        Some("F2"),
+                        true,
+                    ),
+                    (
+                        "toggle_insp_palette",
+                        "Toggle Inspector Palette",
+                        Some("F3"),
+                        true,
+                    ),
                     ("tab_0", "General Tab", Some("Ctrl+1"), true),
                     ("tab_1", "Security Tab", Some("Ctrl+2"), true),
                     ("tab_2", "Network Tab", Some("Ctrl+3"), true),
@@ -1624,7 +2530,12 @@ fn build_popover_ui(tree: &mut WidgetTree, state: &DemoState, width: f32, height
                 title,
                 msg,
                 *kind,
-                toast_style(width - 340.0 - WINDOW_MARGIN, height - 76.0 - WINDOW_MARGIN, 320.0, 60.0),
+                toast_style(
+                    width - 340.0 - WINDOW_MARGIN,
+                    height - 76.0 - WINDOW_MARGIN,
+                    320.0,
+                    60.0,
+                ),
             )
             .unwrap();
         overlay_nodes.push(toast_node);
@@ -1798,7 +2709,9 @@ impl App {
         }
         self.frame_count += 1;
 
-        let Some(renderer) = self.renderer.as_mut() else { return };
+        let Some(renderer) = self.renderer.as_mut() else {
+            return;
+        };
 
         let (width, height) = renderer.window_size();
         let width_f = width as f32;
@@ -1817,14 +2730,23 @@ impl App {
 
         let measure = renderer.text_measure();
 
-        let base_hovered = if !self.state.show_modal && self.state.active_menu.is_none() && !self.state.dropdown_open {
-            base_tree.interaction_key_at(base_root, self.cursor_pos).unwrap_or(None)
+        let base_hovered = if !self.state.show_modal
+            && self.state.active_menu.is_none()
+            && !self.state.dropdown_open
+        {
+            base_tree
+                .interaction_key_at(base_root, self.cursor_pos)
+                .unwrap_or(None)
         } else {
             None
         };
         let base_interaction = InteractionState {
             hovered: base_hovered.as_ref(),
-            pressed: if !self.state.show_modal { self.pressed.as_ref() } else { None },
+            pressed: if !self.state.show_modal {
+                self.pressed.as_ref()
+            } else {
+                None
+            },
             measure: Some(&measure),
         };
 
@@ -1850,7 +2772,16 @@ impl App {
                     ui_widgets::FontWeight::Normal => glyphon::Weight::NORMAL,
                     ui_widgets::FontWeight::Bold => glyphon::Weight::BOLD,
                 };
-                renderer.make_text_run(&spec.text, spec.bounds, spec.font_size, spec.color, align, family, weight, spec.clip)
+                renderer.make_text_run(
+                    &spec.text,
+                    spec.bounds,
+                    spec.font_size,
+                    spec.color,
+                    align,
+                    family,
+                    weight,
+                    spec.clip,
+                )
             })
             .collect();
 
@@ -1890,20 +2821,23 @@ impl App {
                 return;
             }
 
-            let modal_hovered = modal_tree.interaction_key_at(modal_root, self.cursor_pos).unwrap_or(None);
+            let modal_hovered = modal_tree
+                .interaction_key_at(modal_root, self.cursor_pos)
+                .unwrap_or(None);
             let modal_interaction = InteractionState {
                 hovered: modal_hovered.as_ref(),
                 pressed: self.pressed.as_ref(),
                 measure: Some(&measure),
             };
 
-            let modal_frame = match modal_tree.build_frame(modal_root, &self.theme, modal_interaction) {
-                Ok(f) => f,
-                Err(err) => {
-                    eprintln!("[widget_gallery] modal build_frame failed: {err}");
-                    return;
-                }
-            };
+            let modal_frame =
+                match modal_tree.build_frame(modal_root, &self.theme, modal_interaction) {
+                    Ok(f) => f,
+                    Err(err) => {
+                        eprintln!("[widget_gallery] modal build_frame failed: {err}");
+                        return;
+                    }
+                };
 
             let modal_text_runs: Vec<_> = modal_frame
                 .texts
@@ -1918,7 +2852,16 @@ impl App {
                         ui_widgets::FontWeight::Normal => glyphon::Weight::NORMAL,
                         ui_widgets::FontWeight::Bold => glyphon::Weight::BOLD,
                     };
-                    renderer.make_text_run(&spec.text, spec.bounds, spec.font_size, spec.color, align, family, weight, spec.clip)
+                    renderer.make_text_run(
+                        &spec.text,
+                        spec.bounds,
+                        spec.font_size,
+                        spec.color,
+                        align,
+                        family,
+                        weight,
+                        spec.clip,
+                    )
                 })
                 .collect();
 
@@ -1927,7 +2870,12 @@ impl App {
                 texts: &modal_text_runs,
             };
 
-            if let Err(err) = renderer.render_layers(background, &[base_layer, modal_layer], &media, &self.resources) {
+            if let Err(err) = renderer.render_layers(
+                background,
+                &[base_layer, modal_layer],
+                &media,
+                &self.resources,
+            ) {
                 eprintln!("[widget_gallery] modal render failed: {err}");
             }
 
@@ -1940,28 +2888,47 @@ impl App {
 
             if let Some(pop_root) = popover_root {
                 if popover_tree.compute(pop_root, available).is_ok() {
-                    let pop_hovered = popover_tree.interaction_key_at(pop_root, self.cursor_pos).unwrap_or(None);
+                    let pop_hovered = popover_tree
+                        .interaction_key_at(pop_root, self.cursor_pos)
+                        .unwrap_or(None);
                     let pop_interaction = InteractionState {
                         hovered: pop_hovered.as_ref(),
                         pressed: self.pressed.as_ref(),
                         measure: Some(&measure),
                     };
 
-                    if let Ok(pop_frame) = popover_tree.build_frame(pop_root, &self.theme, pop_interaction) {
+                    if let Ok(pop_frame) =
+                        popover_tree.build_frame(pop_root, &self.theme, pop_interaction)
+                    {
                         let pop_text_runs: Vec<_> = pop_frame
                             .texts
                             .iter()
                             .map(|spec| {
                                 let align = match spec.align {
-                                    ui_widgets::TextAlign::Left => glyphon::cosmic_text::Align::Left,
-                                    ui_widgets::TextAlign::Center => glyphon::cosmic_text::Align::Center,
-                                    ui_widgets::TextAlign::Right => glyphon::cosmic_text::Align::Right,
-                                    };
+                                    ui_widgets::TextAlign::Left => {
+                                        glyphon::cosmic_text::Align::Left
+                                    }
+                                    ui_widgets::TextAlign::Center => {
+                                        glyphon::cosmic_text::Align::Center
+                                    }
+                                    ui_widgets::TextAlign::Right => {
+                                        glyphon::cosmic_text::Align::Right
+                                    }
+                                };
                                 let weight = match spec.weight {
                                     ui_widgets::FontWeight::Normal => glyphon::Weight::NORMAL,
                                     ui_widgets::FontWeight::Bold => glyphon::Weight::BOLD,
                                 };
-                                renderer.make_text_run(&spec.text, spec.bounds, spec.font_size, spec.color, align, family, weight, spec.clip)
+                                renderer.make_text_run(
+                                    &spec.text,
+                                    spec.bounds,
+                                    spec.font_size,
+                                    spec.color,
+                                    align,
+                                    family,
+                                    weight,
+                                    spec.clip,
+                                )
                             })
                             .collect();
 
@@ -1970,7 +2937,12 @@ impl App {
                             texts: &pop_text_runs,
                         };
 
-                        if let Err(err) = renderer.render_layers(background, &[base_layer, pop_layer], &media, &self.resources) {
+                        if let Err(err) = renderer.render_layers(
+                            background,
+                            &[base_layer, pop_layer],
+                            &media,
+                            &self.resources,
+                        ) {
                             eprintln!("[widget_gallery] overlay render failed: {err}");
                         }
                     }
@@ -1978,7 +2950,9 @@ impl App {
                 self.overlay_tree = Some(popover_tree);
                 self.overlay_root = Some(pop_root);
             } else {
-                if let Err(err) = renderer.render_layers(background, &[base_layer], &media, &self.resources) {
+                if let Err(err) =
+                    renderer.render_layers(background, &[base_layer], &media, &self.resources)
+                {
                     eprintln!("[widget_gallery] base render failed: {err}");
                 }
                 self.overlay_tree = None;
@@ -1993,9 +2967,17 @@ impl App {
     fn handle_press(&mut self) {
         if self.state.show_modal {
             if let (Some(m_tree), Some(m_root)) = (&self.overlay_tree, self.overlay_root) {
-                self.pressed = m_tree.interaction_key_at(m_root, self.cursor_pos).unwrap_or(None);
-                if m_tree.is_modal_title_bar(m_root, self.cursor_pos).unwrap_or(false) {
-                    self.modal_drag = Some((self.cursor_pos.0 - self.state.modal_offset.0, self.cursor_pos.1 - self.state.modal_offset.1));
+                self.pressed = m_tree
+                    .interaction_key_at(m_root, self.cursor_pos)
+                    .unwrap_or(None);
+                if m_tree
+                    .is_modal_title_bar(m_root, self.cursor_pos)
+                    .unwrap_or(false)
+                {
+                    self.modal_drag = Some((
+                        self.cursor_pos.0 - self.state.modal_offset.0,
+                        self.cursor_pos.1 - self.state.modal_offset.1,
+                    ));
                 }
             }
             return;
@@ -2004,7 +2986,8 @@ impl App {
         // Test active overlays first (palettes, dropdowns, popovers, toasts)
         if let (Some(o_tree), Some(o_root)) = (&self.overlay_tree, self.overlay_root) {
             // Check palette drag header
-            if let Ok(Some((id, (ax, ay)))) = o_tree.palette_drag_anchor_at(o_root, self.cursor_pos) {
+            if let Ok(Some((id, (ax, ay)))) = o_tree.palette_drag_anchor_at(o_root, self.cursor_pos)
+            {
                 self.palette_drag = Some((id, (ax, ay)));
                 return;
             }
@@ -2034,14 +3017,23 @@ impl App {
         }
 
         let Some(root) = self.root else { return };
-        self.pressed = self.tree.interaction_key_at(root, self.cursor_pos).unwrap_or(None);
+        self.pressed = self
+            .tree
+            .interaction_key_at(root, self.cursor_pos)
+            .unwrap_or(None);
 
-        let scrollbar_key = ui_widgets::InteractionKey { widget_id: WidgetId::new(LIST_SCROLL_ID), index: None };
+        let scrollbar_key = ui_widgets::InteractionKey {
+            widget_id: WidgetId::new(LIST_SCROLL_ID),
+            index: None,
+        };
         if self.pressed.as_ref() == Some(&scrollbar_key) {
             self.scrollbar_drag = Some((self.cursor_pos.1, self.state.list_scroll[1]));
         }
 
-        let splitter_key = ui_widgets::InteractionKey { widget_id: WidgetId::new("studio_split"), index: None };
+        let splitter_key = ui_widgets::InteractionKey {
+            widget_id: WidgetId::new("studio_split"),
+            index: None,
+        };
         if self.pressed.as_ref() == Some(&splitter_key) {
             self.splitter_drag = Some("studio_split".to_string());
         }
@@ -2064,7 +3056,13 @@ impl App {
 
         let measure = self.renderer.as_ref().map(|r| r.text_measure());
         let measure_ref = measure.as_ref().map(|m| m as &dyn ui_widgets::TextMeasure);
-        if let Ok(Some((widget_id, cursor_idx))) = self.tree.text_cursor_at(root, self.cursor_pos, &self.theme.typography.family, self.theme.typography.body_size, measure_ref) {
+        if let Ok(Some((widget_id, cursor_idx))) = self.tree.text_cursor_at(
+            root,
+            self.cursor_pos,
+            &self.theme.typography.family,
+            self.theme.typography.body_size,
+            measure_ref,
+        ) {
             self.state.focused_input = Some(widget_id.clone());
             self.text_drag = Some((widget_id.clone(), cursor_idx));
             match widget_id.as_str() {
@@ -2083,7 +3081,10 @@ impl App {
                 _ => {}
             }
         }
-        let canvas_key = ui_widgets::InteractionKey { widget_id: WidgetId::new("studio_canvas"), index: None };
+        let canvas_key = ui_widgets::InteractionKey {
+            widget_id: WidgetId::new("studio_canvas"),
+            index: None,
+        };
         if self.pressed.as_ref() == Some(&canvas_key) {
             self.canvas_drag = Some("studio_canvas".to_string());
             if let Ok(Some(event)) = self.tree.dispatch_click(root, self.cursor_pos) {
@@ -2096,8 +3097,12 @@ impl App {
         if self.state.show_modal {
             return false;
         }
-        let Some(window) = &self.window else { return false };
-        let Some(renderer) = &self.renderer else { return false };
+        let Some(window) = &self.window else {
+            return false;
+        };
+        let Some(renderer) = &self.renderer else {
+            return false;
+        };
         let (width, height) = renderer.window_size();
         let (x, y) = self.cursor_pos;
         let w = width as f32;
@@ -2139,7 +3144,11 @@ impl App {
         }
 
         let Some(root) = self.root else { return false };
-        if self.tree.is_window_title_bar(root, self.cursor_pos).unwrap_or(false) {
+        if self
+            .tree
+            .is_window_title_bar(root, self.cursor_pos)
+            .unwrap_or(false)
+        {
             if let Some(window) = &self.window {
                 if let Err(err) = window.drag_window() {
                     eprintln!("[widget_gallery] drag_window failed: {err:?}");
@@ -2155,10 +3164,7 @@ impl App {
             return;
         }
         if let Some((anchor_x, anchor_y)) = self.modal_drag {
-            self.state.modal_offset = (
-                self.cursor_pos.0 - anchor_x,
-                self.cursor_pos.1 - anchor_y,
-            );
+            self.state.modal_offset = (self.cursor_pos.0 - anchor_x, self.cursor_pos.1 - anchor_y);
         }
     }
 
@@ -2166,7 +3172,11 @@ impl App {
         if let Some((ref id, (anchor_x, anchor_y))) = self.palette_drag {
             let new_x = (self.cursor_pos.0 - anchor_x).max(0.0);
             let new_y = (self.cursor_pos.1 - anchor_y).max(0.0);
-            self.state.apply(UiEvent::PaletteMoved { palette_id: id.clone(), x: new_x, y: new_y });
+            self.state.apply(UiEvent::PaletteMoved {
+                palette_id: id.clone(),
+                x: new_x,
+                y: new_y,
+            });
         }
     }
 
@@ -2176,7 +3186,11 @@ impl App {
             let delta_y = self.cursor_pos.1 - start_cy;
             let new_w = (start_w + delta_x).max(120.0);
             let new_h = (start_h + delta_y).max(120.0);
-            self.state.apply(UiEvent::PaletteResized { palette_id: id.clone(), width: new_w, height: new_h });
+            self.state.apply(UiEvent::PaletteResized {
+                palette_id: id.clone(),
+                width: new_w,
+                height: new_h,
+            });
         }
     }
 
@@ -2184,17 +3198,22 @@ impl App {
         if self.state.show_modal {
             return;
         }
-        let Some((start_cursor_y, start_scroll_y)) = self.scrollbar_drag else { return };
+        let Some((start_cursor_y, start_scroll_y)) = self.scrollbar_drag else {
+            return;
+        };
         let delta_cursor = self.cursor_pos.1 - start_cursor_y;
         let scale = LIST_CONTENT_HEIGHT / LIST_VIEWPORT_HEIGHT;
-        self.state.list_scroll[1] = (start_scroll_y + delta_cursor * scale).clamp(0.0, LIST_MAX_SCROLL_Y.max(0.0));
+        self.state.list_scroll[1] =
+            (start_scroll_y + delta_cursor * scale).clamp(0.0, LIST_MAX_SCROLL_Y.max(0.0));
     }
 
     fn update_slider_drag(&mut self) {
         if self.state.show_modal {
             return;
         }
-        let Some(ref target_id) = self.slider_drag else { return };
+        let Some(ref target_id) = self.slider_drag else {
+            return;
+        };
 
         // 1. Check overlay tree first (floating palettes)
         if let (Some(o_tree), Some(o_root)) = (&self.overlay_tree, self.overlay_root) {
@@ -2212,7 +3231,10 @@ impl App {
 
         // 2. Fallback to base tree
         if let Some(root) = self.root {
-            if let Ok(Some(value)) = self.tree.slider_drag_value(root, target_id, self.cursor_pos) {
+            if let Ok(Some(value)) = self
+                .tree
+                .slider_drag_value(root, target_id, self.cursor_pos)
+            {
                 match target_id.as_str() {
                     "palette_intensity_slider" => self.state.brush_intensity = value,
                     "fader_low" => self.state.fader_low = value,
@@ -2252,9 +3274,16 @@ impl App {
         if self.state.show_modal {
             return;
         }
-        let Some(ref target_id) = self.canvas_drag else { return };
+        let Some(ref target_id) = self.canvas_drag else {
+            return;
+        };
         let Some(root) = self.root else { return };
-        if let Ok(Some(event)) = self.tree.custom_paint_pointer_at(root, target_id, self.cursor_pos, self.prev_cursor_pos) {
+        if let Ok(Some(event)) = self.tree.custom_paint_pointer_at(
+            root,
+            target_id,
+            self.cursor_pos,
+            self.prev_cursor_pos,
+        ) {
             self.state.apply(event);
         }
     }
@@ -2263,11 +3292,19 @@ impl App {
         if self.state.show_modal {
             return;
         }
-        let Some((ref drag_id, anchor_idx)) = self.text_drag else { return };
+        let Some((ref drag_id, anchor_idx)) = self.text_drag else {
+            return;
+        };
         let Some(root) = self.root else { return };
         let measure = self.renderer.as_ref().map(|r| r.text_measure());
         let measure_ref = measure.as_ref().map(|m| m as &dyn ui_widgets::TextMeasure);
-        if let Ok(Some((widget_id, cur_idx))) = self.tree.text_cursor_at(root, self.cursor_pos, &self.theme.typography.family, self.theme.typography.body_size, measure_ref) {
+        if let Ok(Some((widget_id, cur_idx))) = self.tree.text_cursor_at(
+            root,
+            self.cursor_pos,
+            &self.theme.typography.family,
+            self.theme.typography.body_size,
+            measure_ref,
+        ) {
             if &widget_id == drag_id {
                 let sel = if anchor_idx != cur_idx {
                     Some((anchor_idx, cur_idx))
@@ -2303,16 +3340,23 @@ impl App {
         self.palette_resize = None;
         self.text_drag = None;
         self.canvas_drag = None;
-        self.state.apply(UiEvent::PointerUp { x: self.cursor_pos.0, y: self.cursor_pos.1 });
+        self.state.apply(UiEvent::PointerUp {
+            x: self.cursor_pos.0,
+            y: self.cursor_pos.1,
+        });
 
         if self.state.show_modal {
             if let (Some(m_tree), Some(m_root)) = (&self.overlay_tree, self.overlay_root) {
-                let released_on = m_tree.interaction_key_at(m_root, self.cursor_pos).unwrap_or(None);
+                let released_on = m_tree
+                    .interaction_key_at(m_root, self.cursor_pos)
+                    .unwrap_or(None);
                 if self.pressed.is_some() && self.pressed == released_on {
                     match m_tree.dispatch_click(m_root, self.cursor_pos) {
                         Ok(Some(event)) => self.state.apply(event),
                         Ok(None) => {}
-                        Err(err) => eprintln!("[widget_gallery] modal dispatch_click failed: {err}"),
+                        Err(err) => {
+                            eprintln!("[widget_gallery] modal dispatch_click failed: {err}")
+                        }
                     }
                 }
             }
@@ -2322,7 +3366,9 @@ impl App {
 
         // Test overlay first (palettes, menu, or toast)
         if let (Some(o_tree), Some(o_root)) = (&self.overlay_tree, self.overlay_root) {
-            let released_on = o_tree.interaction_key_at(o_root, self.cursor_pos).unwrap_or(None);
+            let released_on = o_tree
+                .interaction_key_at(o_root, self.cursor_pos)
+                .unwrap_or(None);
             if self.pressed.is_some() && self.pressed == released_on && released_on.is_some() {
                 match o_tree.dispatch_click(o_root, self.cursor_pos) {
                     Ok(Some(event)) => {
@@ -2340,13 +3386,19 @@ impl App {
             self.pressed = None;
             return;
         };
-        let released_on = self.tree.interaction_key_at(root, self.cursor_pos).unwrap_or(None);
+        let released_on = self
+            .tree
+            .interaction_key_at(root, self.cursor_pos)
+            .unwrap_or(None);
         if self.pressed.is_some() && self.pressed == released_on {
             match self.tree.dispatch_click(root, self.cursor_pos) {
                 Ok(Some(event)) => self.state.apply(event),
                 Ok(None) => {
                     // Clicking outside open menu/dropdown/context closes it
-                    if self.state.active_menu.is_some() || self.state.dropdown_open || self.state.context_menu.is_some() {
+                    if self.state.active_menu.is_some()
+                        || self.state.dropdown_open
+                        || self.state.context_menu.is_some()
+                    {
                         self.state.active_menu = None;
                         self.state.dropdown_open = false;
                         self.state.context_menu = None;
@@ -2354,7 +3406,10 @@ impl App {
                 }
                 Err(err) => eprintln!("[widget_gallery] dispatch_click failed: {err}"),
             }
-        } else if self.state.active_menu.is_some() || self.state.dropdown_open || self.state.context_menu.is_some() {
+        } else if self.state.active_menu.is_some()
+            || self.state.dropdown_open
+            || self.state.context_menu.is_some()
+        {
             // Click outside active overlay
             self.state.active_menu = None;
             self.state.dropdown_open = false;
@@ -2365,9 +3420,13 @@ impl App {
 
     fn handle_scroll(&mut self, delta_y: f32) {
         let Some(root) = self.root else { return };
-        match self.tree.dispatch_scroll(root, self.cursor_pos, [0.0, delta_y]) {
+        match self
+            .tree
+            .dispatch_scroll(root, self.cursor_pos, [0.0, delta_y])
+        {
             Ok(Some(UiEvent::ScrollChanged { offset, .. })) => {
-                self.state.list_scroll = [offset[0], offset[1].clamp(0.0, LIST_MAX_SCROLL_Y.max(0.0))];
+                self.state.list_scroll =
+                    [offset[0], offset[1].clamp(0.0, LIST_MAX_SCROLL_Y.max(0.0))];
             }
             Ok(_) => {}
             Err(err) => eprintln!("[widget_gallery] dispatch_scroll failed: {err}"),
@@ -2384,8 +3443,15 @@ impl ApplicationHandler for App {
             .with_title("AORUI — Widget Gallery")
             .with_decorations(false)
             .with_transparent(true)
-            .with_inner_size(winit::dpi::PhysicalSize::new(WINDOW_WIDTH as u32, WINDOW_HEIGHT as u32));
-        let window = Arc::new(event_loop.create_window(attrs).expect("failed to create OS window"));
+            .with_inner_size(winit::dpi::PhysicalSize::new(
+                WINDOW_WIDTH as u32,
+                WINDOW_HEIGHT as u32,
+            ));
+        let window = Arc::new(
+            event_loop
+                .create_window(attrs)
+                .expect("failed to create OS window"),
+        );
         self.window = Some(window.clone());
         let renderer = GpuRenderer::new(window);
         let cyber_art = generate_cyber_artwork(512, 512);
@@ -2406,7 +3472,12 @@ impl ApplicationHandler for App {
         }
     }
 
-    fn window_event(&mut self, event_loop: &ActiveEventLoop, _window_id: WindowId, event: WindowEvent) {
+    fn window_event(
+        &mut self,
+        event_loop: &ActiveEventLoop,
+        _window_id: WindowId,
+        event: WindowEvent,
+    ) {
         match event {
             WindowEvent::CloseRequested => event_loop.exit(),
             WindowEvent::Resized(size) => {
@@ -2437,7 +3508,11 @@ impl ApplicationHandler for App {
                     window.request_redraw();
                 }
             }
-            WindowEvent::MouseInput { state: ElementState::Pressed, button: MouseButton::Left, .. } => {
+            WindowEvent::MouseInput {
+                state: ElementState::Pressed,
+                button: MouseButton::Left,
+                ..
+            } => {
                 if !self.try_start_window_resize() && !self.try_start_window_drag() {
                     self.handle_press();
                 }
@@ -2445,7 +3520,11 @@ impl ApplicationHandler for App {
                     window.request_redraw();
                 }
             }
-            WindowEvent::MouseInput { state: ElementState::Pressed, button: MouseButton::Right, .. } => {
+            WindowEvent::MouseInput {
+                state: ElementState::Pressed,
+                button: MouseButton::Right,
+                ..
+            } => {
                 if !self.state.show_modal {
                     self.state.context_menu = Some(self.cursor_pos);
                     self.state.active_menu = None;
@@ -2455,7 +3534,11 @@ impl ApplicationHandler for App {
                     }
                 }
             }
-            WindowEvent::MouseInput { state: ElementState::Released, button: MouseButton::Left, .. } => {
+            WindowEvent::MouseInput {
+                state: ElementState::Released,
+                button: MouseButton::Left,
+                ..
+            } => {
                 self.handle_release();
                 if self.state.close_requested {
                     event_loop.exit();
@@ -2475,12 +3558,21 @@ impl ApplicationHandler for App {
                     window.request_redraw();
                 }
             }
-            WindowEvent::KeyboardInput { event: key_event, .. } => {
+            WindowEvent::KeyboardInput {
+                event: key_event, ..
+            } => {
                 if key_event.state == ElementState::Pressed {
                     match key_event.logical_key {
                         winit::keyboard::Key::Named(winit::keyboard::NamedKey::Tab) => {
                             if let Some(root) = self.root {
-                                let next = self.tree.next_focusable(root, self.state.focused_input.as_deref(), self.shift_held).unwrap_or(None);
+                                let next = self
+                                    .tree
+                                    .next_focusable(
+                                        root,
+                                        self.state.focused_input.as_deref(),
+                                        self.shift_held,
+                                    )
+                                    .unwrap_or(None);
                                 self.state.focused_input = next;
                             }
                         }
@@ -2500,28 +3592,56 @@ impl ApplicationHandler for App {
                             let ctrl = self.ctrl_held;
                             let shift = self.shift_held;
                             if let Some(focused) = &self.state.focused_input {
-                                if self.state.spinners_enabled && (focused == "concurrency_spin" || focused == "port_spin") {
+                                if self.state.spinners_enabled
+                                    && (focused == "concurrency_spin" || focused == "port_spin")
+                                {
                                     let is_concurrency = focused == "concurrency_spin";
                                     let (min, max, step) = if is_concurrency {
                                         (1.0, 64.0, 1.0)
                                     } else {
                                         (1024.0, 65535.0, 10.0)
                                     };
-                                    let current_val = if is_concurrency { self.state.concurrency_spin } else { self.state.port_spin };
+                                    let current_val = if is_concurrency {
+                                        self.state.concurrency_spin
+                                    } else {
+                                        self.state.port_spin
+                                    };
                                     match key_event.logical_key {
-                                        winit::keyboard::Key::Named(winit::keyboard::NamedKey::ArrowUp) => {
+                                        winit::keyboard::Key::Named(
+                                            winit::keyboard::NamedKey::ArrowUp,
+                                        ) => {
                                             let next = (current_val + step).min(max);
-                                            if is_concurrency { self.state.concurrency_spin = next; } else { self.state.port_spin = next; }
+                                            if is_concurrency {
+                                                self.state.concurrency_spin = next;
+                                            } else {
+                                                self.state.port_spin = next;
+                                            }
                                         }
-                                        winit::keyboard::Key::Named(winit::keyboard::NamedKey::ArrowDown) => {
+                                        winit::keyboard::Key::Named(
+                                            winit::keyboard::NamedKey::ArrowDown,
+                                        ) => {
                                             let next = (current_val - step).max(min);
-                                            if is_concurrency { self.state.concurrency_spin = next; } else { self.state.port_spin = next; }
+                                            if is_concurrency {
+                                                self.state.concurrency_spin = next;
+                                            } else {
+                                                self.state.port_spin = next;
+                                            }
                                         }
-                                        winit::keyboard::Key::Named(winit::keyboard::NamedKey::Backspace) => {
+                                        winit::keyboard::Key::Named(
+                                            winit::keyboard::NamedKey::Backspace,
+                                        ) => {
                                             let cur_int = current_val as i64;
                                             let next = (cur_int / 10) as f64;
-                                            let clamped = if next == 0.0 { min } else { next.clamp(min, max) };
-                                            if is_concurrency { self.state.concurrency_spin = clamped; } else { self.state.port_spin = clamped; }
+                                            let clamped = if next == 0.0 {
+                                                min
+                                            } else {
+                                                next.clamp(min, max)
+                                            };
+                                            if is_concurrency {
+                                                self.state.concurrency_spin = clamped;
+                                            } else {
+                                                self.state.port_spin = clamped;
+                                            }
                                         }
                                         _ => {
                                             if let Some(text) = &key_event.text {
@@ -2530,7 +3650,11 @@ impl ApplicationHandler for App {
                                                         let cur_int = current_val as i64;
                                                         let next = (cur_int * 10 + d as i64) as f64;
                                                         let clamped = next.clamp(min, max);
-                                                        if is_concurrency { self.state.concurrency_spin = clamped; } else { self.state.port_spin = clamped; }
+                                                        if is_concurrency {
+                                                            self.state.concurrency_spin = clamped;
+                                                        } else {
+                                                            self.state.port_spin = clamped;
+                                                        }
                                                     }
                                                 }
                                             }
@@ -2538,64 +3662,91 @@ impl ApplicationHandler for App {
                                     }
                                 } else {
                                     let (editor, is_multiline) = match focused.as_str() {
-                                        "global_search" => (Some(&mut self.state.search_editor), false),
-                                        "master_token_pwd" => (Some(&mut self.state.password_editor), false),
-                                        "studio_editor" => (Some(&mut self.state.studio_editor), true),
+                                        "global_search" => {
+                                            (Some(&mut self.state.search_editor), false)
+                                        }
+                                        "master_token_pwd" => {
+                                            (Some(&mut self.state.password_editor), false)
+                                        }
+                                        "studio_editor" => {
+                                            (Some(&mut self.state.studio_editor), true)
+                                        }
                                         _ => (None, false),
                                     };
 
-                                if let Some(ed) = editor {
-                                    match key_event.logical_key {
-                                        winit::keyboard::Key::Named(winit::keyboard::NamedKey::ArrowLeft) => {
-                                            ed.move_left(ctrl, shift);
-                                        }
-                                        winit::keyboard::Key::Named(winit::keyboard::NamedKey::ArrowRight) => {
-                                            ed.move_right(ctrl, shift);
-                                        }
-                                        winit::keyboard::Key::Named(winit::keyboard::NamedKey::ArrowUp) => {
-                                            if is_multiline {
-                                                ed.move_up(shift);
-                                            } else {
+                                    if let Some(ed) = editor {
+                                        match key_event.logical_key {
+                                            winit::keyboard::Key::Named(
+                                                winit::keyboard::NamedKey::ArrowLeft,
+                                            ) => {
+                                                ed.move_left(ctrl, shift);
+                                            }
+                                            winit::keyboard::Key::Named(
+                                                winit::keyboard::NamedKey::ArrowRight,
+                                            ) => {
+                                                ed.move_right(ctrl, shift);
+                                            }
+                                            winit::keyboard::Key::Named(
+                                                winit::keyboard::NamedKey::ArrowUp,
+                                            ) => {
+                                                if is_multiline {
+                                                    ed.move_up(shift);
+                                                } else {
+                                                    ed.move_home(shift);
+                                                }
+                                            }
+                                            winit::keyboard::Key::Named(
+                                                winit::keyboard::NamedKey::ArrowDown,
+                                            ) => {
+                                                if is_multiline {
+                                                    ed.move_down(shift);
+                                                } else {
+                                                    ed.move_end(shift);
+                                                }
+                                            }
+                                            winit::keyboard::Key::Named(
+                                                winit::keyboard::NamedKey::Home,
+                                            ) => {
                                                 ed.move_home(shift);
                                             }
-                                        }
-                                        winit::keyboard::Key::Named(winit::keyboard::NamedKey::ArrowDown) => {
-                                            if is_multiline {
-                                                ed.move_down(shift);
-                                            } else {
+                                            winit::keyboard::Key::Named(
+                                                winit::keyboard::NamedKey::End,
+                                            ) => {
                                                 ed.move_end(shift);
                                             }
-                                        }
-                                        winit::keyboard::Key::Named(winit::keyboard::NamedKey::Home) => {
-                                            ed.move_home(shift);
-                                        }
-                                        winit::keyboard::Key::Named(winit::keyboard::NamedKey::End) => {
-                                            ed.move_end(shift);
-                                        }
-                                        winit::keyboard::Key::Named(winit::keyboard::NamedKey::Backspace) => {
-                                            ed.backspace();
-                                        }
-                                        winit::keyboard::Key::Named(winit::keyboard::NamedKey::Delete) => {
-                                            ed.delete();
-                                        }
-                                        winit::keyboard::Key::Named(winit::keyboard::NamedKey::Enter) => {
-                                            if is_multiline {
-                                                ed.insert_char('\n');
-                                            } else {
-                                                println!("[widget_gallery] input '{focused}' submitted: '{}'", ed.text);
+                                            winit::keyboard::Key::Named(
+                                                winit::keyboard::NamedKey::Backspace,
+                                            ) => {
+                                                ed.backspace();
                                             }
-                                        }
-                                        _ => {
-                                            if ctrl {
-                                                if let winit::keyboard::Key::Character(ref s) = key_event.logical_key {
-                                                    if s.eq_ignore_ascii_case("a") {
-                                                        ed.select_all();
-                                                    }
+                                            winit::keyboard::Key::Named(
+                                                winit::keyboard::NamedKey::Delete,
+                                            ) => {
+                                                ed.delete();
+                                            }
+                                            winit::keyboard::Key::Named(
+                                                winit::keyboard::NamedKey::Enter,
+                                            ) => {
+                                                if is_multiline {
+                                                    ed.insert_char('\n');
+                                                } else {
+                                                    println!("[widget_gallery] input '{focused}' submitted: '{}'", ed.text);
                                                 }
-                                            } else if let Some(text) = &key_event.text {
-                                                for c in text.chars() {
-                                                    if !c.is_control() {
-                                                        ed.insert_char(c);
+                                            }
+                                            _ => {
+                                                if ctrl {
+                                                    if let winit::keyboard::Key::Character(ref s) =
+                                                        key_event.logical_key
+                                                    {
+                                                        if s.eq_ignore_ascii_case("a") {
+                                                            ed.select_all();
+                                                        }
+                                                    }
+                                                } else if let Some(text) = &key_event.text {
+                                                    for c in text.chars() {
+                                                        if !c.is_control() {
+                                                            ed.insert_char(c);
+                                                        }
                                                     }
                                                 }
                                             }
@@ -2604,7 +3755,6 @@ impl ApplicationHandler for App {
                                 }
                             }
                         }
-                    }
                     }
 
                     if let Some(window) = &self.window {
@@ -2621,5 +3771,7 @@ impl ApplicationHandler for App {
 fn main() {
     let event_loop = EventLoop::new().expect("failed to create winit event loop");
     let mut app = App::new();
-    event_loop.run_app(&mut app).expect("failed to run winit event loop");
+    event_loop
+        .run_app(&mut app)
+        .expect("failed to run winit event loop");
 }

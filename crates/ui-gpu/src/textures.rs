@@ -17,7 +17,11 @@ pub fn create_render_target(
     let size = (size.0.max(1), size.1.max(1));
     let texture = device.create_texture(&wgpu::TextureDescriptor {
         label: Some(label),
-        size: wgpu::Extent3d { width: size.0, height: size.1, depth_or_array_layers: 1 },
+        size: wgpu::Extent3d {
+            width: size.0,
+            height: size.1,
+            depth_or_array_layers: 1,
+        },
         mip_level_count: 1,
         sample_count: 1,
         dimension: wgpu::TextureDimension::D2,
@@ -26,7 +30,11 @@ pub fn create_render_target(
         view_formats: &[],
     });
     let view = texture.create_view(&wgpu::TextureViewDescriptor::default());
-    RenderTarget { texture, view, size }
+    RenderTarget {
+        texture,
+        view,
+        size,
+    }
 }
 
 pub fn create_linear_sampler(device: &wgpu::Device, label: &str) -> wgpu::Sampler {

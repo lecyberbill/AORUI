@@ -25,7 +25,9 @@ impl ResourceTable {
     /// `None` si l'id est absent OU si le type stocké ne correspond pas à
     /// `T` (erreur de programmation d'un pipeline, pas une panique).
     pub fn get<T: Any + Send + Sync>(&self, id: &str) -> Option<&T> {
-        self.entries.get(id).and_then(|boxed| boxed.downcast_ref::<T>())
+        self.entries
+            .get(id)
+            .and_then(|boxed| boxed.downcast_ref::<T>())
     }
 
     pub fn remove(&mut self, id: &str) -> bool {

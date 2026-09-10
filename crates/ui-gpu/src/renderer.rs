@@ -38,19 +38,39 @@ impl GpuRenderer {
         let half_size = ((full_size.0 / 2).max(1), (full_size.1 / 2).max(1));
 
         let background = create_render_target(&ctx.device, full_size, format, "background target");
-        let blur_half = create_render_target(&ctx.device, half_size, format, "blur half-res target");
-        let blurred_full = create_render_target(&ctx.device, full_size, format, "blurred full-res target");
+        let blur_half =
+            create_render_target(&ctx.device, half_size, format, "blur half-res target");
+        let blurred_full =
+            create_render_target(&ctx.device, full_size, format, "blurred full-res target");
 
         let blur_pipeline = BlurPipeline::new(&ctx.device, format);
         let sdf_pipeline = SdfPipeline::new(&ctx.device, format);
         let text = TextLayer::new(&ctx.device, &ctx.queue, format);
         let measure = crate::measure::CosmicTextMeasure::new();
 
-        let image_pipeline = Box::new(crate::image_pipeline::ImagePipeline::new(&ctx.device, format, "image"));
-        let video_pipeline = Box::new(crate::image_pipeline::ImagePipeline::new(&ctx.device, format, "video"));
+        let image_pipeline = Box::new(crate::image_pipeline::ImagePipeline::new(
+            &ctx.device,
+            format,
+            "image",
+        ));
+        let video_pipeline = Box::new(crate::image_pipeline::ImagePipeline::new(
+            &ctx.device,
+            format,
+            "video",
+        ));
         let media_pipelines: Vec<Box<dyn MediaPipeline>> = vec![image_pipeline, video_pipeline];
 
-        let mut renderer = Self { ctx, background, blur_half, blurred_full, blur_pipeline, sdf_pipeline, text, measure, media_pipelines };
+        let mut renderer = Self {
+            ctx,
+            background,
+            blur_half,
+            blurred_full,
+            blur_pipeline,
+            sdf_pipeline,
+            text,
+            measure,
+            media_pipelines,
+        };
         renderer.update_media_screen_size();
         renderer
     }
@@ -60,8 +80,20 @@ impl GpuRenderer {
     }
 
     /// Allocates and uploads an RGBA8 texture onto the GPU.
-    pub fn create_texture_rgba(&self, width: u32, height: u32, data: &[u8]) -> Arc<crate::texture::GpuTexture> {
-        crate::texture::GpuTexture::new_rgba(&self.ctx.device, &self.ctx.queue, width, height, data, Some("aorui_gpu_texture"))
+    pub fn create_texture_rgba(
+        &self,
+        width: u32,
+        height: u32,
+        data: &[u8],
+    ) -> Arc<crate::texture::GpuTexture> {
+        crate::texture::GpuTexture::new_rgba(
+            &self.ctx.device,
+            &self.ctx.queue,
+            width,
+            height,
+            data,
+            Some("aorui_gpu_texture"),
+        )
     }
 
     /// Updates existing GPU texture with new pixel bytes (e.g. video frame streaming).
@@ -99,7 +131,16 @@ impl GpuRenderer {
         clip: [f32; 4],
     ) -> TextRun {
         let line_height = font_size * 1.2;
-        let buffer = self.text.make_buffer(text, font_size, line_height, bounds[2], bounds[3], align, family, weight);
+        let buffer = self.text.make_buffer(
+            text,
+            font_size,
+            line_height,
+            bounds[2],
+            bounds[3],
+            align,
+            family,
+            weight,
+        );
         // Vertical centering offset for single-line widget text
         let top = bounds[1] + ((bounds[3] - line_height) * 0.5).max(0.0);
         let clip = glyphon::TextBounds {
@@ -108,7 +149,13 @@ impl GpuRenderer {
             right: (clip[0] + clip[2]) as i32,
             bottom: (clip[1] + clip[3]) as i32,
         };
-        TextRun { buffer, left: bounds[0], top, color: to_glyphon_color(color), clip }
+        TextRun {
+            buffer,
+            left: bounds[0],
+            top,
+            color: to_glyphon_color(color),
+            clip,
+        }
     }
 
     pub fn resize(&mut self, new_size: winit::dpi::PhysicalSize<u32>) {
@@ -117,9 +164,16 @@ impl GpuRenderer {
         let full_size = (self.ctx.config.width, self.ctx.config.height);
         let half_size = ((full_size.0 / 2).max(1), (full_size.1 / 2).max(1));
 
-        self.background = create_render_target(&self.ctx.device, full_size, format, "background target");
-        self.blur_half = create_render_target(&self.ctx.device, half_size, format, "blur half-res target");
-        self.blurred_full = create_render_target(&self.ctx.device, full_size, format, "blurred full-res target");
+        self.background =
+            create_render_target(&self.ctx.device, full_size, format, "background target");
+        self.blur_half =
+            create_render_target(&self.ctx.device, half_size, format, "blur half-res target");
+        self.blurred_full = create_render_target(
+            &self.ctx.device,
+            full_size,
+            format,
+            "blurred full-res target",
+        );
     }
 }
 
@@ -138,11 +192,16 @@ impl GpuRenderer {
         resources: &ResourceTable,
     ) -> Result<(), wgpu::SurfaceError> {
         let frame = self.ctx.surface.get_current_texture()?;
-        let surface_view = frame.texture.create_view(&wgpu::TextureViewDescriptor::default());
+        let surface_view = frame
+            .texture
+            .create_view(&wgpu::TextureViewDescriptor::default());
 
-        let mut encoder = self.ctx.device.create_command_encoder(&wgpu::CommandEncoderDescriptor {
-            label: Some("frame encoder"),
-        });
+        let mut encoder = self
+            .ctx
+            .device
+            .create_command_encoder(&wgpu::CommandEncoderDescriptor {
+                label: Some("frame encoder"),
+            });
 
         // Pass 1: Clear all offscreen and surface render targets
         clear_target(&mut encoder, &self.background.view, background_clear);
@@ -150,59 +209,115 @@ impl GpuRenderer {
         clear_target(&mut encoder, &self.blurred_full.view, background_clear);
         clear_target(&mut encoder, &self.blur_half.view, background_clear);
 
-        self.sdf_pipeline.set_screen_size(&self.ctx.queue, self.ctx.config.width as f32, self.ctx.config.height as f32);
+        self.sdf_pipeline.set_screen_size(
+            &self.ctx.queue,
+            self.ctx.config.width as f32,
+            self.ctx.config.height as f32,
+        );
         for pipeline in self.media_pipelines.iter_mut() {
-            pipeline.set_screen_size(&self.ctx.queue, self.ctx.config.width as f32, self.ctx.config.height as f32);
+            pipeline.set_screen_size(
+                &self.ctx.queue,
+                self.ctx.config.width as f32,
+                self.ctx.config.height as f32,
+            );
         }
 
         if layers.len() > 1 {
             // --- Layer 0 (Base UI): rendered to surface_view AND background target for blur capture ---
             let layer0 = &layers[0];
             if !layer0.instances.is_empty() {
-                self.sdf_pipeline.upload_instances(&self.ctx.device, &self.ctx.queue, layer0.instances);
-                self.sdf_pipeline.render(&self.ctx.device, &mut encoder, &surface_view, &self.blurred_full.view);
-                self.sdf_pipeline.render(&self.ctx.device, &mut encoder, &self.background.view, &self.blurred_full.view);
+                self.sdf_pipeline.upload_instances(
+                    &self.ctx.device,
+                    &self.ctx.queue,
+                    layer0.instances,
+                );
+                self.sdf_pipeline.render(
+                    &self.ctx.device,
+                    &mut encoder,
+                    &surface_view,
+                    &self.blurred_full.view,
+                );
+                self.sdf_pipeline.render(
+                    &self.ctx.device,
+                    &mut encoder,
+                    &self.background.view,
+                    &self.blurred_full.view,
+                );
             }
 
             // Render registered media pipelines on base UI
             for pipeline in self.media_pipelines.iter_mut() {
-                let matching: Vec<MediaInstance> =
-                    media.iter().filter(|instance| instance.kind == pipeline.kind()).cloned().collect();
+                let matching: Vec<MediaInstance> = media
+                    .iter()
+                    .filter(|instance| instance.kind == pipeline.kind())
+                    .cloned()
+                    .collect();
                 if !matching.is_empty() {
-                    pipeline.render(&self.ctx.device, &self.ctx.queue, &mut encoder, &surface_view, resources, &matching);
-                    pipeline.render(&self.ctx.device, &self.ctx.queue, &mut encoder, &self.background.view, resources, &matching);
+                    pipeline.render(
+                        &self.ctx.device,
+                        &self.ctx.queue,
+                        &mut encoder,
+                        &surface_view,
+                        resources,
+                        &matching,
+                    );
+                    pipeline.render(
+                        &self.ctx.device,
+                        &self.ctx.queue,
+                        &mut encoder,
+                        &self.background.view,
+                        resources,
+                        &matching,
+                    );
                 }
             }
 
             if !layer0.texts.is_empty() {
-                if self.text.prepare(&self.ctx.device, &self.ctx.queue, (self.ctx.config.width, self.ctx.config.height), layer0.texts).is_ok() {
+                if self
+                    .text
+                    .prepare(
+                        &self.ctx.device,
+                        &self.ctx.queue,
+                        (self.ctx.config.width, self.ctx.config.height),
+                        layer0.texts,
+                    )
+                    .is_ok()
+                {
                     {
-                        let mut text_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
-                            label: Some("text layer 0 pass"),
-                            color_attachments: &[Some(wgpu::RenderPassColorAttachment {
-                                view: &surface_view,
-                                resolve_target: None,
-                                ops: wgpu::Operations { load: wgpu::LoadOp::Load, store: wgpu::StoreOp::Store },
-                            })],
-                            depth_stencil_attachment: None,
-                            timestamp_writes: None,
-                            occlusion_query_set: None,
-                        });
+                        let mut text_pass =
+                            encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
+                                label: Some("text layer 0 pass"),
+                                color_attachments: &[Some(wgpu::RenderPassColorAttachment {
+                                    view: &surface_view,
+                                    resolve_target: None,
+                                    ops: wgpu::Operations {
+                                        load: wgpu::LoadOp::Load,
+                                        store: wgpu::StoreOp::Store,
+                                    },
+                                })],
+                                depth_stencil_attachment: None,
+                                timestamp_writes: None,
+                                occlusion_query_set: None,
+                            });
                         let _ = self.text.render(&mut text_pass);
                     }
 
                     {
-                        let mut text_pass_bg = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
-                            label: Some("text layer 0 bg pass"),
-                            color_attachments: &[Some(wgpu::RenderPassColorAttachment {
-                                view: &self.background.view,
-                                resolve_target: None,
-                                ops: wgpu::Operations { load: wgpu::LoadOp::Load, store: wgpu::StoreOp::Store },
-                            })],
-                            depth_stencil_attachment: None,
-                            timestamp_writes: None,
-                            occlusion_query_set: None,
-                        });
+                        let mut text_pass_bg =
+                            encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
+                                label: Some("text layer 0 bg pass"),
+                                color_attachments: &[Some(wgpu::RenderPassColorAttachment {
+                                    view: &self.background.view,
+                                    resolve_target: None,
+                                    ops: wgpu::Operations {
+                                        load: wgpu::LoadOp::Load,
+                                        store: wgpu::StoreOp::Store,
+                                    },
+                                })],
+                                depth_stencil_attachment: None,
+                                timestamp_writes: None,
+                                occlusion_query_set: None,
+                            });
                         let _ = self.text.render(&mut text_pass_bg);
                     }
                 }
@@ -210,9 +325,12 @@ impl GpuRenderer {
 
             // Submit Layer 0 pass to isolate glyphon vertex buffers
             self.ctx.queue.submit(std::iter::once(encoder.finish()));
-            encoder = self.ctx.device.create_command_encoder(&wgpu::CommandEncoderDescriptor {
-                label: Some("overlay encoder"),
-            });
+            encoder = self
+                .ctx
+                .device
+                .create_command_encoder(&wgpu::CommandEncoderDescriptor {
+                    label: Some("overlay encoder"),
+                });
 
             // Compute Dual-Kawase blur on base UI background
             self.blur_pipeline.downsample(
@@ -235,50 +353,103 @@ impl GpuRenderer {
             // --- Layer 1+ (Modal / Overlays): samples genuine blur of underlying UI ---
             for layer in &layers[1..] {
                 if !layer.instances.is_empty() {
-                    self.sdf_pipeline.upload_instances(&self.ctx.device, &self.ctx.queue, layer.instances);
-                    self.sdf_pipeline.render(&self.ctx.device, &mut encoder, &surface_view, &self.blurred_full.view);
+                    self.sdf_pipeline.upload_instances(
+                        &self.ctx.device,
+                        &self.ctx.queue,
+                        layer.instances,
+                    );
+                    self.sdf_pipeline.render(
+                        &self.ctx.device,
+                        &mut encoder,
+                        &surface_view,
+                        &self.blurred_full.view,
+                    );
                 }
 
                 if !layer.texts.is_empty() {
-                    if self.text.prepare(&self.ctx.device, &self.ctx.queue, (self.ctx.config.width, self.ctx.config.height), layer.texts).is_ok() {
-                        let mut text_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
-                            label: Some("text layer overlay pass"),
-                            color_attachments: &[Some(wgpu::RenderPassColorAttachment {
-                                view: &surface_view,
-                                resolve_target: None,
-                                ops: wgpu::Operations { load: wgpu::LoadOp::Load, store: wgpu::StoreOp::Store },
-                            })],
-                            depth_stencil_attachment: None,
-                            timestamp_writes: None,
-                            occlusion_query_set: None,
-                        });
+                    if self
+                        .text
+                        .prepare(
+                            &self.ctx.device,
+                            &self.ctx.queue,
+                            (self.ctx.config.width, self.ctx.config.height),
+                            layer.texts,
+                        )
+                        .is_ok()
+                    {
+                        let mut text_pass =
+                            encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
+                                label: Some("text layer overlay pass"),
+                                color_attachments: &[Some(wgpu::RenderPassColorAttachment {
+                                    view: &surface_view,
+                                    resolve_target: None,
+                                    ops: wgpu::Operations {
+                                        load: wgpu::LoadOp::Load,
+                                        store: wgpu::StoreOp::Store,
+                                    },
+                                })],
+                                depth_stencil_attachment: None,
+                                timestamp_writes: None,
+                                occlusion_query_set: None,
+                            });
                         let _ = self.text.render(&mut text_pass);
                     }
                 }
             }
         } else if let Some(layer) = layers.first() {
             if !layer.instances.is_empty() {
-                self.sdf_pipeline.upload_instances(&self.ctx.device, &self.ctx.queue, layer.instances);
-                self.sdf_pipeline.render(&self.ctx.device, &mut encoder, &surface_view, &self.blurred_full.view);
+                self.sdf_pipeline.upload_instances(
+                    &self.ctx.device,
+                    &self.ctx.queue,
+                    layer.instances,
+                );
+                self.sdf_pipeline.render(
+                    &self.ctx.device,
+                    &mut encoder,
+                    &surface_view,
+                    &self.blurred_full.view,
+                );
             }
 
             // Render registered media pipelines between SDF background quads and text overlays
             for pipeline in self.media_pipelines.iter_mut() {
-                let matching: Vec<MediaInstance> =
-                    media.iter().filter(|instance| instance.kind == pipeline.kind()).cloned().collect();
+                let matching: Vec<MediaInstance> = media
+                    .iter()
+                    .filter(|instance| instance.kind == pipeline.kind())
+                    .cloned()
+                    .collect();
                 if !matching.is_empty() {
-                    pipeline.render(&self.ctx.device, &self.ctx.queue, &mut encoder, &surface_view, resources, &matching);
+                    pipeline.render(
+                        &self.ctx.device,
+                        &self.ctx.queue,
+                        &mut encoder,
+                        &surface_view,
+                        resources,
+                        &matching,
+                    );
                 }
             }
 
             if !layer.texts.is_empty() {
-                if self.text.prepare(&self.ctx.device, &self.ctx.queue, (self.ctx.config.width, self.ctx.config.height), layer.texts).is_ok() {
+                if self
+                    .text
+                    .prepare(
+                        &self.ctx.device,
+                        &self.ctx.queue,
+                        (self.ctx.config.width, self.ctx.config.height),
+                        layer.texts,
+                    )
+                    .is_ok()
+                {
                     let mut text_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
                         label: Some("text overlay pass"),
                         color_attachments: &[Some(wgpu::RenderPassColorAttachment {
                             view: &surface_view,
                             resolve_target: None,
-                            ops: wgpu::Operations { load: wgpu::LoadOp::Load, store: wgpu::StoreOp::Store },
+                            ops: wgpu::Operations {
+                                load: wgpu::LoadOp::Load,
+                                store: wgpu::StoreOp::Store,
+                            },
                         })],
                         depth_stencil_attachment: None,
                         timestamp_writes: None,
@@ -304,14 +475,22 @@ impl GpuRenderer {
         media: &[MediaInstance],
         resources: &ResourceTable,
     ) -> Result<(), wgpu::SurfaceError> {
-        let layer = RenderLayer { instances, texts: text_runs };
+        let layer = RenderLayer {
+            instances,
+            texts: text_runs,
+        };
         self.render_layers(background_clear, &[layer], media, resources)
     }
 }
 
 fn to_glyphon_color(color: [f32; 4]) -> glyphon::Color {
     let to_u8 = |c: f32| (c.clamp(0.0, 1.0) * 255.0).round() as u8;
-    glyphon::Color::rgba(to_u8(color[0]), to_u8(color[1]), to_u8(color[2]), to_u8(color[3]))
+    glyphon::Color::rgba(
+        to_u8(color[0]),
+        to_u8(color[1]),
+        to_u8(color[2]),
+        to_u8(color[3]),
+    )
 }
 
 fn clear_target(encoder: &mut wgpu::CommandEncoder, view: &wgpu::TextureView, color: wgpu::Color) {
@@ -320,7 +499,10 @@ fn clear_target(encoder: &mut wgpu::CommandEncoder, view: &wgpu::TextureView, co
         color_attachments: &[Some(wgpu::RenderPassColorAttachment {
             view,
             resolve_target: None,
-            ops: wgpu::Operations { load: wgpu::LoadOp::Clear(color), store: wgpu::StoreOp::Store },
+            ops: wgpu::Operations {
+                load: wgpu::LoadOp::Clear(color),
+                store: wgpu::StoreOp::Store,
+            },
         })],
         depth_stencil_attachment: None,
         timestamp_writes: None,

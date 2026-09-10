@@ -24,7 +24,10 @@ pub struct LayoutTree<V> {
 
 impl<V> LayoutTree<V> {
     pub fn new() -> Self {
-        Self { taffy: TaffyTree::new(), payloads: HashMap::new() }
+        Self {
+            taffy: TaffyTree::new(),
+            payloads: HashMap::new(),
+        }
     }
 
     /// Inserts a leaf node (no children) carrying payload `payload`.
@@ -35,7 +38,12 @@ impl<V> LayoutTree<V> {
     }
 
     /// Inserts a container (Flexbox/Grid) with existing children.
-    pub fn insert_container(&mut self, style: Style, children: &[NodeId], payload: V) -> Result<NodeId, LayoutError> {
+    pub fn insert_container(
+        &mut self,
+        style: Style,
+        children: &[NodeId],
+        payload: V,
+    ) -> Result<NodeId, LayoutError> {
         let node = self.taffy.new_with_children(style, children)?;
         self.payloads.insert(node, payload);
         Ok(node)
@@ -43,7 +51,11 @@ impl<V> LayoutTree<V> {
 
     /// Resolves Flexbox/Grid for the tree rooted at `root`, within available space `available_space`
     /// (typically window size).
-    pub fn compute(&mut self, root: NodeId, available_space: Size<AvailableSpace>) -> Result<(), LayoutError> {
+    pub fn compute(
+        &mut self,
+        root: NodeId,
+        available_space: Size<AvailableSpace>,
+    ) -> Result<(), LayoutError> {
         self.taffy.compute_layout(root, available_space)?;
         Ok(())
     }
@@ -77,9 +89,14 @@ impl<V> LayoutTree<V> {
         out: &mut HashMap<NodeId, [f32; 4]>,
     ) -> Result<(), LayoutError> {
         let layout: &Layout = self.taffy.layout(node)?;
-        let origin =
-            Point { x: parent_origin.x + layout.location.x, y: parent_origin.y + layout.location.y };
-        out.insert(node, [origin.x, origin.y, layout.size.width, layout.size.height]);
+        let origin = Point {
+            x: parent_origin.x + layout.location.x,
+            y: parent_origin.y + layout.location.y,
+        };
+        out.insert(
+            node,
+            [origin.x, origin.y, layout.size.width, layout.size.height],
+        );
 
         for child in self.taffy.children(node)? {
             self.accumulate_bounds(child, origin, out)?;

@@ -22,7 +22,11 @@ pub struct AgentConfig {
 
 impl Default for AgentConfig {
     fn default() -> Self {
-        Self { max_steps: 12, tool_timeout: Duration::from_secs(30), max_scratchpad_entries: 500 }
+        Self {
+            max_steps: 12,
+            tool_timeout: Duration::from_secs(30),
+            max_scratchpad_entries: 500,
+        }
     }
 }
 
@@ -37,7 +41,11 @@ pub struct Agent {
 }
 
 impl Agent {
-    pub fn new(config: AgentConfig, tools: ToolRegistry, tx_patches: crossbeam_channel::Sender<UiPatch>) -> Self {
+    pub fn new(
+        config: AgentConfig,
+        tools: ToolRegistry,
+        tx_patches: crossbeam_channel::Sender<UiPatch>,
+    ) -> Self {
         Self {
             config,
             state: AgentState::Idle,
@@ -55,7 +63,10 @@ impl Agent {
 
     fn transition(&mut self, next: AgentState) -> Result<(), AgentError> {
         if !self.state.can_transition_to(next) {
-            return Err(AgentError::InvalidTransition { from: self.state, to: next });
+            return Err(AgentError::InvalidTransition {
+                from: self.state,
+                to: next,
+            });
         }
         self.state = next;
         let _ = self.tx_patches.send(UiPatch::StatusChanged {
@@ -80,22 +91,35 @@ impl Agent {
 
     /// Validates arguments against schema (INV-SEC-3) and executes under timeout (INV-TIMEOUT-1).
     async fn execute_tool(&self, name: &str, args: Value) -> Result<Value, AgentError> {
-        let tool = self.tools.get(name).ok_or_else(|| AgentError::UnknownTool(name.to_string()))?;
+        let tool = self
+            .tools
+            .get(name)
+            .ok_or_else(|| AgentError::UnknownTool(name.to_string()))?;
 
-        schema::validate(&tool.schema(), &args)
-            .map_err(|reason| AgentError::SchemaValidation { tool: name.to_string(), reason: reason.to_string() })?;
+        schema::validate(&tool.schema(), &args).map_err(|reason| AgentError::SchemaValidation {
+            tool: name.to_string(),
+            reason: reason.to_string(),
+        })?;
 
         match tokio::time::timeout(self.config.tool_timeout, tool.execute(args)).await {
             Ok(Ok(value)) => Ok(value),
-            Ok(Err(ToolError(reason))) => Err(AgentError::ToolExecution { tool: name.to_string(), reason }),
-            Err(_elapsed) => {
-                Err(AgentError::ToolTimeout { tool: name.to_string(), timeout_ms: self.config.tool_timeout.as_millis() })
-            }
+            Ok(Err(ToolError(reason))) => Err(AgentError::ToolExecution {
+                tool: name.to_string(),
+                reason,
+            }),
+            Err(_elapsed) => Err(AgentError::ToolTimeout {
+                tool: name.to_string(),
+                timeout_ms: self.config.tool_timeout.as_millis(),
+            }),
         }
     }
 
     /// Main cognitive execution loop.
-    pub async fn run(mut self, mut rx_actions: mpsc::Receiver<UiEvent>, mut planner: Box<dyn Planner>) -> Result<(), AgentError> {
+    pub async fn run(
+        mut self,
+        mut rx_actions: mpsc::Receiver<UiEvent>,
+        mut planner: Box<dyn Planner>,
+    ) -> Result<(), AgentError> {
         loop {
             match self.state {
                 AgentState::Idle => match rx_actions.recv().await {
@@ -119,7 +143,10 @@ impl Agent {
                         return Err(AgentError::Interrupted);
                     }
                     if self.step_count >= self.config.max_steps {
-                        let err = AgentError::StepBudgetExceeded { steps: self.step_count, max_steps: self.config.max_steps };
+                        let err = AgentError::StepBudgetExceeded {
+                            steps: self.step_count,
+                            max_steps: self.config.max_steps,
+                        };
                         self.push_scratchpad(err.to_string());
                         self.transition(AgentState::Failed)?;
                         return Err(err);

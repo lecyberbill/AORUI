@@ -34,13 +34,19 @@ mod tests {
         let mut tree: LayoutTree<TestPayload> = LayoutTree::new();
 
         let child_style = Style {
-            size: Size { width: length(50.0), height: length(50.0) },
+            size: Size {
+                width: length(50.0),
+                height: length(50.0),
+            },
             ..Default::default()
         };
         let child = tree.insert_leaf(child_style, TestPayload::Leaf).unwrap();
 
         let parent_style = Style {
-            size: Size { width: length(200.0), height: length(200.0) },
+            size: Size {
+                width: length(200.0),
+                height: length(200.0),
+            },
             padding: Rect {
                 left: length(30.0),
                 top: length(20.0),
@@ -49,7 +55,9 @@ mod tests {
             },
             ..Default::default()
         };
-        let root = tree.insert_container(parent_style, &[child], TestPayload::Container).unwrap();
+        let root = tree
+            .insert_container(parent_style, &[child], TestPayload::Container)
+            .unwrap();
 
         tree.compute(root, Size::MAX_CONTENT).unwrap();
 
@@ -68,16 +76,24 @@ mod tests {
         let mut tree: LayoutTree<TestPayload> = LayoutTree::new();
 
         let child_style = Style {
-            size: Size { width: length(50.0), height: length(50.0) },
+            size: Size {
+                width: length(50.0),
+                height: length(50.0),
+            },
             ..Default::default()
         };
         let child = tree.insert_leaf(child_style, TestPayload::Leaf).unwrap();
 
         let parent_style = Style {
-            size: Size { width: length(200.0), height: length(200.0) },
+            size: Size {
+                width: length(200.0),
+                height: length(200.0),
+            },
             ..Default::default()
         };
-        let root = tree.insert_container(parent_style, &[child], TestPayload::Container).unwrap();
+        let root = tree
+            .insert_container(parent_style, &[child], TestPayload::Container)
+            .unwrap();
         tree.compute(root, Size::MAX_CONTENT).unwrap();
 
         assert_eq!(tree.hit_test(root, (10.0, 10.0)).unwrap(), Some(child));

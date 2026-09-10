@@ -158,7 +158,12 @@ impl Color {
             let c = (1.0 - r - k) / (1.0 - k) * 100.0;
             let m = (1.0 - g - k) / (1.0 - k) * 100.0;
             let y = (1.0 - b - k) / (1.0 - k) * 100.0;
-            (c.clamp(0.0, 100.0), m.clamp(0.0, 100.0), y.clamp(0.0, 100.0), (k * 100.0).clamp(0.0, 100.0))
+            (
+                c.clamp(0.0, 100.0),
+                m.clamp(0.0, 100.0),
+                y.clamp(0.0, 100.0),
+                (k * 100.0).clamp(0.0, 100.0),
+            )
         }
     }
 
@@ -221,7 +226,11 @@ impl Color {
         let a_val = 500.0 * (fx - fy);
         let b_val = 200.0 * (fy - fz);
 
-        (l.clamp(0.0, 100.0), a_val.clamp(-128.0, 127.0), b_val.clamp(-128.0, 127.0))
+        (
+            l.clamp(0.0, 100.0),
+            a_val.clamp(-128.0, 127.0),
+            b_val.clamp(-128.0, 127.0),
+        )
     }
 
     pub fn from_lab(l: f32, a_val: f32, b_val: f32, a: f32) -> Self {
@@ -270,7 +279,12 @@ impl Color {
 
 impl Default for Color {
     fn default() -> Self {
-        Self { r: 0.0, g: 0.85, b: 1.0, a: 1.0 } // Cyber Neon Cyan
+        Self {
+            r: 0.0,
+            g: 0.85,
+            b: 1.0,
+            a: 1.0,
+        } // Cyber Neon Cyan
     }
 }
 

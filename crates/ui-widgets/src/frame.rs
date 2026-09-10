@@ -35,7 +35,7 @@ pub struct TextSpec {
 pub struct Frame {
     pub instances: Vec<GpuSdfInstance>,
     pub texts: Vec<TextSpec>,
-    /// Non-SDF media content specs (see [`crate::media`]).
+    /// Non-SDF media content specs (see [`MediaSpec`]).
     pub media: Vec<MediaSpec>,
 }
 
@@ -48,13 +48,20 @@ pub struct InteractionState<'a> {
 }
 
 fn get_measure<'a>(interaction: &'a InteractionState<'a>) -> &'a dyn TextMeasure {
-    interaction.measure.unwrap_or(&crate::text_measure::DefaultTextMeasure)
+    interaction
+        .measure
+        .unwrap_or(&crate::text_measure::DefaultTextMeasure)
 }
 
 impl WidgetTree {
     /// Builds the GPU frame (SDF instances + text specs) for the tree rooted at `root`,
     /// evaluated in parent-to-child order.
-    pub fn build_frame(&self, root: NodeId, theme: &Theme, interaction: InteractionState) -> Result<Frame, LayoutError> {
+    pub fn build_frame(
+        &self,
+        root: NodeId,
+        theme: &Theme,
+        interaction: InteractionState,
+    ) -> Result<Frame, LayoutError> {
         let effective = self.effective_bounds(root)?;
         let mut frame = Frame::default();
         self.visit(root, &effective, theme, interaction, &mut frame)?;
@@ -75,7 +82,16 @@ impl WidgetTree {
             let hovered = key.is_some() && key.as_ref() == interaction.hovered;
             let pressed = key.is_some() && key.as_ref() == interaction.pressed;
             let measure = get_measure(&interaction);
-            render_kind(kind, node_effective.visual, node_effective.clip, theme, hovered, pressed, measure, frame);
+            render_kind(
+                kind,
+                node_effective.visual,
+                node_effective.clip,
+                theme,
+                hovered,
+                pressed,
+                measure,
+                frame,
+            );
         }
         for child in self.layout().children(node)? {
             self.visit(child, effective, theme, interaction, frame)?;
@@ -100,7 +116,12 @@ fn press_offset(bounds: [f32; 4], pressed: bool) -> [f32; 4] {
         return bounds;
     }
     const OFFSET: f32 = 2.0;
-    [bounds[0] + OFFSET, bounds[1] + OFFSET, (bounds[2] - OFFSET * 2.0).max(0.0), (bounds[3] - OFFSET * 2.0).max(0.0)]
+    [
+        bounds[0] + OFFSET,
+        bounds[1] + OFFSET,
+        (bounds[2] - OFFSET * 2.0).max(0.0),
+        (bounds[3] - OFFSET * 2.0).max(0.0),
+    ]
 }
 
 fn custom_glass_instance(
@@ -125,9 +146,19 @@ fn custom_glass_instance(
     }
 }
 
-fn glass_instance(bounds: [f32; 4], clip: [f32; 4], bg: [f32; 4], glow: [f32; 4], glow_intensity: f32, theme: &Theme) -> GpuSdfInstance {
+fn glass_instance(
+    bounds: [f32; 4],
+    clip: [f32; 4],
+    bg: [f32; 4],
+    glow: [f32; 4],
+    glow_intensity: f32,
+    theme: &Theme,
+) -> GpuSdfInstance {
     // INV-GPU-3: corner radius must never exceed half the smaller side.
-    let radius = theme.corner_radius.min(bounds[2] * 0.5).min(bounds[3] * 0.5);
+    let radius = theme
+        .corner_radius
+        .min(bounds[2] * 0.5)
+        .min(bounds[3] * 0.5);
     GpuSdfInstance {
         bounds,
         bg_color: bg,
@@ -163,20 +194,43 @@ fn text_spec(
         TextRole::Small => (theme.typography.small_size, theme.typography.body_weight),
         TextRole::Caption => (theme.typography.caption_size, theme.typography.body_weight),
     };
-    TextSpec { text, bounds, font_size, color, align, weight, clip }
+    TextSpec {
+        text,
+        bounds,
+        font_size,
+        color,
+        align,
+        weight,
+        clip,
+    }
 }
 
 /// Minimum scrollbar thumb height in pixels.
 const MIN_SCROLLBAR_THUMB: f32 = 16.0;
 
 /// Proportional scrollbar thumb geometry computation.
-fn scrollbar_thumb_bounds(track: [f32; 4], content_size: f32, viewport_size: f32, offset: f32) -> [f32; 4] {
+fn scrollbar_thumb_bounds(
+    track: [f32; 4],
+    content_size: f32,
+    viewport_size: f32,
+    offset: f32,
+) -> [f32; 4] {
     let track_height = track[3];
-    let visible_ratio = if content_size > 0.0 { (viewport_size / content_size).clamp(0.0, 1.0) } else { 1.0 };
-    let thumb_height = (track_height * visible_ratio).max(MIN_SCROLLBAR_THUMB).min(track_height);
+    let visible_ratio = if content_size > 0.0 {
+        (viewport_size / content_size).clamp(0.0, 1.0)
+    } else {
+        1.0
+    };
+    let thumb_height = (track_height * visible_ratio)
+        .max(MIN_SCROLLBAR_THUMB)
+        .min(track_height);
 
     let max_offset = (content_size - viewport_size).max(0.0);
-    let scroll_ratio = if max_offset > 0.0 { (offset / max_offset).clamp(0.0, 1.0) } else { 0.0 };
+    let scroll_ratio = if max_offset > 0.0 {
+        (offset / max_offset).clamp(0.0, 1.0)
+    } else {
+        0.0
+    };
     let thumb_y = track[1] + scroll_ratio * (track_height - thumb_height);
 
     [track[0], thumb_y, track[2], thumb_height]
@@ -216,31 +270,108 @@ fn render_kind(
             } else {
                 (theme.text_color, TextRole::Body)
             };
-            frame.texts.push(text_spec(text.clone(), inset(bounds, 4.0, 0.0), clip, theme, color, TextAlign::Left, role));
+            frame.texts.push(text_spec(
+                text.clone(),
+                inset(bounds, 4.0, 0.0),
+                clip,
+                theme,
+                color,
+                TextAlign::Left,
+                role,
+            ));
         }
 
         WidgetKind::Button { label, enabled, .. } => {
-            let glow = if *enabled { theme.accent } else { [0.4, 0.4, 0.4, 1.0] };
+            let glow = if *enabled {
+                theme.accent
+            } else {
+                [0.4, 0.4, 0.4, 1.0]
+            };
             let base = if *enabled { theme.glow_intensity } else { 0.0 };
-            let intensity = if *enabled { interactive_glow(base, hovered, pressed, theme) } else { 0.0 };
-            let bg = [theme.glass_bg[0] + 0.05, theme.glass_bg[1] + 0.07, theme.glass_bg[2] + 0.10, 0.85];
-            frame.instances.push(glass_instance(bounds, clip, bg, glow, intensity, theme));
-            frame.texts.push(text_spec(label.clone(), bounds, clip, theme, theme.text_color, TextAlign::Center, TextRole::Body));
+            let intensity = if *enabled {
+                interactive_glow(base, hovered, pressed, theme)
+            } else {
+                0.0
+            };
+            let bg = [
+                theme.glass_bg[0] + 0.05,
+                theme.glass_bg[1] + 0.07,
+                theme.glass_bg[2] + 0.10,
+                0.85,
+            ];
+            frame
+                .instances
+                .push(glass_instance(bounds, clip, bg, glow, intensity, theme));
+            frame.texts.push(text_spec(
+                label.clone(),
+                bounds,
+                clip,
+                theme,
+                theme.text_color,
+                TextAlign::Center,
+                TextRole::Body,
+            ));
         }
 
         WidgetKind::IconButton { icon, enabled, .. } => {
-            let glow = if *enabled { theme.accent } else { [0.4, 0.4, 0.4, 1.0] };
-            let base = if *enabled { theme.glow_intensity * 0.5 } else { 0.0 };
-            let intensity = if *enabled { interactive_glow(base, hovered, pressed, theme) } else { 0.0 };
-            let bg = if hovered {
-                [theme.accent[0] * 0.20, theme.accent[1] * 0.20, theme.accent[2] * 0.20, 0.90]
+            let glow = if *enabled {
+                theme.accent
             } else {
-                [theme.glass_bg[0] * 0.70, theme.glass_bg[1] * 0.70, theme.glass_bg[2] * 0.70, 0.60]
+                [0.4, 0.4, 0.4, 1.0]
             };
-            frame.instances.push(custom_glass_instance(bounds, clip, bg, glow, 6.0, theme.border_width, intensity));
+            let base = if *enabled {
+                theme.glow_intensity * 0.5
+            } else {
+                0.0
+            };
+            let intensity = if *enabled {
+                interactive_glow(base, hovered, pressed, theme)
+            } else {
+                0.0
+            };
+            let bg = if hovered {
+                [
+                    theme.accent[0] * 0.20,
+                    theme.accent[1] * 0.20,
+                    theme.accent[2] * 0.20,
+                    0.90,
+                ]
+            } else {
+                [
+                    theme.glass_bg[0] * 0.70,
+                    theme.glass_bg[1] * 0.70,
+                    theme.glass_bg[2] * 0.70,
+                    0.60,
+                ]
+            };
+            frame.instances.push(custom_glass_instance(
+                bounds,
+                clip,
+                bg,
+                glow,
+                6.0,
+                theme.border_width,
+                intensity,
+            ));
             let glyph = icon.glyph();
-            let icon_color = if *enabled { if hovered { [1.0, 1.0, 1.0, 1.0] } else { theme.text_color } } else { theme.text_muted };
-            frame.texts.push(text_spec(glyph.to_string(), bounds, clip, theme, icon_color, TextAlign::Center, TextRole::Body));
+            let icon_color = if *enabled {
+                if hovered {
+                    [1.0, 1.0, 1.0, 1.0]
+                } else {
+                    theme.text_color
+                }
+            } else {
+                theme.text_muted
+            };
+            frame.texts.push(text_spec(
+                glyph.to_string(),
+                bounds,
+                clip,
+                theme,
+                icon_color,
+                TextAlign::Center,
+                TextRole::Body,
+            ));
         }
 
         WidgetKind::Icon { kind, size, color } => {
@@ -257,13 +388,33 @@ fn render_kind(
             });
         }
 
-        WidgetKind::TableHeader { title, sorted_asc, .. } => {
+        WidgetKind::TableHeader {
+            title, sorted_asc, ..
+        } => {
             let bg = if hovered {
-                [theme.accent[0] * 0.18, theme.accent[1] * 0.18, theme.accent[2] * 0.18, 0.85]
+                [
+                    theme.accent[0] * 0.18,
+                    theme.accent[1] * 0.18,
+                    theme.accent[2] * 0.18,
+                    0.85,
+                ]
             } else {
-                [theme.glass_bg[0] * 0.85, theme.glass_bg[1] * 0.85, theme.glass_bg[2] * 0.85, 0.75]
+                [
+                    theme.glass_bg[0] * 0.85,
+                    theme.glass_bg[1] * 0.85,
+                    theme.glass_bg[2] * 0.85,
+                    0.75,
+                ]
             };
-            frame.instances.push(custom_glass_instance(bounds, clip, bg, theme.accent_secondary, 0.0, 0.5, if hovered { 0.15 } else { 0.0 }));
+            frame.instances.push(custom_glass_instance(
+                bounds,
+                clip,
+                bg,
+                theme.accent_secondary,
+                0.0,
+                0.5,
+                if hovered { 0.15 } else { 0.0 },
+            ));
 
             let sort_indicator = match sorted_asc {
                 Some(true) => " ▴",
@@ -272,73 +423,224 @@ fn render_kind(
             };
             let header_text = format!("{}{}", title, sort_indicator);
             let text_bounds = [bounds[0] + 8.0, bounds[1], bounds[2] - 16.0, bounds[3]];
-            let text_color = if sorted_asc.is_some() { theme.accent } else if hovered { [1.0, 1.0, 1.0, 1.0] } else { theme.text_color };
-            frame.texts.push(text_spec(header_text, text_bounds, clip, theme, text_color, TextAlign::Left, TextRole::Small));
+            let text_color = if sorted_asc.is_some() {
+                theme.accent
+            } else if hovered {
+                [1.0, 1.0, 1.0, 1.0]
+            } else {
+                theme.text_color
+            };
+            frame.texts.push(text_spec(
+                header_text,
+                text_bounds,
+                clip,
+                theme,
+                text_color,
+                TextAlign::Left,
+                TextRole::Small,
+            ));
         }
 
-        WidgetKind::TableCell { text, badge, selected, row_index, .. } => {
+        WidgetKind::TableCell {
+            text,
+            badge,
+            selected,
+            row_index,
+            ..
+        } => {
             let is_even = row_index % 2 == 0;
             let bg = if *selected {
-                [theme.accent[0] * 0.22, theme.accent[1] * 0.22, theme.accent[2] * 0.22, 0.88]
+                [
+                    theme.accent[0] * 0.22,
+                    theme.accent[1] * 0.22,
+                    theme.accent[2] * 0.22,
+                    0.88,
+                ]
             } else if hovered {
-                [theme.accent[0] * 0.10, theme.accent[1] * 0.10, theme.accent[2] * 0.10, 0.50]
+                [
+                    theme.accent[0] * 0.10,
+                    theme.accent[1] * 0.10,
+                    theme.accent[2] * 0.10,
+                    0.50,
+                ]
             } else if is_even {
-                [theme.glass_bg[0] * 0.40, theme.glass_bg[1] * 0.40, theme.glass_bg[2] * 0.40, 0.35]
+                [
+                    theme.glass_bg[0] * 0.40,
+                    theme.glass_bg[1] * 0.40,
+                    theme.glass_bg[2] * 0.40,
+                    0.35,
+                ]
             } else {
                 [0.0, 0.0, 0.0, 0.0]
             };
             if bg[3] > 0.0 {
-                frame.instances.push(custom_glass_instance(bounds, clip, bg, theme.accent, 0.0, if *selected { 0.5 } else { 0.0 }, if *selected { 0.2 } else { 0.0 }));
+                frame.instances.push(custom_glass_instance(
+                    bounds,
+                    clip,
+                    bg,
+                    theme.accent,
+                    0.0,
+                    if *selected { 0.5 } else { 0.0 },
+                    if *selected { 0.2 } else { 0.0 },
+                ));
             }
 
             let badge_reserve = match badge {
                 crate::kind::ListItemBadge::Success | crate::kind::ListItemBadge::Warning => 22.0,
-                crate::kind::ListItemBadge::Active(_) | crate::kind::ListItemBadge::Custom { .. } => 64.0,
+                crate::kind::ListItemBadge::Active(_)
+                | crate::kind::ListItemBadge::Custom { .. } => 64.0,
                 crate::kind::ListItemBadge::None => 16.0,
             };
 
             if !text.is_empty() {
-                let text_color = if *selected { [1.0, 1.0, 1.0, 1.0] } else if hovered { theme.text_color } else { [0.88, 0.92, 0.98, 1.0] };
+                let text_color = if *selected {
+                    [1.0, 1.0, 1.0, 1.0]
+                } else if hovered {
+                    theme.text_color
+                } else {
+                    [0.88, 0.92, 0.98, 1.0]
+                };
                 let text_w = (bounds[2] - badge_reserve).max(10.0);
                 let text_bounds = [bounds[0] + 8.0, bounds[1], text_w, bounds[3]];
-                frame.texts.push(text_spec(text.clone(), text_bounds, clip, theme, text_color, TextAlign::Left, TextRole::Small));
+                frame.texts.push(text_spec(
+                    text.clone(),
+                    text_bounds,
+                    clip,
+                    theme,
+                    text_color,
+                    TextAlign::Left,
+                    TextRole::Small,
+                ));
             }
 
             match badge {
                 crate::kind::ListItemBadge::Success => {
                     let dot_size = 8.0;
-                    let dot_bounds = [bounds[0] + bounds[2] - dot_size - 10.0, bounds[1] + (bounds[3] - dot_size) * 0.5, dot_size, dot_size];
-                    frame.instances.push(glass_instance(dot_bounds, clip, theme.success, theme.success, 0.2, theme));
+                    let dot_bounds = [
+                        bounds[0] + bounds[2] - dot_size - 10.0,
+                        bounds[1] + (bounds[3] - dot_size) * 0.5,
+                        dot_size,
+                        dot_size,
+                    ];
+                    frame.instances.push(glass_instance(
+                        dot_bounds,
+                        clip,
+                        theme.success,
+                        theme.success,
+                        0.2,
+                        theme,
+                    ));
                 }
                 crate::kind::ListItemBadge::Warning => {
                     let dot_size = 8.0;
-                    let dot_bounds = [bounds[0] + bounds[2] - dot_size - 10.0, bounds[1] + (bounds[3] - dot_size) * 0.5, dot_size, dot_size];
-                    frame.instances.push(glass_instance(dot_bounds, clip, theme.warning, theme.warning, 0.2, theme));
+                    let dot_bounds = [
+                        bounds[0] + bounds[2] - dot_size - 10.0,
+                        bounds[1] + (bounds[3] - dot_size) * 0.5,
+                        dot_size,
+                        dot_size,
+                    ];
+                    frame.instances.push(glass_instance(
+                        dot_bounds,
+                        clip,
+                        theme.warning,
+                        theme.warning,
+                        0.2,
+                        theme,
+                    ));
                 }
                 crate::kind::ListItemBadge::Active(lbl) => {
                     let badge_w = 54.0;
                     let badge_h = 18.0;
-                    let badge_bounds = [bounds[0] + bounds[2] - badge_w - 6.0, bounds[1] + (bounds[3] - badge_h) * 0.5, badge_w, badge_h];
-                    frame.instances.push(glass_instance(badge_bounds, clip, [theme.accent[0]*0.15, theme.accent[1]*0.15, theme.accent[2]*0.15, 0.8], theme.accent, 0.15, theme));
-                    frame.texts.push(text_spec(lbl.clone(), badge_bounds, clip, theme, theme.accent, TextAlign::Center, TextRole::Caption));
+                    let badge_bounds = [
+                        bounds[0] + bounds[2] - badge_w - 6.0,
+                        bounds[1] + (bounds[3] - badge_h) * 0.5,
+                        badge_w,
+                        badge_h,
+                    ];
+                    frame.instances.push(glass_instance(
+                        badge_bounds,
+                        clip,
+                        [
+                            theme.accent[0] * 0.15,
+                            theme.accent[1] * 0.15,
+                            theme.accent[2] * 0.15,
+                            0.8,
+                        ],
+                        theme.accent,
+                        0.15,
+                        theme,
+                    ));
+                    frame.texts.push(text_spec(
+                        lbl.clone(),
+                        badge_bounds,
+                        clip,
+                        theme,
+                        theme.accent,
+                        TextAlign::Center,
+                        TextRole::Caption,
+                    ));
                 }
                 _ => {}
             }
         }
 
-        WidgetKind::AccordionHeader { title, subtitle, expanded, .. } => {
-            let intensity = interactive_glow(if *expanded { theme.glow_intensity * 0.6 } else { 0.0 }, hovered, pressed, theme);
-            let border_color = if *expanded { theme.accent } else { theme.accent_secondary };
-            let bg = if hovered {
-                [theme.glass_bg[0] + 0.05, theme.glass_bg[1] + 0.07, theme.glass_bg[2] + 0.11, 0.88]
+        WidgetKind::AccordionHeader {
+            title,
+            subtitle,
+            expanded,
+            ..
+        } => {
+            let intensity = interactive_glow(
+                if *expanded {
+                    theme.glow_intensity * 0.6
+                } else {
+                    0.0
+                },
+                hovered,
+                pressed,
+                theme,
+            );
+            let border_color = if *expanded {
+                theme.accent
             } else {
-                [theme.glass_bg[0] + 0.02, theme.glass_bg[1] + 0.03, theme.glass_bg[2] + 0.05, 0.75]
+                theme.accent_secondary
             };
-            frame.instances.push(custom_glass_instance(bounds, clip, bg, border_color, 8.0, theme.border_width, intensity));
+            let bg = if hovered {
+                [
+                    theme.glass_bg[0] + 0.05,
+                    theme.glass_bg[1] + 0.07,
+                    theme.glass_bg[2] + 0.11,
+                    0.88,
+                ]
+            } else {
+                [
+                    theme.glass_bg[0] + 0.02,
+                    theme.glass_bg[1] + 0.03,
+                    theme.glass_bg[2] + 0.05,
+                    0.75,
+                ]
+            };
+            frame.instances.push(custom_glass_instance(
+                bounds,
+                clip,
+                bg,
+                border_color,
+                8.0,
+                theme.border_width,
+                intensity,
+            ));
 
             let arrow = if *expanded { "▼" } else { "▶" };
             let arrow_bounds = [bounds[0] + 12.0, bounds[1], 16.0, bounds[3]];
-            frame.texts.push(text_spec(arrow.to_string(), arrow_bounds, clip, theme, theme.accent, TextAlign::Center, TextRole::Caption));
+            frame.texts.push(text_spec(
+                arrow.to_string(),
+                arrow_bounds,
+                clip,
+                theme,
+                theme.accent,
+                TextAlign::Center,
+                TextRole::Caption,
+            ));
 
             if let Some(sub) = subtitle {
                 let title_h = 18.0;
@@ -347,37 +649,98 @@ fn render_kind(
                 let start_y = bounds[1] + (bounds[3] - total_text_h) * 0.5;
 
                 let title_bounds = [bounds[0] + 34.0, start_y, bounds[2] - 46.0, title_h];
-                frame.texts.push(text_spec(title.clone(), title_bounds, clip, theme, [1.0, 1.0, 1.0, 1.0], TextAlign::Left, TextRole::Body));
+                frame.texts.push(text_spec(
+                    title.clone(),
+                    title_bounds,
+                    clip,
+                    theme,
+                    [1.0, 1.0, 1.0, 1.0],
+                    TextAlign::Left,
+                    TextRole::Body,
+                ));
 
-                let sub_bounds = [bounds[0] + 34.0, start_y + title_h + 2.0, bounds[2] - 46.0, sub_h];
-                frame.texts.push(text_spec(sub.clone(), sub_bounds, clip, theme, theme.text_muted, TextAlign::Left, TextRole::Caption));
+                let sub_bounds = [
+                    bounds[0] + 34.0,
+                    start_y + title_h + 2.0,
+                    bounds[2] - 46.0,
+                    sub_h,
+                ];
+                frame.texts.push(text_spec(
+                    sub.clone(),
+                    sub_bounds,
+                    clip,
+                    theme,
+                    theme.text_muted,
+                    TextAlign::Left,
+                    TextRole::Caption,
+                ));
             } else {
                 let title_bounds = [bounds[0] + 34.0, bounds[1], bounds[2] - 46.0, bounds[3]];
-                frame.texts.push(text_spec(title.clone(), title_bounds, clip, theme, [1.0, 1.0, 1.0, 1.0], TextAlign::Left, TextRole::Body));
+                frame.texts.push(text_spec(
+                    title.clone(),
+                    title_bounds,
+                    clip,
+                    theme,
+                    [1.0, 1.0, 1.0, 1.0],
+                    TextAlign::Left,
+                    TextRole::Body,
+                ));
             }
         }
 
         WidgetKind::Checkbox { checked, .. } => {
             let bg = if *checked {
-                [theme.accent[0] * 0.35, theme.accent[1] * 0.35, theme.accent[2] * 0.35, 0.95]
+                [
+                    theme.accent[0] * 0.35,
+                    theme.accent[1] * 0.35,
+                    theme.accent[2] * 0.35,
+                    0.95,
+                ]
             } else {
                 theme.glass_bg
             };
-            let base = if *checked { theme.glow_intensity_hover * 0.8 } else { 0.0 };
+            let base = if *checked {
+                theme.glow_intensity_hover * 0.8
+            } else {
+                0.0
+            };
             let intensity = interactive_glow(base, hovered, pressed, theme);
-            frame.instances.push(glass_instance(bounds, clip, bg, theme.accent, intensity, theme));
+            frame.instances.push(glass_instance(
+                bounds,
+                clip,
+                bg,
+                theme.accent,
+                intensity,
+                theme,
+            ));
         }
 
         WidgetKind::Toggle { active, .. } => {
             let bg = if *active {
-                [theme.accent[0] * 0.25, theme.accent[1] * 0.25, theme.accent[2] * 0.25, 0.85]
+                [
+                    theme.accent[0] * 0.25,
+                    theme.accent[1] * 0.25,
+                    theme.accent[2] * 0.25,
+                    0.85,
+                ]
             } else {
-                [theme.glass_bg[0] * 0.6, theme.glass_bg[1] * 0.6, theme.glass_bg[2] * 0.6, 0.5]
+                [
+                    theme.glass_bg[0] * 0.6,
+                    theme.glass_bg[1] * 0.6,
+                    theme.glass_bg[2] * 0.6,
+                    0.5,
+                ]
             };
-            let glow = if *active { theme.accent } else { [0.3, 0.3, 0.3, 1.0] };
+            let glow = if *active {
+                theme.accent
+            } else {
+                [0.3, 0.3, 0.3, 1.0]
+            };
             let base = if *active { theme.glow_intensity } else { 0.0 };
             let intensity = interactive_glow(base, hovered, pressed, theme);
-            frame.instances.push(glass_instance(bounds, clip, bg, glow, intensity, theme));
+            frame
+                .instances
+                .push(glass_instance(bounds, clip, bg, glow, intensity, theme));
 
             let thumb_size = (bounds[3] - 6.0).max(4.0);
             let thumb_x = if *active {
@@ -387,12 +750,29 @@ fn render_kind(
             };
             let thumb_y = bounds[1] + 3.0;
             let thumb_bounds = [thumb_x, thumb_y, thumb_size, thumb_size];
-            let thumb_color = if *active { theme.accent } else { [0.65, 0.72, 0.82, 1.0] };
+            let thumb_color = if *active {
+                theme.accent
+            } else {
+                [0.65, 0.72, 0.82, 1.0]
+            };
             let thumb_glow = if *active { 0.30 } else { 0.0 };
-            frame.instances.push(glass_instance(thumb_bounds, clip, thumb_color, thumb_color, thumb_glow, theme));
+            frame.instances.push(glass_instance(
+                thumb_bounds,
+                clip,
+                thumb_color,
+                thumb_color,
+                thumb_glow,
+                theme,
+            ));
         }
 
-        WidgetKind::Slider { min, max, value, orientation, .. } => {
+        WidgetKind::Slider {
+            min,
+            max,
+            value,
+            orientation,
+            ..
+        } => {
             let range = (max - min).max(1.0e-5);
             let ratio = ((value - min) / range).clamp(0.0, 1.0);
             let intensity = interactive_glow(theme.glow_intensity * 0.8, hovered, pressed, theme);
@@ -402,12 +782,26 @@ fn render_kind(
                     let track_h = 6.0;
                     let track_y = bounds[1] + (bounds[3] - track_h) * 0.5;
                     let track_bounds = [bounds[0], track_y, bounds[2], track_h];
-                    frame.instances.push(glass_instance(track_bounds, clip, theme.glass_bg, theme.accent_secondary, 0.0, theme));
+                    frame.instances.push(glass_instance(
+                        track_bounds,
+                        clip,
+                        theme.glass_bg,
+                        theme.accent_secondary,
+                        0.0,
+                        theme,
+                    ));
 
                     if ratio > 0.0 {
                         let fill_w = bounds[2] * ratio;
                         let fill_bounds = [bounds[0], track_y, fill_w, track_h];
-                        frame.instances.push(glass_instance(fill_bounds, clip, theme.accent, theme.accent, 0.35, theme));
+                        frame.instances.push(glass_instance(
+                            fill_bounds,
+                            clip,
+                            theme.accent,
+                            theme.accent,
+                            0.35,
+                            theme,
+                        ));
                     }
 
                     let thumb_w = 14.0;
@@ -415,19 +809,40 @@ fn render_kind(
                     let thumb_x = bounds[0] + ratio * bounds[2] - thumb_w * 0.5;
                     let thumb_y = bounds[1] + (bounds[3] - thumb_h) * 0.5;
                     let thumb_bounds = [thumb_x, thumb_y, thumb_w, thumb_h];
-                    frame.instances.push(glass_instance(thumb_bounds, clip, [0.95, 0.98, 1.0, 1.0], theme.accent, intensity, theme));
+                    frame.instances.push(glass_instance(
+                        thumb_bounds,
+                        clip,
+                        [0.95, 0.98, 1.0, 1.0],
+                        theme.accent,
+                        intensity,
+                        theme,
+                    ));
                 }
                 crate::kind::SliderOrientation::Vertical => {
                     let track_w = 6.0;
                     let track_x = bounds[0] + (bounds[2] - track_w) * 0.5;
                     let track_bounds = [track_x, bounds[1], track_w, bounds[3]];
-                    frame.instances.push(glass_instance(track_bounds, clip, theme.glass_bg, theme.accent_secondary, 0.0, theme));
+                    frame.instances.push(glass_instance(
+                        track_bounds,
+                        clip,
+                        theme.glass_bg,
+                        theme.accent_secondary,
+                        0.0,
+                        theme,
+                    ));
 
                     if ratio > 0.0 {
                         let fill_h = bounds[3] * ratio;
                         let fill_y = bounds[1] + bounds[3] - fill_h;
                         let fill_bounds = [track_x, fill_y, track_w, fill_h];
-                        frame.instances.push(glass_instance(fill_bounds, clip, theme.accent, theme.accent, 0.35, theme));
+                        frame.instances.push(glass_instance(
+                            fill_bounds,
+                            clip,
+                            theme.accent,
+                            theme.accent,
+                            0.35,
+                            theme,
+                        ));
                     }
 
                     let thumb_w = (bounds[2] - 4.0).max(20.0);
@@ -435,37 +850,86 @@ fn render_kind(
                     let thumb_x = bounds[0] + (bounds[2] - thumb_w) * 0.5;
                     let thumb_y = bounds[1] + (1.0 - ratio) * bounds[3] - thumb_h * 0.5;
                     let thumb_bounds = [thumb_x, thumb_y, thumb_w, thumb_h];
-                    frame.instances.push(glass_instance(thumb_bounds, clip, [0.95, 0.98, 1.0, 1.0], theme.accent, intensity, theme));
+                    frame.instances.push(glass_instance(
+                        thumb_bounds,
+                        clip,
+                        [0.95, 0.98, 1.0, 1.0],
+                        theme.accent,
+                        intensity,
+                        theme,
+                    ));
                 }
             }
         }
 
-        WidgetKind::ProgressBar { progress, kind, label } => {
+        WidgetKind::ProgressBar {
+            progress,
+            kind,
+            label,
+        } => {
             let ratio = progress.clamp(0.0, 1.0);
             match kind {
                 crate::kind::ProgressKind::Horizontal => {
                     let track_h = (bounds[3] - 2.0).max(4.0);
                     let track_y = bounds[1] + (bounds[3] - track_h) * 0.5;
                     let track_bounds = [bounds[0], track_y, bounds[2], track_h];
-                    frame.instances.push(glass_instance(track_bounds, clip, [theme.glass_bg[0] * 0.7, theme.glass_bg[1] * 0.7, theme.glass_bg[2] * 0.7, 0.6], theme.accent_secondary, 0.0, theme));
+                    frame.instances.push(glass_instance(
+                        track_bounds,
+                        clip,
+                        [
+                            theme.glass_bg[0] * 0.7,
+                            theme.glass_bg[1] * 0.7,
+                            theme.glass_bg[2] * 0.7,
+                            0.6,
+                        ],
+                        theme.accent_secondary,
+                        0.0,
+                        theme,
+                    ));
 
                     if ratio > 0.0 {
                         let fill_w = (bounds[2] * ratio).max(4.0);
                         let fill_bounds = [bounds[0], track_y, fill_w, track_h];
-                        frame.instances.push(glass_instance(fill_bounds, clip, theme.accent, theme.accent, 0.4, theme));
+                        frame.instances.push(glass_instance(
+                            fill_bounds,
+                            clip,
+                            theme.accent,
+                            theme.accent,
+                            0.4,
+                            theme,
+                        ));
                     }
                 }
                 crate::kind::ProgressKind::Vertical => {
                     let track_w = (bounds[2] - 2.0).max(4.0);
                     let track_x = bounds[0] + (bounds[2] - track_w) * 0.5;
                     let track_bounds = [track_x, bounds[1], track_w, bounds[3]];
-                    frame.instances.push(glass_instance(track_bounds, clip, [theme.glass_bg[0] * 0.7, theme.glass_bg[1] * 0.7, theme.glass_bg[2] * 0.7, 0.6], theme.accent_secondary, 0.0, theme));
+                    frame.instances.push(glass_instance(
+                        track_bounds,
+                        clip,
+                        [
+                            theme.glass_bg[0] * 0.7,
+                            theme.glass_bg[1] * 0.7,
+                            theme.glass_bg[2] * 0.7,
+                            0.6,
+                        ],
+                        theme.accent_secondary,
+                        0.0,
+                        theme,
+                    ));
 
                     if ratio > 0.0 {
                         let fill_h = (bounds[3] * ratio).max(4.0);
                         let fill_y = bounds[1] + bounds[3] - fill_h;
                         let fill_bounds = [track_x, fill_y, track_w, fill_h];
-                        frame.instances.push(glass_instance(fill_bounds, clip, theme.accent, theme.accent, 0.4, theme));
+                        frame.instances.push(glass_instance(
+                            fill_bounds,
+                            clip,
+                            theme.accent,
+                            theme.accent,
+                            0.4,
+                            theme,
+                        ));
                     }
                 }
                 crate::kind::ProgressKind::Ring => {
@@ -477,10 +941,31 @@ fn render_kind(
                     let ring_bounds = [x, y, size, size];
 
                     // Outer circle track
-                    let ring_glow = if ratio > 0.0 { theme.glow_intensity * 0.6 * ratio } else { 0.0 };
-                    let border_color = if ratio > 0.0 { theme.accent } else { theme.accent_secondary };
-                    let ring_bg = [theme.glass_bg[0] * 0.5, theme.glass_bg[1] * 0.5, theme.glass_bg[2] * 0.5, 0.85];
-                    frame.instances.push(custom_glass_instance(ring_bounds, clip, ring_bg, border_color, radius, 3.5, ring_glow));
+                    let ring_glow = if ratio > 0.0 {
+                        theme.glow_intensity * 0.6 * ratio
+                    } else {
+                        0.0
+                    };
+                    let border_color = if ratio > 0.0 {
+                        theme.accent
+                    } else {
+                        theme.accent_secondary
+                    };
+                    let ring_bg = [
+                        theme.glass_bg[0] * 0.5,
+                        theme.glass_bg[1] * 0.5,
+                        theme.glass_bg[2] * 0.5,
+                        0.85,
+                    ];
+                    frame.instances.push(custom_glass_instance(
+                        ring_bounds,
+                        clip,
+                        ring_bg,
+                        border_color,
+                        radius,
+                        3.5,
+                        ring_glow,
+                    ));
 
                     // Inner core cutout
                     let hole_size = (size - 18.0).max(10.0);
@@ -488,14 +973,37 @@ fn render_kind(
                     let hole_y = bounds[1] + (bounds[3] - hole_size) * 0.5;
                     let hole_radius = hole_size * 0.5;
                     let hole_bounds = [hole_x, hole_y, hole_size, hole_size];
-                    frame.instances.push(custom_glass_instance(hole_bounds, clip, theme.glass_bg, [theme.accent_secondary[0], theme.accent_secondary[1], theme.accent_secondary[2], 0.3], hole_radius, 1.0, 0.0));
+                    frame.instances.push(custom_glass_instance(
+                        hole_bounds,
+                        clip,
+                        theme.glass_bg,
+                        [
+                            theme.accent_secondary[0],
+                            theme.accent_secondary[1],
+                            theme.accent_secondary[2],
+                            0.3,
+                        ],
+                        hole_radius,
+                        1.0,
+                        0.0,
+                    ));
 
                     // Center percentage or label text
-                    let display_text = label.clone().unwrap_or_else(|| format!("{:.0}%", ratio * 100.0));
+                    let display_text = label
+                        .clone()
+                        .unwrap_or_else(|| format!("{:.0}%", ratio * 100.0));
                     let text_h = 16.0;
                     let text_y = bounds[1] + (bounds[3] - text_h) * 0.5;
                     let text_bounds = [hole_x, text_y, hole_size, text_h];
-                    frame.texts.push(text_spec(display_text, text_bounds, clip, theme, theme.text_color, TextAlign::Center, TextRole::Caption));
+                    frame.texts.push(text_spec(
+                        display_text,
+                        text_bounds,
+                        clip,
+                        theme,
+                        theme.text_color,
+                        TextAlign::Center,
+                        TextRole::Caption,
+                    ));
                 }
                 crate::kind::ProgressKind::Pie => {
                     // Filled circular disc progress
@@ -512,22 +1020,59 @@ fn render_kind(
                         theme.accent[2] * (0.2 + ratio * 0.5),
                         0.85 + ratio * 0.1,
                     ];
-                    frame.instances.push(custom_glass_instance(pie_bounds, clip, pie_bg, theme.accent, radius, 2.0, pie_glow));
+                    frame.instances.push(custom_glass_instance(
+                        pie_bounds,
+                        clip,
+                        pie_bg,
+                        theme.accent,
+                        radius,
+                        2.0,
+                        pie_glow,
+                    ));
 
-                    let display_text = label.clone().unwrap_or_else(|| format!("{:.0}%", ratio * 100.0));
+                    let display_text = label
+                        .clone()
+                        .unwrap_or_else(|| format!("{:.0}%", ratio * 100.0));
                     let text_h = 16.0;
                     let text_y = bounds[1] + (bounds[3] - text_h) * 0.5;
                     let text_bounds = [x, text_y, size, text_h];
-                    frame.texts.push(text_spec(display_text, text_bounds, clip, theme, [1.0, 1.0, 1.0, 1.0], TextAlign::Center, TextRole::Caption));
+                    frame.texts.push(text_spec(
+                        display_text,
+                        text_bounds,
+                        clip,
+                        theme,
+                        [1.0, 1.0, 1.0, 1.0],
+                        TextAlign::Center,
+                        TextRole::Caption,
+                    ));
                 }
             }
         }
 
-        WidgetKind::MetricCard { title, value, delta } => {
-            frame.instances.push(glass_instance(bounds, clip, theme.glass_bg, theme.accent_secondary, 0.05, theme));
+        WidgetKind::MetricCard {
+            title,
+            value,
+            delta,
+        } => {
+            frame.instances.push(glass_instance(
+                bounds,
+                clip,
+                theme.glass_bg,
+                theme.accent_secondary,
+                0.05,
+                theme,
+            ));
 
             let title_bounds = [bounds[0] + 12.0, bounds[1] + 6.0, bounds[2] - 70.0, 16.0];
-            frame.texts.push(text_spec(title.clone(), title_bounds, clip, theme, theme.text_muted, TextAlign::Left, TextRole::Caption));
+            frame.texts.push(text_spec(
+                title.clone(),
+                title_bounds,
+                clip,
+                theme,
+                theme.text_muted,
+                TextAlign::Left,
+                TextRole::Caption,
+            ));
 
             let val_h = (bounds[3] - 26.0).max(18.0);
             let val_bounds = [bounds[0] + 12.0, bounds[1] + 20.0, bounds[2] - 24.0, val_h];
@@ -544,25 +1089,74 @@ fn render_kind(
             if let Some((delta_text, positive)) = delta {
                 let badge_w = 46.0;
                 let badge_h = 18.0;
-                let badge_bounds = [bounds[0] + bounds[2] - badge_w - 10.0, bounds[1] + 8.0, badge_w, badge_h];
-                let color = if *positive { theme.success } else { theme.danger };
+                let badge_bounds = [
+                    bounds[0] + bounds[2] - badge_w - 10.0,
+                    bounds[1] + 8.0,
+                    badge_w,
+                    badge_h,
+                ];
+                let color = if *positive {
+                    theme.success
+                } else {
+                    theme.danger
+                };
                 let bg = [color[0] * 0.15, color[1] * 0.15, color[2] * 0.15, 0.75];
-                frame.instances.push(glass_instance(badge_bounds, clip, bg, color, 0.15, theme));
-                frame.texts.push(text_spec(delta_text.clone(), badge_bounds, clip, theme, color, TextAlign::Center, TextRole::Caption));
+                frame
+                    .instances
+                    .push(glass_instance(badge_bounds, clip, bg, color, 0.15, theme));
+                frame.texts.push(text_spec(
+                    delta_text.clone(),
+                    badge_bounds,
+                    clip,
+                    theme,
+                    color,
+                    TextAlign::Center,
+                    TextRole::Caption,
+                ));
             }
         }
 
-        WidgetKind::TextInput { value, placeholder, focused, cursor, selection, .. } => {
-            let base = if *focused { theme.glow_intensity_hover * 1.1 } else { theme.glow_intensity * 0.4 };
+        WidgetKind::TextInput {
+            value,
+            placeholder,
+            focused,
+            cursor,
+            selection,
+            ..
+        } => {
+            let base = if *focused {
+                theme.glow_intensity_hover * 1.1
+            } else {
+                theme.glow_intensity * 0.4
+            };
             let intensity = interactive_glow(base, hovered, pressed, theme);
-            let border_accent = if *focused { theme.accent } else { theme.accent_secondary };
-            frame.instances.push(glass_instance(bounds, clip, theme.glass_bg, border_accent, intensity, theme));
+            let border_accent = if *focused {
+                theme.accent
+            } else {
+                theme.accent_secondary
+            };
+            frame.instances.push(glass_instance(
+                bounds,
+                clip,
+                theme.glass_bg,
+                border_accent,
+                intensity,
+                theme,
+            ));
             let (text, color) = if value.is_empty() {
                 (placeholder.clone(), theme.text_muted)
             } else {
                 (value.clone(), theme.text_color)
             };
-            frame.texts.push(text_spec(text, inset(bounds, 12.0, 0.0), clip, theme, color, TextAlign::Left, TextRole::Body));
+            frame.texts.push(text_spec(
+                text,
+                inset(bounds, 12.0, 0.0),
+                clip,
+                theme,
+                color,
+                TextAlign::Left,
+                TextRole::Body,
+            ));
 
             if *focused {
                 let cursor_h = (bounds[3] - 14.0).max(12.0);
@@ -573,38 +1167,113 @@ fn render_kind(
                     if s_start != s_end {
                         let min_s = (*s_start).min(*s_end).min(value.len());
                         let max_s = (*s_start).max(*s_end).min(value.len());
-                        let x1 = bounds[0] + 12.0 + measure.caret_x(value, &theme.typography.family, theme.typography.body_size, min_s);
-                        let x2 = bounds[0] + 12.0 + measure.caret_x(value, &theme.typography.family, theme.typography.body_size, max_s);
+                        let x1 = bounds[0]
+                            + 12.0
+                            + measure.caret_x(
+                                value,
+                                &theme.typography.family,
+                                theme.typography.body_size,
+                                min_s,
+                            );
+                        let x2 = bounds[0]
+                            + 12.0
+                            + measure.caret_x(
+                                value,
+                                &theme.typography.family,
+                                theme.typography.body_size,
+                                max_s,
+                            );
                         let sel_bounds = [x1, cursor_y, (x2 - x1).max(2.0), cursor_h];
                         let sel_bg = [1.0 / 255.0, 35.0 / 255.0, 45.0 / 255.0, 0.90];
-                        let sel_border = [theme.accent[0] * 0.7, theme.accent[1] * 0.7, theme.accent[2] * 0.7, 0.8];
-                        frame.instances.push(custom_glass_instance(sel_bounds, clip, sel_bg, sel_border, 2.0, 1.0, 0.15));
+                        let sel_border = [
+                            theme.accent[0] * 0.7,
+                            theme.accent[1] * 0.7,
+                            theme.accent[2] * 0.7,
+                            0.8,
+                        ];
+                        frame.instances.push(custom_glass_instance(
+                            sel_bounds, clip, sel_bg, sel_border, 2.0, 1.0, 0.15,
+                        ));
                     }
                 }
 
                 // Caret line at exact cursor index
                 let safe_cursor = (*cursor).min(value.len());
-                let text_w = measure.caret_x(value, &theme.typography.family, theme.typography.body_size, safe_cursor);
+                let text_w = measure.caret_x(
+                    value,
+                    &theme.typography.family,
+                    theme.typography.body_size,
+                    safe_cursor,
+                );
                 let cursor_x = (bounds[0] + 12.0 + text_w).min(bounds[0] + bounds[2] - 14.0);
                 let cursor_bounds = [cursor_x, cursor_y, 2.0, cursor_h];
-                frame.instances.push(glass_instance(cursor_bounds, clip, theme.accent, theme.accent, 0.6, theme));
+                frame.instances.push(glass_instance(
+                    cursor_bounds,
+                    clip,
+                    theme.accent,
+                    theme.accent,
+                    0.6,
+                    theme,
+                ));
             }
         }
 
-        WidgetKind::TextArea { value, placeholder, focused, line_numbers, cursor, selection, .. } => {
-            let base = if *focused { theme.glow_intensity_hover * 1.1 } else { theme.glow_intensity * 0.4 };
+        WidgetKind::TextArea {
+            value,
+            placeholder,
+            focused,
+            line_numbers,
+            cursor,
+            selection,
+            ..
+        } => {
+            let base = if *focused {
+                theme.glow_intensity_hover * 1.1
+            } else {
+                theme.glow_intensity * 0.4
+            };
             let intensity = interactive_glow(base, hovered, pressed, theme);
-            let border_accent = if *focused { theme.accent } else { theme.accent_secondary };
-            frame.instances.push(glass_instance(bounds, clip, theme.glass_bg, border_accent, intensity, theme));
+            let border_accent = if *focused {
+                theme.accent
+            } else {
+                theme.accent_secondary
+            };
+            frame.instances.push(glass_instance(
+                bounds,
+                clip,
+                theme.glass_bg,
+                border_accent,
+                intensity,
+                theme,
+            ));
 
             let gutter_w = if *line_numbers { 32.0 } else { 0.0 };
             if *line_numbers {
                 let gutter_bounds = [bounds[0], bounds[1], gutter_w, bounds[3]];
-                let gutter_bg = [theme.glass_bg[0] * 0.5, theme.glass_bg[1] * 0.5, theme.glass_bg[2] * 0.5, 0.65];
-                frame.instances.push(glass_instance(gutter_bounds, clip, gutter_bg, [0.0, 0.0, 0.0, 0.0], 0.0, theme));
+                let gutter_bg = [
+                    theme.glass_bg[0] * 0.5,
+                    theme.glass_bg[1] * 0.5,
+                    theme.glass_bg[2] * 0.5,
+                    0.65,
+                ];
+                frame.instances.push(glass_instance(
+                    gutter_bounds,
+                    clip,
+                    gutter_bg,
+                    [0.0, 0.0, 0.0, 0.0],
+                    0.0,
+                    theme,
+                ));
 
                 let div_bounds = [bounds[0] + gutter_w, bounds[1], 1.0, bounds[3]];
-                frame.instances.push(glass_instance(div_bounds, clip, theme.accent_secondary, theme.accent_secondary, 0.0, theme));
+                frame.instances.push(glass_instance(
+                    div_bounds,
+                    clip,
+                    theme.accent_secondary,
+                    theme.accent_secondary,
+                    0.0,
+                    theme,
+                ));
             }
 
             let text_offset_x = bounds[0] + gutter_w + 10.0;
@@ -614,14 +1283,37 @@ fn render_kind(
 
             if value.is_empty() {
                 let line_bounds = [text_offset_x, start_y, text_w, line_h];
-                frame.texts.push(text_spec(placeholder.clone(), line_bounds, clip, theme, theme.text_muted, TextAlign::Left, TextRole::Body));
+                frame.texts.push(text_spec(
+                    placeholder.clone(),
+                    line_bounds,
+                    clip,
+                    theme,
+                    theme.text_muted,
+                    TextAlign::Left,
+                    TextRole::Body,
+                ));
                 if *line_numbers {
                     let num_bounds = [bounds[0] + 2.0, start_y, gutter_w - 6.0, line_h];
-                    frame.texts.push(text_spec("1".to_string(), num_bounds, clip, theme, theme.text_muted, TextAlign::Right, TextRole::Caption));
+                    frame.texts.push(text_spec(
+                        "1".to_string(),
+                        num_bounds,
+                        clip,
+                        theme,
+                        theme.text_muted,
+                        TextAlign::Right,
+                        TextRole::Caption,
+                    ));
                 }
                 if *focused {
                     let cursor_bounds = [text_offset_x, start_y + 2.0, 2.0, line_h - 4.0];
-                    frame.instances.push(glass_instance(cursor_bounds, clip, theme.accent, theme.accent, 0.6, theme));
+                    frame.instances.push(glass_instance(
+                        cursor_bounds,
+                        clip,
+                        theme.accent,
+                        theme.accent,
+                        0.6,
+                        theme,
+                    ));
                 }
             } else {
                 let lines: Vec<&str> = value.split('\n').collect();
@@ -632,10 +1324,26 @@ fn render_kind(
                     }
                     if *line_numbers {
                         let num_bounds = [bounds[0] + 2.0, cur_y, gutter_w - 6.0, line_h];
-                        frame.texts.push(text_spec((idx + 1).to_string(), num_bounds, clip, theme, theme.text_muted, TextAlign::Right, TextRole::Caption));
+                        frame.texts.push(text_spec(
+                            (idx + 1).to_string(),
+                            num_bounds,
+                            clip,
+                            theme,
+                            theme.text_muted,
+                            TextAlign::Right,
+                            TextRole::Caption,
+                        ));
                     }
                     let line_bounds = [text_offset_x, cur_y, text_w, line_h];
-                    frame.texts.push(text_spec(line_str.to_string(), line_bounds, clip, theme, theme.text_color, TextAlign::Left, TextRole::Body));
+                    frame.texts.push(text_spec(
+                        line_str.to_string(),
+                        line_bounds,
+                        clip,
+                        theme,
+                        theme.text_color,
+                        TextAlign::Left,
+                        TextRole::Body,
+                    ));
                 }
 
                 if *focused {
@@ -651,14 +1359,35 @@ fn render_kind(
                                 if max_s > line_offset && min_s < line_end {
                                     let l_start = min_s.saturating_sub(line_offset).min(line_len);
                                     let l_end = (max_s - line_offset).min(line_len);
-                                    let x1 = text_offset_x + measure.caret_x(line_str, &theme.typography.family, theme.typography.body_size, l_start);
-                                    let x2 = text_offset_x + measure.caret_x(line_str, &theme.typography.family, theme.typography.body_size, l_end);
+                                    let x1 = text_offset_x
+                                        + measure.caret_x(
+                                            line_str,
+                                            &theme.typography.family,
+                                            theme.typography.body_size,
+                                            l_start,
+                                        );
+                                    let x2 = text_offset_x
+                                        + measure.caret_x(
+                                            line_str,
+                                            &theme.typography.family,
+                                            theme.typography.body_size,
+                                            l_end,
+                                        );
                                     let cur_y = start_y + idx as f32 * line_h;
                                     if cur_y + line_h <= bounds[1] + bounds[3] {
-                                        let sel_bounds = [x1, cur_y + 1.0, (x2 - x1).max(2.0), line_h - 2.0];
-                                        let sel_bg = [1.0 / 255.0, 35.0 / 255.0, 45.0 / 255.0, 0.90];
-                                        let sel_border = [theme.accent[0] * 0.7, theme.accent[1] * 0.7, theme.accent[2] * 0.7, 0.8];
-                                        frame.instances.push(custom_glass_instance(sel_bounds, clip, sel_bg, sel_border, 2.0, 1.0, 0.15));
+                                        let sel_bounds =
+                                            [x1, cur_y + 1.0, (x2 - x1).max(2.0), line_h - 2.0];
+                                        let sel_bg =
+                                            [1.0 / 255.0, 35.0 / 255.0, 45.0 / 255.0, 0.90];
+                                        let sel_border = [
+                                            theme.accent[0] * 0.7,
+                                            theme.accent[1] * 0.7,
+                                            theme.accent[2] * 0.7,
+                                            0.8,
+                                        ];
+                                        frame.instances.push(custom_glass_instance(
+                                            sel_bounds, clip, sel_bg, sel_border, 2.0, 1.0, 0.15,
+                                        ));
                                     }
                                 }
                                 line_offset += line_len + 1;
@@ -683,22 +1412,58 @@ fn render_kind(
                     }
 
                     let cur_line_str = lines.get(cur_line_idx).unwrap_or(&"");
-                    let cursor_x = (text_offset_x + measure.caret_x(cur_line_str, &theme.typography.family, theme.typography.body_size, cur_col_idx)).min(bounds[0] + bounds[2] - 12.0);
+                    let cursor_x = (text_offset_x
+                        + measure.caret_x(
+                            cur_line_str,
+                            &theme.typography.family,
+                            theme.typography.body_size,
+                            cur_col_idx,
+                        ))
+                    .min(bounds[0] + bounds[2] - 12.0);
                     let cur_y = start_y + cur_line_idx as f32 * line_h;
 
                     if cur_y + line_h <= bounds[1] + bounds[3] {
                         let cursor_bounds = [cursor_x, cur_y + 2.0, 2.0, line_h - 4.0];
-                        frame.instances.push(glass_instance(cursor_bounds, clip, theme.accent, theme.accent, 0.6, theme));
+                        frame.instances.push(glass_instance(
+                            cursor_bounds,
+                            clip,
+                            theme.accent,
+                            theme.accent,
+                            0.6,
+                            theme,
+                        ));
                     }
                 }
             }
         }
 
-        WidgetKind::PasswordInput { value, placeholder, focused, revealed, cursor, .. } => {
-            let base = if *focused { theme.glow_intensity_hover * 1.1 } else { theme.glow_intensity * 0.4 };
+        WidgetKind::PasswordInput {
+            value,
+            placeholder,
+            focused,
+            revealed,
+            cursor,
+            ..
+        } => {
+            let base = if *focused {
+                theme.glow_intensity_hover * 1.1
+            } else {
+                theme.glow_intensity * 0.4
+            };
             let intensity = interactive_glow(base, hovered, pressed, theme);
-            let border_accent = if *focused { theme.accent } else { theme.accent_secondary };
-            frame.instances.push(glass_instance(bounds, clip, theme.glass_bg, border_accent, intensity, theme));
+            let border_accent = if *focused {
+                theme.accent
+            } else {
+                theme.accent_secondary
+            };
+            frame.instances.push(glass_instance(
+                bounds,
+                clip,
+                theme.glass_bg,
+                border_accent,
+                intensity,
+                theme,
+            ));
 
             let display_text = if value.is_empty() {
                 placeholder.clone()
@@ -707,20 +1472,49 @@ fn render_kind(
             } else {
                 "•".repeat(value.chars().count())
             };
-            let text_color = if value.is_empty() { theme.text_muted } else { theme.text_color };
+            let text_color = if value.is_empty() {
+                theme.text_muted
+            } else {
+                theme.text_color
+            };
             let text_box = [bounds[0] + 12.0, bounds[1], bounds[2] - 44.0, bounds[3]];
-            frame.texts.push(text_spec(display_text, text_box, clip, theme, text_color, TextAlign::Left, TextRole::Body));
+            frame.texts.push(text_spec(
+                display_text,
+                text_box,
+                clip,
+                theme,
+                text_color,
+                TextAlign::Left,
+                TextRole::Body,
+            ));
 
             // Eye reveal toggle glyph on the right
             let eye_box = [bounds[0] + bounds[2] - 28.0, bounds[1], 24.0, bounds[3]];
             let eye_glyph = if *revealed { "👁" } else { "Ø" };
-            let eye_color = if *revealed { theme.accent } else { theme.text_muted };
-            frame.texts.push(text_spec(eye_glyph.to_string(), eye_box, clip, theme, eye_color, TextAlign::Center, TextRole::Body));
+            let eye_color = if *revealed {
+                theme.accent
+            } else {
+                theme.text_muted
+            };
+            frame.texts.push(text_spec(
+                eye_glyph.to_string(),
+                eye_box,
+                clip,
+                theme,
+                eye_color,
+                TextAlign::Center,
+                TextRole::Body,
+            ));
 
             if *focused {
                 let safe_cursor = (*cursor).min(value.len());
                 let text_w = if *revealed {
-                    measure.caret_x(value, &theme.typography.family, theme.typography.body_size, safe_cursor)
+                    measure.caret_x(
+                        value,
+                        &theme.typography.family,
+                        theme.typography.body_size,
+                        safe_cursor,
+                    )
                 } else {
                     let char_count = value[..safe_cursor].chars().count();
                     char_count as f32 * (theme.typography.body_size * 0.55)
@@ -729,11 +1523,24 @@ fn render_kind(
                 let cursor_h = (bounds[3] - 14.0).max(12.0);
                 let cursor_y = bounds[1] + (bounds[3] - cursor_h) * 0.5;
                 let cursor_bounds = [cursor_x, cursor_y, 2.0, cursor_h];
-                frame.instances.push(glass_instance(cursor_bounds, clip, theme.accent, theme.accent, 0.6, theme));
+                frame.instances.push(glass_instance(
+                    cursor_bounds,
+                    clip,
+                    theme.accent,
+                    theme.accent,
+                    0.6,
+                    theme,
+                ));
             }
         }
 
-        WidgetKind::NumberInput { value, precision, focused, enabled, .. } => {
+        WidgetKind::NumberInput {
+            value,
+            precision,
+            focused,
+            enabled,
+            ..
+        } => {
             let base = if *focused {
                 theme.glow_intensity_hover * 1.1
             } else if *enabled {
@@ -752,14 +1559,38 @@ fn render_kind(
             let bg = if *enabled {
                 theme.glass_bg
             } else {
-                [theme.glass_bg[0] * 0.6, theme.glass_bg[1] * 0.6, theme.glass_bg[2] * 0.6, 0.4]
+                [
+                    theme.glass_bg[0] * 0.6,
+                    theme.glass_bg[1] * 0.6,
+                    theme.glass_bg[2] * 0.6,
+                    0.4,
+                ]
             };
-            frame.instances.push(glass_instance(bounds, clip, bg, border_accent, intensity, theme));
+            frame.instances.push(glass_instance(
+                bounds,
+                clip,
+                bg,
+                border_accent,
+                intensity,
+                theme,
+            ));
 
             let num_text = format!("{:.precision$}", value, precision = *precision);
-            let text_color = if *enabled { theme.text_color } else { theme.text_muted };
+            let text_color = if *enabled {
+                theme.text_color
+            } else {
+                theme.text_muted
+            };
             let text_box = [bounds[0] + 12.0, bounds[1], bounds[2] - 38.0, bounds[3]];
-            frame.texts.push(text_spec(num_text.clone(), text_box, clip, theme, text_color, TextAlign::Left, TextRole::Body));
+            frame.texts.push(text_spec(
+                num_text.clone(),
+                text_box,
+                clip,
+                theme,
+                text_color,
+                TextAlign::Left,
+                TextRole::Body,
+            ));
 
             if *focused && *enabled {
                 let text_w = estimate_text_width(&num_text, theme.typography.body_size);
@@ -767,7 +1598,14 @@ fn render_kind(
                 let cursor_h = (bounds[3] - 14.0).max(12.0);
                 let cursor_y = bounds[1] + (bounds[3] - cursor_h) * 0.5;
                 let cursor_bounds = [cursor_x, cursor_y, 2.0, cursor_h];
-                frame.instances.push(glass_instance(cursor_bounds, clip, theme.accent, theme.accent, 0.8, theme));
+                frame.instances.push(glass_instance(
+                    cursor_bounds,
+                    clip,
+                    theme.accent,
+                    theme.accent,
+                    0.8,
+                    theme,
+                ));
             }
 
             // Stepper buttons on the right side
@@ -779,70 +1617,228 @@ fn render_kind(
             let down_box = [stepper_x, bounds[1] + 2.0 + half_h, stepper_w, half_h];
 
             let btn_bg = if *enabled {
-                [theme.glass_bg[0] * 0.8, theme.glass_bg[1] * 0.8, theme.glass_bg[2] * 0.8, 0.5]
+                [
+                    theme.glass_bg[0] * 0.8,
+                    theme.glass_bg[1] * 0.8,
+                    theme.glass_bg[2] * 0.8,
+                    0.5,
+                ]
             } else {
                 [0.1, 0.1, 0.1, 0.2]
             };
-            frame.instances.push(glass_instance(up_box, clip, btn_bg, [0.0, 0.0, 0.0, 0.0], 0.0, theme));
-            frame.instances.push(glass_instance(down_box, clip, btn_bg, [0.0, 0.0, 0.0, 0.0], 0.0, theme));
+            frame.instances.push(glass_instance(
+                up_box,
+                clip,
+                btn_bg,
+                [0.0, 0.0, 0.0, 0.0],
+                0.0,
+                theme,
+            ));
+            frame.instances.push(glass_instance(
+                down_box,
+                clip,
+                btn_bg,
+                [0.0, 0.0, 0.0, 0.0],
+                0.0,
+                theme,
+            ));
 
-            let arrow_color = if *enabled { theme.text_muted } else { [0.35, 0.35, 0.4, 0.4] };
-            frame.texts.push(text_spec("▲".to_string(), up_box, clip, theme, arrow_color, TextAlign::Center, TextRole::Caption));
-            frame.texts.push(text_spec("▼".to_string(), down_box, clip, theme, arrow_color, TextAlign::Center, TextRole::Caption));
+            let arrow_color = if *enabled {
+                theme.text_muted
+            } else {
+                [0.35, 0.35, 0.4, 0.4]
+            };
+            frame.texts.push(text_spec(
+                "▲".to_string(),
+                up_box,
+                clip,
+                theme,
+                arrow_color,
+                TextAlign::Center,
+                TextRole::Caption,
+            ));
+            frame.texts.push(text_spec(
+                "▼".to_string(),
+                down_box,
+                clip,
+                theme,
+                arrow_color,
+                TextAlign::Center,
+                TextRole::Caption,
+            ));
         }
 
-        WidgetKind::RadioButton { label, selected, .. } => {
+        WidgetKind::RadioButton {
+            label, selected, ..
+        } => {
             let circle_size = 18.0;
-            let circle_bounds = [bounds[0] + 4.0, bounds[1] + (bounds[3] - circle_size) * 0.5, circle_size, circle_size];
-            let glow = if *selected { theme.accent } else { [0.3, 0.3, 0.3, 1.0] };
-            let intensity = if *selected { interactive_glow(theme.glow_intensity_hover * 0.8, hovered, pressed, theme) } else { interactive_glow(0.0, hovered, pressed, theme) };
+            let circle_bounds = [
+                bounds[0] + 4.0,
+                bounds[1] + (bounds[3] - circle_size) * 0.5,
+                circle_size,
+                circle_size,
+            ];
+            let glow = if *selected {
+                theme.accent
+            } else {
+                [0.3, 0.3, 0.3, 1.0]
+            };
+            let intensity = if *selected {
+                interactive_glow(theme.glow_intensity_hover * 0.8, hovered, pressed, theme)
+            } else {
+                interactive_glow(0.0, hovered, pressed, theme)
+            };
             let bg = if *selected {
-                [theme.accent[0] * 0.25, theme.accent[1] * 0.25, theme.accent[2] * 0.25, 0.9]
+                [
+                    theme.accent[0] * 0.25,
+                    theme.accent[1] * 0.25,
+                    theme.accent[2] * 0.25,
+                    0.9,
+                ]
             } else {
                 theme.glass_bg
             };
-            frame.instances.push(glass_instance(circle_bounds, clip, bg, glow, intensity, theme));
+            frame.instances.push(glass_instance(
+                circle_bounds,
+                clip,
+                bg,
+                glow,
+                intensity,
+                theme,
+            ));
 
             if *selected {
                 let dot_size = 8.0;
-                let dot_bounds = [circle_bounds[0] + (circle_size - dot_size) * 0.5, circle_bounds[1] + (circle_size - dot_size) * 0.5, dot_size, dot_size];
-                frame.instances.push(glass_instance(dot_bounds, clip, theme.accent, theme.accent, 0.4, theme));
+                let dot_bounds = [
+                    circle_bounds[0] + (circle_size - dot_size) * 0.5,
+                    circle_bounds[1] + (circle_size - dot_size) * 0.5,
+                    dot_size,
+                    dot_size,
+                ];
+                frame.instances.push(glass_instance(
+                    dot_bounds,
+                    clip,
+                    theme.accent,
+                    theme.accent,
+                    0.4,
+                    theme,
+                ));
             }
 
-            let text_bounds = [bounds[0] + circle_size + 12.0, bounds[1], bounds[2] - circle_size - 12.0, bounds[3]];
-            let text_color = if *selected { theme.text_color } else { theme.text_muted };
-            frame.texts.push(text_spec(label.clone(), text_bounds, clip, theme, text_color, TextAlign::Left, TextRole::Body));
+            let text_bounds = [
+                bounds[0] + circle_size + 12.0,
+                bounds[1],
+                bounds[2] - circle_size - 12.0,
+                bounds[3],
+            ];
+            let text_color = if *selected {
+                theme.text_color
+            } else {
+                theme.text_muted
+            };
+            frame.texts.push(text_spec(
+                label.clone(),
+                text_bounds,
+                clip,
+                theme,
+                text_color,
+                TextAlign::Left,
+                TextRole::Body,
+            ));
         }
 
-        WidgetKind::SegmentItem { label, selected, .. } => {
-            let glow = if *selected { theme.accent } else { [0.25, 0.25, 0.25, 1.0] };
-            let base = if *selected { theme.glow_intensity * 0.8 } else { 0.0 };
+        WidgetKind::SegmentItem {
+            label, selected, ..
+        } => {
+            let glow = if *selected {
+                theme.accent
+            } else {
+                [0.25, 0.25, 0.25, 1.0]
+            };
+            let base = if *selected {
+                theme.glow_intensity * 0.8
+            } else {
+                0.0
+            };
             let intensity = interactive_glow(base, hovered, pressed, theme);
             let bg = if *selected {
-                [theme.accent[0] * 0.28, theme.accent[1] * 0.28, theme.accent[2] * 0.28, 0.95]
+                [
+                    theme.accent[0] * 0.28,
+                    theme.accent[1] * 0.28,
+                    theme.accent[2] * 0.28,
+                    0.95,
+                ]
             } else {
-                [theme.glass_bg[0] * 0.55, theme.glass_bg[1] * 0.55, theme.glass_bg[2] * 0.55, 0.45]
+                [
+                    theme.glass_bg[0] * 0.55,
+                    theme.glass_bg[1] * 0.55,
+                    theme.glass_bg[2] * 0.55,
+                    0.45,
+                ]
             };
-            frame.instances.push(glass_instance(bounds, clip, bg, glow, intensity, theme));
-            let text_color = if *selected { [1.0, 1.0, 1.0, 1.0] } else { theme.text_muted };
-            frame.texts.push(text_spec(label.clone(), bounds, clip, theme, text_color, TextAlign::Center, TextRole::Small));
+            frame
+                .instances
+                .push(glass_instance(bounds, clip, bg, glow, intensity, theme));
+            let text_color = if *selected {
+                [1.0, 1.0, 1.0, 1.0]
+            } else {
+                theme.text_muted
+            };
+            frame.texts.push(text_spec(
+                label.clone(),
+                bounds,
+                clip,
+                theme,
+                text_color,
+                TextAlign::Center,
+                TextRole::Small,
+            ));
         }
 
         WidgetKind::Divider { .. } => {
-            let color = [theme.accent_secondary[0] * 0.35, theme.accent_secondary[1] * 0.35, theme.accent_secondary[2] * 0.35, 0.5];
-            frame.instances.push(glass_instance(bounds, clip, color, color, 0.0, theme));
+            let color = [
+                theme.accent_secondary[0] * 0.35,
+                theme.accent_secondary[1] * 0.35,
+                theme.accent_secondary[2] * 0.35,
+                0.5,
+            ];
+            frame
+                .instances
+                .push(glass_instance(bounds, clip, color, color, 0.0, theme));
         }
 
         WidgetKind::Modal { title, .. } => {
             let bg = [0.08, 0.11, 0.18, 0.98];
-            frame.instances.push(glass_instance(bounds, clip, bg, theme.accent, theme.glow_intensity * 1.5, theme));
+            frame.instances.push(glass_instance(
+                bounds,
+                clip,
+                bg,
+                theme.accent,
+                theme.glow_intensity * 1.5,
+                theme,
+            ));
             let title_bar = [bounds[0] + 20.0, bounds[1] + 16.0, bounds[2] - 48.0, 24.0];
-            frame.texts.push(text_spec(title.clone(), title_bar, clip, theme, theme.text_color, TextAlign::Left, TextRole::Title));
+            frame.texts.push(text_spec(
+                title.clone(),
+                title_bar,
+                clip,
+                theme,
+                theme.text_color,
+                TextAlign::Left,
+                TextRole::Title,
+            ));
         }
 
         WidgetKind::ModalBackdrop { .. } => {
             let backdrop_bg = [0.01, 0.02, 0.04, 0.42];
-            frame.instances.push(glass_instance(bounds, clip, backdrop_bg, backdrop_bg, 0.0, theme));
+            frame.instances.push(glass_instance(
+                bounds,
+                clip,
+                backdrop_bg,
+                backdrop_bg,
+                0.0,
+                theme,
+            ));
         }
 
         WidgetKind::Window { title, .. } => {
@@ -850,28 +1846,83 @@ fn render_kind(
             let shadow_color = [0.0, 0.0, 0.0, 0.55];
             let shadow_glow = [0.0, 0.0, 0.0, 0.70];
             let shadow_bounds = [bounds[0], bounds[1] + 5.0, bounds[2], bounds[3]];
-            frame.instances.push(custom_glass_instance(shadow_bounds, clip, shadow_color, shadow_glow, theme.corner_radius + 2.0, 0.0, 0.60));
+            frame.instances.push(custom_glass_instance(
+                shadow_bounds,
+                clip,
+                shadow_color,
+                shadow_glow,
+                theme.corner_radius + 2.0,
+                0.0,
+                0.60,
+            ));
 
             // Main window glass body
-            frame.instances.push(glass_instance(bounds, clip, theme.glass_bg, theme.accent_secondary, theme.glow_intensity, theme));
+            frame.instances.push(glass_instance(
+                bounds,
+                clip,
+                theme.glass_bg,
+                theme.accent_secondary,
+                theme.glow_intensity,
+                theme,
+            ));
             let title_bar = [bounds[0] + 16.0, bounds[1] + 8.0, bounds[2] - 48.0, 28.0];
-            frame.texts.push(text_spec(title.clone(), title_bar, clip, theme, theme.text_color, TextAlign::Left, TextRole::Title));
+            frame.texts.push(text_spec(
+                title.clone(),
+                title_bar,
+                clip,
+                theme,
+                theme.text_color,
+                TextAlign::Left,
+                TextRole::Title,
+            ));
         }
 
         WidgetKind::Palette { .. } => {
-            let bg = [theme.glass_bg[0] + 0.02, theme.glass_bg[1] + 0.03, theme.glass_bg[2] + 0.06, 0.95];
-            let glow = if hovered || pressed { theme.accent } else { theme.accent_secondary };
+            let bg = [
+                theme.glass_bg[0] + 0.02,
+                theme.glass_bg[1] + 0.03,
+                theme.glass_bg[2] + 0.06,
+                0.95,
+            ];
+            let glow = if hovered || pressed {
+                theme.accent
+            } else {
+                theme.accent_secondary
+            };
             let intensity = if hovered || pressed { 0.25 } else { 0.08 };
-            frame.instances.push(custom_glass_instance(bounds, clip, bg, glow, 8.0, 1.2, intensity));
+            frame.instances.push(custom_glass_instance(
+                bounds, clip, bg, glow, 8.0, 1.2, intensity,
+            ));
         }
 
         WidgetKind::PaletteHeader { title, folded, .. } => {
-            let h_bg = [theme.glass_bg[0] * 0.75, theme.glass_bg[1] * 0.75, theme.glass_bg[2] * 0.75, 0.85];
-            frame.instances.push(custom_glass_instance(bounds, clip, h_bg, [0.0, 0.0, 0.0, 0.0], 6.0, 0.0, 0.0));
+            let h_bg = [
+                theme.glass_bg[0] * 0.75,
+                theme.glass_bg[1] * 0.75,
+                theme.glass_bg[2] * 0.75,
+                0.85,
+            ];
+            frame.instances.push(custom_glass_instance(
+                bounds,
+                clip,
+                h_bg,
+                [0.0, 0.0, 0.0, 0.0],
+                6.0,
+                0.0,
+                0.0,
+            ));
 
             // Textured grip indicator [::] on left
             let grip_box = [bounds[0] + 6.0, bounds[1], 16.0, bounds[3]];
-            frame.texts.push(text_spec("⋮⋮".to_string(), grip_box, clip, theme, theme.accent, TextAlign::Center, TextRole::Small));
+            frame.texts.push(text_spec(
+                "⋮⋮".to_string(),
+                grip_box,
+                clip,
+                theme,
+                theme.accent,
+                TextAlign::Center,
+                TextRole::Small,
+            ));
 
             // Title text
             let title_box = [bounds[0] + 24.0, bounds[1], bounds[2] - 68.0, bounds[3]];
@@ -888,77 +1939,226 @@ fn render_kind(
             // Fold / Unfold button glyph [^] / [v]
             let fold_box = [bounds[0] + bounds[2] - 42.0, bounds[1], 18.0, bounds[3]];
             let fold_glyph = if *folded { "▼" } else { "▲" };
-            frame.texts.push(text_spec(fold_glyph.to_string(), fold_box, clip, theme, theme.text_muted, TextAlign::Center, TextRole::Caption));
+            frame.texts.push(text_spec(
+                fold_glyph.to_string(),
+                fold_box,
+                clip,
+                theme,
+                theme.text_muted,
+                TextAlign::Center,
+                TextRole::Caption,
+            ));
 
             // Close button glyph [×]
             let close_box = [bounds[0] + bounds[2] - 22.0, bounds[1], 18.0, bounds[3]];
-            frame.texts.push(text_spec("✕".to_string(), close_box, clip, theme, theme.danger, TextAlign::Center, TextRole::Caption));
+            frame.texts.push(text_spec(
+                "✕".to_string(),
+                close_box,
+                clip,
+                theme,
+                theme.danger,
+                TextAlign::Center,
+                TextRole::Caption,
+            ));
         }
 
         WidgetKind::PaletteFoldButton { folded, .. } => {
             let glyph = if *folded { "▼" } else { "▲" };
-            frame.texts.push(text_spec(glyph.to_string(), bounds, clip, theme, theme.text_muted, TextAlign::Center, TextRole::Caption));
+            frame.texts.push(text_spec(
+                glyph.to_string(),
+                bounds,
+                clip,
+                theme,
+                theme.text_muted,
+                TextAlign::Center,
+                TextRole::Caption,
+            ));
         }
 
         WidgetKind::PaletteCloseButton { .. } => {
-            frame.texts.push(text_spec("✕".to_string(), bounds, clip, theme, theme.danger, TextAlign::Center, TextRole::Caption));
+            frame.texts.push(text_spec(
+                "✕".to_string(),
+                bounds,
+                clip,
+                theme,
+                theme.danger,
+                TextAlign::Center,
+                TextRole::Caption,
+            ));
         }
 
         WidgetKind::ResizeGrip { .. } => {
-            frame.texts.push(text_spec("⇲".to_string(), bounds, clip, theme, theme.accent, TextAlign::Center, TextRole::Caption));
+            frame.texts.push(text_spec(
+                "⇲".to_string(),
+                bounds,
+                clip,
+                theme,
+                theme.accent,
+                TextAlign::Center,
+                TextRole::Caption,
+            ));
         }
 
         WidgetKind::WindowCloseButton { .. } => {
             let intensity = interactive_glow(theme.glow_intensity, hovered, pressed, theme);
-            frame.instances.push(glass_instance(bounds, clip, theme.glass_bg, theme.accent_secondary, intensity, theme));
+            frame.instances.push(glass_instance(
+                bounds,
+                clip,
+                theme.glass_bg,
+                theme.accent_secondary,
+                intensity,
+                theme,
+            ));
             let inner = inset(bounds, 5.0, 5.0);
-            frame.instances.push(glass_instance(inner, clip, [theme.accent[0] * 0.2, theme.accent[1] * 0.2, theme.accent[2] * 0.2, 0.8], theme.accent, intensity * 0.8, theme));
+            frame.instances.push(glass_instance(
+                inner,
+                clip,
+                [
+                    theme.accent[0] * 0.2,
+                    theme.accent[1] * 0.2,
+                    theme.accent[2] * 0.2,
+                    0.8,
+                ],
+                theme.accent,
+                intensity * 0.8,
+                theme,
+            ));
         }
 
-        WidgetKind::Scrollbar { content_size, viewport_size, offset, .. } => {
-            frame.instances.push(glass_instance(bounds, clip, theme.glass_bg, theme.accent, 0.0, theme));
-            let thumb_bounds = scrollbar_thumb_bounds(bounds, *content_size, *viewport_size, *offset);
+        WidgetKind::Scrollbar {
+            content_size,
+            viewport_size,
+            offset,
+            ..
+        } => {
+            frame.instances.push(glass_instance(
+                bounds,
+                clip,
+                theme.glass_bg,
+                theme.accent,
+                0.0,
+                theme,
+            ));
+            let thumb_bounds =
+                scrollbar_thumb_bounds(bounds, *content_size, *viewport_size, *offset);
             let intensity = interactive_glow(theme.glow_intensity * 0.7, hovered, pressed, theme);
-            frame.instances.push(glass_instance(thumb_bounds, clip, theme.accent, theme.accent, intensity, theme));
+            frame.instances.push(glass_instance(
+                thumb_bounds,
+                clip,
+                theme.accent,
+                theme.accent,
+                intensity,
+                theme,
+            ));
         }
 
         WidgetKind::TabItem { label, active, .. } => {
-            let glow = if *active { theme.accent } else { theme.accent_secondary };
+            let glow = if *active {
+                theme.accent
+            } else {
+                theme.accent_secondary
+            };
             let base = if *active { theme.glow_intensity } else { 0.0 };
             let intensity = interactive_glow(base, hovered, pressed, theme);
             let bg = if *active {
-                [theme.glass_bg[0] + 0.06, theme.glass_bg[1] + 0.09, theme.glass_bg[2] + 0.13, 0.88]
+                [
+                    theme.glass_bg[0] + 0.06,
+                    theme.glass_bg[1] + 0.09,
+                    theme.glass_bg[2] + 0.13,
+                    0.88,
+                ]
             } else {
-                [theme.glass_bg[0] * 0.65, theme.glass_bg[1] * 0.65, theme.glass_bg[2] * 0.65, 0.55]
+                [
+                    theme.glass_bg[0] * 0.65,
+                    theme.glass_bg[1] * 0.65,
+                    theme.glass_bg[2] * 0.65,
+                    0.55,
+                ]
             };
-            frame.instances.push(glass_instance(bounds, clip, bg, glow, intensity, theme));
+            frame
+                .instances
+                .push(glass_instance(bounds, clip, bg, glow, intensity, theme));
 
             if *active {
                 let bar_h = 2.0;
-                let bar_bounds = [bounds[0] + 8.0, bounds[1] + bounds[3] - bar_h - 1.0, bounds[2] - 16.0, bar_h];
-                frame.instances.push(glass_instance(bar_bounds, clip, theme.accent, theme.accent, 0.45, theme));
+                let bar_bounds = [
+                    bounds[0] + 8.0,
+                    bounds[1] + bounds[3] - bar_h - 1.0,
+                    bounds[2] - 16.0,
+                    bar_h,
+                ];
+                frame.instances.push(glass_instance(
+                    bar_bounds,
+                    clip,
+                    theme.accent,
+                    theme.accent,
+                    0.45,
+                    theme,
+                ));
             }
 
-            let text_color = if *active { theme.accent } else { theme.text_muted };
-            frame.texts.push(text_spec(label.clone(), bounds, clip, theme, text_color, TextAlign::Center, TextRole::Small));
+            let text_color = if *active {
+                theme.accent
+            } else {
+                theme.text_muted
+            };
+            frame.texts.push(text_spec(
+                label.clone(),
+                bounds,
+                clip,
+                theme,
+                text_color,
+                TextAlign::Center,
+                TextRole::Small,
+            ));
         }
 
         WidgetKind::MenuBar => {
-            let bar_bg = [theme.glass_bg[0] * 0.45, theme.glass_bg[1] * 0.45, theme.glass_bg[2] * 0.45, 0.82];
-            let bar_border = [theme.accent_secondary[0] * 0.35, theme.accent_secondary[1] * 0.35, theme.accent_secondary[2] * 0.35, 0.45];
-            frame.instances.push(custom_glass_instance(bounds, clip, bar_bg, bar_border, 6.0, 1.0, 0.0));
+            let bar_bg = [
+                theme.glass_bg[0] * 0.45,
+                theme.glass_bg[1] * 0.45,
+                theme.glass_bg[2] * 0.45,
+                0.82,
+            ];
+            let bar_border = [
+                theme.accent_secondary[0] * 0.35,
+                theme.accent_secondary[1] * 0.35,
+                theme.accent_secondary[2] * 0.35,
+                0.45,
+            ];
+            frame.instances.push(custom_glass_instance(
+                bounds, clip, bar_bg, bar_border, 6.0, 1.0, 0.0,
+            ));
         }
 
         WidgetKind::MenuBarItem { label, active, .. } => {
             if *active || hovered {
                 let bg = if *active {
-                    [theme.accent[0] * 0.28, theme.accent[1] * 0.28, theme.accent[2] * 0.28, 0.92]
+                    [
+                        theme.accent[0] * 0.28,
+                        theme.accent[1] * 0.28,
+                        theme.accent[2] * 0.28,
+                        0.92,
+                    ]
                 } else {
-                    [theme.accent[0] * 0.16, theme.accent[1] * 0.16, theme.accent[2] * 0.16, 0.75]
+                    [
+                        theme.accent[0] * 0.16,
+                        theme.accent[1] * 0.16,
+                        theme.accent[2] * 0.16,
+                        0.75,
+                    ]
                 };
                 let glow_intensity = if *active { 0.20 } else { 0.0 };
                 let border_width = if *active { 1.0 } else { 0.0 };
-                frame.instances.push(custom_glass_instance(bounds, clip, bg, theme.accent, 4.0, border_width, glow_intensity));
+                frame.instances.push(custom_glass_instance(
+                    bounds,
+                    clip,
+                    bg,
+                    theme.accent,
+                    4.0,
+                    border_width,
+                    glow_intensity,
+                ));
             }
 
             let text_color = if *active {
@@ -968,53 +2168,164 @@ fn render_kind(
             } else {
                 [0.82, 0.88, 0.95, 1.0]
             };
-            frame.texts.push(text_spec(label.clone(), bounds, clip, theme, text_color, TextAlign::Center, TextRole::Small));
+            frame.texts.push(text_spec(
+                label.clone(),
+                bounds,
+                clip,
+                theme,
+                text_color,
+                TextAlign::Center,
+                TextRole::Small,
+            ));
         }
 
         WidgetKind::MenuPopover => {
             // Distinct popover palette container card with rounded corners and glowing border
             let popover_bg = [0.05, 0.07, 0.13, 0.98];
-            let popover_border = [theme.accent[0] * 0.65, theme.accent[1] * 0.65, theme.accent[2] * 0.65, 0.85];
-            frame.instances.push(custom_glass_instance(bounds, clip, popover_bg, popover_border, 8.0, 1.2, 0.30));
+            let popover_border = [
+                theme.accent[0] * 0.65,
+                theme.accent[1] * 0.65,
+                theme.accent[2] * 0.65,
+                0.85,
+            ];
+            frame.instances.push(custom_glass_instance(
+                bounds,
+                clip,
+                popover_bg,
+                popover_border,
+                8.0,
+                1.2,
+                0.30,
+            ));
         }
 
-        WidgetKind::MenuItem { label, shortcut, enabled, .. } => {
+        WidgetKind::MenuItem {
+            label,
+            shortcut,
+            enabled,
+            ..
+        } => {
             if hovered && *enabled {
-                let item_bg = [theme.accent[0] * 0.32, theme.accent[1] * 0.32, theme.accent[2] * 0.32, 0.95];
-                frame.instances.push(custom_glass_instance(bounds, clip, item_bg, [0.0, 0.0, 0.0, 0.0], 4.0, 0.0, 0.0));
+                let item_bg = [
+                    theme.accent[0] * 0.32,
+                    theme.accent[1] * 0.32,
+                    theme.accent[2] * 0.32,
+                    0.95,
+                ];
+                frame.instances.push(custom_glass_instance(
+                    bounds,
+                    clip,
+                    item_bg,
+                    [0.0, 0.0, 0.0, 0.0],
+                    4.0,
+                    0.0,
+                    0.0,
+                ));
             }
 
             let text_color = if *enabled {
-                if hovered { [1.0, 1.0, 1.0, 1.0] } else { [0.88, 0.93, 0.98, 1.0] }
+                if hovered {
+                    [1.0, 1.0, 1.0, 1.0]
+                } else {
+                    [0.88, 0.93, 0.98, 1.0]
+                }
             } else {
                 theme.text_muted
             };
             let label_bounds = [bounds[0] + 12.0, bounds[1], bounds[2] - 68.0, bounds[3]];
-            frame.texts.push(text_spec(label.clone(), label_bounds, clip, theme, text_color, TextAlign::Left, TextRole::Small));
+            frame.texts.push(text_spec(
+                label.clone(),
+                label_bounds,
+                clip,
+                theme,
+                text_color,
+                TextAlign::Left,
+                TextRole::Small,
+            ));
 
             if let Some(sc) = shortcut {
-                let sc_color = if hovered && *enabled { theme.accent } else { theme.text_muted };
+                let sc_color = if hovered && *enabled {
+                    theme.accent
+                } else {
+                    theme.text_muted
+                };
                 let sc_bounds = [bounds[0] + bounds[2] - 60.0, bounds[1], 48.0, bounds[3]];
-                frame.texts.push(text_spec(sc.clone(), sc_bounds, clip, theme, sc_color, TextAlign::Right, TextRole::Caption));
+                frame.texts.push(text_spec(
+                    sc.clone(),
+                    sc_bounds,
+                    clip,
+                    theme,
+                    sc_color,
+                    TextAlign::Right,
+                    TextRole::Caption,
+                ));
             }
         }
 
-        WidgetKind::Dropdown { label, selected_text, open, .. } => {
-            let intensity = interactive_glow(theme.glow_intensity * 0.6, hovered || *open, pressed, theme);
-            let border_color = if *open { theme.accent } else { theme.accent_secondary };
-            let bg = [theme.glass_bg[0] + 0.04, theme.glass_bg[1] + 0.06, theme.glass_bg[2] + 0.09, 0.88];
-            frame.instances.push(custom_glass_instance(bounds, clip, bg, border_color, 6.0, theme.border_width, intensity));
+        WidgetKind::Dropdown {
+            label,
+            selected_text,
+            open,
+            ..
+        } => {
+            let intensity =
+                interactive_glow(theme.glow_intensity * 0.6, hovered || *open, pressed, theme);
+            let border_color = if *open {
+                theme.accent
+            } else {
+                theme.accent_secondary
+            };
+            let bg = [
+                theme.glass_bg[0] + 0.04,
+                theme.glass_bg[1] + 0.06,
+                theme.glass_bg[2] + 0.09,
+                0.88,
+            ];
+            frame.instances.push(custom_glass_instance(
+                bounds,
+                clip,
+                bg,
+                border_color,
+                6.0,
+                theme.border_width,
+                intensity,
+            ));
 
-            let label_text = if selected_text.is_empty() { label.clone() } else { format!("{}: {}", label, selected_text) };
+            let label_text = if selected_text.is_empty() {
+                label.clone()
+            } else {
+                format!("{}: {}", label, selected_text)
+            };
             let text_bounds = [bounds[0] + 12.0, bounds[1], bounds[2] - 32.0, bounds[3]];
-            frame.texts.push(text_spec(label_text, text_bounds, clip, theme, theme.text_color, TextAlign::Left, TextRole::Small));
+            frame.texts.push(text_spec(
+                label_text,
+                text_bounds,
+                clip,
+                theme,
+                theme.text_color,
+                TextAlign::Left,
+                TextRole::Small,
+            ));
 
             let arrow = if *open { "▲" } else { "▼" };
             let arrow_bounds = [bounds[0] + bounds[2] - 22.0, bounds[1], 16.0, bounds[3]];
-            frame.texts.push(text_spec(arrow.to_string(), arrow_bounds, clip, theme, theme.accent, TextAlign::Center, TextRole::Caption));
+            frame.texts.push(text_spec(
+                arrow.to_string(),
+                arrow_bounds,
+                clip,
+                theme,
+                theme.accent,
+                TextAlign::Center,
+                TextRole::Caption,
+            ));
         }
 
-        WidgetKind::Toast { title, message, kind, .. } => {
+        WidgetKind::Toast {
+            title,
+            message,
+            kind,
+            ..
+        } => {
             let (accent_color, glow_mult) = match kind {
                 crate::kind::ToastKind::Info => ([0.0, 0.85, 1.0, 1.0], 1.0),
                 crate::kind::ToastKind::Success => ([0.15, 0.92, 0.45, 1.0], 1.3),
@@ -1023,71 +2334,208 @@ fn render_kind(
             };
             // High-contrast, crystal clear solid cyber-glass toast card
             let bg = [0.04, 0.07, 0.13, 0.98];
-            frame.instances.push(custom_glass_instance(bounds, clip, bg, accent_color, 8.0, 1.5, theme.glow_intensity * glow_mult));
+            frame.instances.push(custom_glass_instance(
+                bounds,
+                clip,
+                bg,
+                accent_color,
+                8.0,
+                1.5,
+                theme.glow_intensity * glow_mult,
+            ));
 
             // Left vertical indicator bar
             let bar_w = 4.0;
-            let bar_bounds = [bounds[0] + 10.0, bounds[1] + 10.0, bar_w, (bounds[3] - 20.0).max(4.0)];
-            frame.instances.push(custom_glass_instance(bar_bounds, clip, accent_color, accent_color, 2.0, 0.0, 0.4));
+            let bar_bounds = [
+                bounds[0] + 10.0,
+                bounds[1] + 10.0,
+                bar_w,
+                (bounds[3] - 20.0).max(4.0),
+            ];
+            frame.instances.push(custom_glass_instance(
+                bar_bounds,
+                clip,
+                accent_color,
+                accent_color,
+                2.0,
+                0.0,
+                0.4,
+            ));
 
             // Glowing indicator dot
             let dot_size = 8.0;
             let dot_bounds = [bounds[0] + 20.0, bounds[1] + 14.0, dot_size, dot_size];
-            frame.instances.push(custom_glass_instance(dot_bounds, clip, accent_color, accent_color, 4.0, 0.0, 0.6));
+            frame.instances.push(custom_glass_instance(
+                dot_bounds,
+                clip,
+                accent_color,
+                accent_color,
+                4.0,
+                0.0,
+                0.6,
+            ));
 
             // High-contrast crisp title
             let title_bounds = [bounds[0] + 34.0, bounds[1] + 8.0, bounds[2] - 44.0, 20.0];
-            frame.texts.push(text_spec(title.clone(), title_bounds, clip, theme, [1.0, 1.0, 1.0, 1.0], TextAlign::Left, TextRole::Body));
+            frame.texts.push(text_spec(
+                title.clone(),
+                title_bounds,
+                clip,
+                theme,
+                [1.0, 1.0, 1.0, 1.0],
+                TextAlign::Left,
+                TextRole::Body,
+            ));
 
             // High-contrast legible message
-            let msg_bounds = [bounds[0] + 34.0, bounds[1] + 28.0, bounds[2] - 44.0, (bounds[3] - 32.0).max(16.0)];
-            frame.texts.push(text_spec(message.clone(), msg_bounds, clip, theme, [0.86, 0.93, 1.0, 1.0], TextAlign::Left, TextRole::Small));
+            let msg_bounds = [
+                bounds[0] + 34.0,
+                bounds[1] + 28.0,
+                bounds[2] - 44.0,
+                (bounds[3] - 32.0).max(16.0),
+            ];
+            frame.texts.push(text_spec(
+                message.clone(),
+                msg_bounds,
+                clip,
+                theme,
+                [0.86, 0.93, 1.0, 1.0],
+                TextAlign::Left,
+                TextRole::Small,
+            ));
         }
 
         WidgetKind::Tooltip { text } => {
             let bg = [0.04, 0.06, 0.10, 0.96];
-            frame.instances.push(glass_instance(bounds, clip, bg, theme.accent, 0.25, theme));
-            frame.texts.push(text_spec(text.clone(), bounds, clip, theme, theme.text_color, TextAlign::Center, TextRole::Caption));
+            frame
+                .instances
+                .push(glass_instance(bounds, clip, bg, theme.accent, 0.25, theme));
+            frame.texts.push(text_spec(
+                text.clone(),
+                bounds,
+                clip,
+                theme,
+                theme.text_color,
+                TextAlign::Center,
+                TextRole::Caption,
+            ));
         }
 
         WidgetKind::Splitter { orientation, .. } => {
             let base_color = if hovered || pressed {
-                [theme.accent[0] * 0.45, theme.accent[1] * 0.45, theme.accent[2] * 0.45, 0.90]
+                [
+                    theme.accent[0] * 0.45,
+                    theme.accent[1] * 0.45,
+                    theme.accent[2] * 0.45,
+                    0.90,
+                ]
             } else {
-                [theme.accent_secondary[0] * 0.35, theme.accent_secondary[1] * 0.35, theme.accent_secondary[2] * 0.35, 0.45]
+                [
+                    theme.accent_secondary[0] * 0.35,
+                    theme.accent_secondary[1] * 0.35,
+                    theme.accent_secondary[2] * 0.35,
+                    0.45,
+                ]
             };
             let intensity = if hovered || pressed { 0.35 } else { 0.0 };
-            frame.instances.push(custom_glass_instance(bounds, clip, base_color, theme.accent, 2.0, 0.0, intensity));
+            frame.instances.push(custom_glass_instance(
+                bounds,
+                clip,
+                base_color,
+                theme.accent,
+                2.0,
+                0.0,
+                intensity,
+            ));
 
             // Centered tactile grip handle
             match orientation {
                 crate::kind::SplitOrientation::Horizontal => {
                     let grip_w = 2.0;
                     let grip_h = 24.0;
-                    let grip_bounds = [bounds[0] + (bounds[2] - grip_w) * 0.5, bounds[1] + (bounds[3] - grip_h) * 0.5, grip_w, grip_h];
-                    let grip_color = if hovered || pressed { [1.0, 1.0, 1.0, 1.0] } else { theme.accent };
-                    frame.instances.push(custom_glass_instance(grip_bounds, clip, grip_color, theme.accent, 1.0, 0.0, if hovered || pressed { 0.4 } else { 0.0 }));
+                    let grip_bounds = [
+                        bounds[0] + (bounds[2] - grip_w) * 0.5,
+                        bounds[1] + (bounds[3] - grip_h) * 0.5,
+                        grip_w,
+                        grip_h,
+                    ];
+                    let grip_color = if hovered || pressed {
+                        [1.0, 1.0, 1.0, 1.0]
+                    } else {
+                        theme.accent
+                    };
+                    frame.instances.push(custom_glass_instance(
+                        grip_bounds,
+                        clip,
+                        grip_color,
+                        theme.accent,
+                        1.0,
+                        0.0,
+                        if hovered || pressed { 0.4 } else { 0.0 },
+                    ));
                 }
                 crate::kind::SplitOrientation::Vertical => {
                     let grip_w = 24.0;
                     let grip_h = 2.0;
-                    let grip_bounds = [bounds[0] + (bounds[2] - grip_w) * 0.5, bounds[1] + (bounds[3] - grip_h) * 0.5, grip_w, grip_h];
-                    let grip_color = if hovered || pressed { [1.0, 1.0, 1.0, 1.0] } else { theme.accent };
-                    frame.instances.push(custom_glass_instance(grip_bounds, clip, grip_color, theme.accent, 1.0, 0.0, if hovered || pressed { 0.4 } else { 0.0 }));
+                    let grip_bounds = [
+                        bounds[0] + (bounds[2] - grip_w) * 0.5,
+                        bounds[1] + (bounds[3] - grip_h) * 0.5,
+                        grip_w,
+                        grip_h,
+                    ];
+                    let grip_color = if hovered || pressed {
+                        [1.0, 1.0, 1.0, 1.0]
+                    } else {
+                        theme.accent
+                    };
+                    frame.instances.push(custom_glass_instance(
+                        grip_bounds,
+                        clip,
+                        grip_color,
+                        theme.accent,
+                        1.0,
+                        0.0,
+                        if hovered || pressed { 0.4 } else { 0.0 },
+                    ));
                 }
             }
         }
 
-        WidgetKind::TreeNode { label, depth, is_dir, expanded, selected, .. } => {
+        WidgetKind::TreeNode {
+            label,
+            depth,
+            is_dir,
+            expanded,
+            selected,
+            ..
+        } => {
             let base = if *selected { theme.glow_intensity } else { 0.0 };
             let intensity = interactive_glow(base, hovered, pressed, theme);
             if *selected || hovered {
                 let bg = if *selected {
-                    [theme.accent[0] * 0.24, theme.accent[1] * 0.24, theme.accent[2] * 0.24, 0.90]
+                    [
+                        theme.accent[0] * 0.24,
+                        theme.accent[1] * 0.24,
+                        theme.accent[2] * 0.24,
+                        0.90,
+                    ]
                 } else {
-                    [theme.accent[0] * 0.12, theme.accent[1] * 0.12, theme.accent[2] * 0.12, 0.60]
+                    [
+                        theme.accent[0] * 0.12,
+                        theme.accent[1] * 0.12,
+                        theme.accent[2] * 0.12,
+                        0.60,
+                    ]
                 };
-                frame.instances.push(custom_glass_instance(bounds, clip, bg, theme.accent, 4.0, if *selected { 1.0 } else { 0.0 }, intensity));
+                frame.instances.push(custom_glass_instance(
+                    bounds,
+                    clip,
+                    bg,
+                    theme.accent,
+                    4.0,
+                    if *selected { 1.0 } else { 0.0 },
+                    intensity,
+                ));
             }
 
             let indent_offset = (*depth as f32) * 16.0;
@@ -1095,10 +2543,31 @@ fn render_kind(
             if *is_dir {
                 let arrow_str = if *expanded { "▼" } else { "▶" };
                 let arrow_bounds = [bounds[0] + 6.0 + indent_offset, bounds[1], 14.0, bounds[3]];
-                frame.texts.push(text_spec(arrow_str.to_string(), arrow_bounds, clip, theme, theme.accent, TextAlign::Center, TextRole::Caption));
+                frame.texts.push(text_spec(
+                    arrow_str.to_string(),
+                    arrow_bounds,
+                    clip,
+                    theme,
+                    theme.accent,
+                    TextAlign::Center,
+                    TextRole::Caption,
+                ));
             } else {
-                let dot_bounds = [bounds[0] + 11.0 + indent_offset, bounds[1] + (bounds[3] - 4.0) * 0.5, 4.0, 4.0];
-                frame.instances.push(custom_glass_instance(dot_bounds, clip, theme.accent_secondary, theme.accent_secondary, 2.0, 0.0, 0.0));
+                let dot_bounds = [
+                    bounds[0] + 11.0 + indent_offset,
+                    bounds[1] + (bounds[3] - 4.0) * 0.5,
+                    4.0,
+                    4.0,
+                ];
+                frame.instances.push(custom_glass_instance(
+                    dot_bounds,
+                    clip,
+                    theme.accent_secondary,
+                    theme.accent_secondary,
+                    2.0,
+                    0.0,
+                    0.0,
+                ));
             }
 
             let text_color = if *selected {
@@ -1112,49 +2581,163 @@ fn render_kind(
             let label_x = bounds[0] + 24.0 + indent_offset;
             let label_w = (bounds[2] - 28.0 - indent_offset).max(10.0);
             let label_bounds = [label_x, bounds[1], label_w, bounds[3]];
-            frame.texts.push(text_spec(label.clone(), label_bounds, clip, theme, text_color, TextAlign::Left, TextRole::Small));
+            frame.texts.push(text_spec(
+                label.clone(),
+                label_bounds,
+                clip,
+                theme,
+                text_color,
+                TextAlign::Left,
+                TextRole::Small,
+            ));
         }
 
-        WidgetKind::ListItem { text, selected, badge, .. } => {
+        WidgetKind::ListItem {
+            text,
+            selected,
+            badge,
+            ..
+        } => {
             let base = if *selected { theme.glow_intensity } else { 0.0 };
             let intensity = interactive_glow(base, hovered, pressed, theme);
             let bg = if *selected {
-                [theme.glass_bg[0] + 0.04, theme.glass_bg[1] + 0.07, theme.glass_bg[2] + 0.11, 0.85]
+                [
+                    theme.glass_bg[0] + 0.04,
+                    theme.glass_bg[1] + 0.07,
+                    theme.glass_bg[2] + 0.11,
+                    0.85,
+                ]
             } else {
-                [theme.glass_bg[0] * 0.60, theme.glass_bg[1] * 0.60, theme.glass_bg[2] * 0.60, 0.45]
+                [
+                    theme.glass_bg[0] * 0.60,
+                    theme.glass_bg[1] * 0.60,
+                    theme.glass_bg[2] * 0.60,
+                    0.45,
+                ]
             };
-            frame.instances.push(glass_instance(bounds, clip, bg, theme.accent, intensity, theme));
+            frame.instances.push(glass_instance(
+                bounds,
+                clip,
+                bg,
+                theme.accent,
+                intensity,
+                theme,
+            ));
 
-            let text_color = if *selected { theme.text_color } else { theme.text_muted };
+            let text_color = if *selected {
+                theme.text_color
+            } else {
+                theme.text_muted
+            };
             let left_text_bounds = [bounds[0] + 12.0, bounds[1], bounds[2] - 90.0, bounds[3]];
-            frame.texts.push(text_spec(text.clone(), left_text_bounds, clip, theme, text_color, TextAlign::Left, TextRole::Small));
+            frame.texts.push(text_spec(
+                text.clone(),
+                left_text_bounds,
+                clip,
+                theme,
+                text_color,
+                TextAlign::Left,
+                TextRole::Small,
+            ));
 
             match badge {
                 crate::kind::ListItemBadge::Success => {
                     let badge_size = 14.0;
-                    let badge_bounds = [bounds[0] + bounds[2] - badge_size - 14.0, bounds[1] + (bounds[3] - badge_size) * 0.5, badge_size, badge_size];
-                    frame.instances.push(glass_instance(badge_bounds, clip, theme.success, theme.success, 0.12, theme));
+                    let badge_bounds = [
+                        bounds[0] + bounds[2] - badge_size - 14.0,
+                        bounds[1] + (bounds[3] - badge_size) * 0.5,
+                        badge_size,
+                        badge_size,
+                    ];
+                    frame.instances.push(glass_instance(
+                        badge_bounds,
+                        clip,
+                        theme.success,
+                        theme.success,
+                        0.12,
+                        theme,
+                    ));
                 }
                 crate::kind::ListItemBadge::Warning => {
                     let badge_size = 14.0;
-                    let badge_bounds = [bounds[0] + bounds[2] - badge_size - 14.0, bounds[1] + (bounds[3] - badge_size) * 0.5, badge_size, badge_size];
-                    frame.instances.push(glass_instance(badge_bounds, clip, theme.warning, theme.warning, 0.12, theme));
+                    let badge_bounds = [
+                        bounds[0] + bounds[2] - badge_size - 14.0,
+                        bounds[1] + (bounds[3] - badge_size) * 0.5,
+                        badge_size,
+                        badge_size,
+                    ];
+                    frame.instances.push(glass_instance(
+                        badge_bounds,
+                        clip,
+                        theme.warning,
+                        theme.warning,
+                        0.12,
+                        theme,
+                    ));
                 }
                 crate::kind::ListItemBadge::Active(label) => {
                     let badge_w = 68.0;
                     let badge_h = 20.0;
-                    let badge_bounds = [bounds[0] + bounds[2] - badge_w - 12.0, bounds[1] + (bounds[3] - badge_h) * 0.5, badge_w, badge_h];
-                    let badge_bg = [theme.accent[0] * 0.12, theme.accent[1] * 0.12, theme.accent[2] * 0.12, 0.7];
-                    frame.instances.push(glass_instance(badge_bounds, clip, badge_bg, theme.accent, 0.18, theme));
-                    frame.texts.push(text_spec(format!("~ {label}"), badge_bounds, clip, theme, theme.accent, TextAlign::Center, TextRole::Caption));
+                    let badge_bounds = [
+                        bounds[0] + bounds[2] - badge_w - 12.0,
+                        bounds[1] + (bounds[3] - badge_h) * 0.5,
+                        badge_w,
+                        badge_h,
+                    ];
+                    let badge_bg = [
+                        theme.accent[0] * 0.12,
+                        theme.accent[1] * 0.12,
+                        theme.accent[2] * 0.12,
+                        0.7,
+                    ];
+                    frame.instances.push(glass_instance(
+                        badge_bounds,
+                        clip,
+                        badge_bg,
+                        theme.accent,
+                        0.18,
+                        theme,
+                    ));
+                    frame.texts.push(text_spec(
+                        format!("~ {label}"),
+                        badge_bounds,
+                        clip,
+                        theme,
+                        theme.accent,
+                        TextAlign::Center,
+                        TextRole::Caption,
+                    ));
                 }
-                crate::kind::ListItemBadge::Custom { text: badge_text, color } => {
+                crate::kind::ListItemBadge::Custom {
+                    text: badge_text,
+                    color,
+                } => {
                     let badge_w = 60.0;
                     let badge_h = 20.0;
-                    let badge_bounds = [bounds[0] + bounds[2] - badge_w - 12.0, bounds[1] + (bounds[3] - badge_h) * 0.5, badge_w, badge_h];
+                    let badge_bounds = [
+                        bounds[0] + bounds[2] - badge_w - 12.0,
+                        bounds[1] + (bounds[3] - badge_h) * 0.5,
+                        badge_w,
+                        badge_h,
+                    ];
                     let badge_bg = [color[0] * 0.12, color[1] * 0.12, color[2] * 0.12, 0.7];
-                    frame.instances.push(glass_instance(badge_bounds, clip, badge_bg, *color, 0.15, theme));
-                    frame.texts.push(text_spec(badge_text.clone(), badge_bounds, clip, theme, *color, TextAlign::Center, TextRole::Caption));
+                    frame.instances.push(glass_instance(
+                        badge_bounds,
+                        clip,
+                        badge_bg,
+                        *color,
+                        0.15,
+                        theme,
+                    ));
+                    frame.texts.push(text_spec(
+                        badge_text.clone(),
+                        badge_bounds,
+                        clip,
+                        theme,
+                        *color,
+                        TextAlign::Center,
+                        TextRole::Caption,
+                    ));
                 }
                 crate::kind::ListItemBadge::None => {}
             }
@@ -1162,8 +2745,21 @@ fn render_kind(
 
         WidgetKind::BreadcrumbItem { label, is_last, .. } => {
             if hovered && !*is_last {
-                let bg = [theme.accent[0] * 0.15, theme.accent[1] * 0.15, theme.accent[2] * 0.15, 0.60];
-                frame.instances.push(custom_glass_instance(bounds, clip, bg, [0.0, 0.0, 0.0, 0.0], 4.0, 0.0, 0.0));
+                let bg = [
+                    theme.accent[0] * 0.15,
+                    theme.accent[1] * 0.15,
+                    theme.accent[2] * 0.15,
+                    0.60,
+                ];
+                frame.instances.push(custom_glass_instance(
+                    bounds,
+                    clip,
+                    bg,
+                    [0.0, 0.0, 0.0, 0.0],
+                    4.0,
+                    0.0,
+                    0.0,
+                ));
             }
 
             let text_color = if *is_last {
@@ -1174,18 +2770,47 @@ fn render_kind(
                 theme.text_muted
             };
 
-            let text_w = if *is_last { bounds[2] } else { bounds[2] - 14.0 };
+            let text_w = if *is_last {
+                bounds[2]
+            } else {
+                bounds[2] - 14.0
+            };
             let text_bounds = [bounds[0], bounds[1], text_w, bounds[3]];
-            let role = if *is_last { TextRole::Body } else { TextRole::Small };
-            frame.texts.push(text_spec(label.clone(), text_bounds, clip, theme, text_color, TextAlign::Left, role));
+            let role = if *is_last {
+                TextRole::Body
+            } else {
+                TextRole::Small
+            };
+            frame.texts.push(text_spec(
+                label.clone(),
+                text_bounds,
+                clip,
+                theme,
+                text_color,
+                TextAlign::Left,
+                role,
+            ));
 
             if !*is_last {
                 let sep_bounds = [bounds[0] + bounds[2] - 12.0, bounds[1], 10.0, bounds[3]];
-                frame.texts.push(text_spec("›".to_string(), sep_bounds, clip, theme, theme.text_muted, TextAlign::Center, TextRole::Caption));
+                frame.texts.push(text_spec(
+                    "›".to_string(),
+                    sep_bounds,
+                    clip,
+                    theme,
+                    theme.text_muted,
+                    TextAlign::Center,
+                    TextRole::Caption,
+                ));
             }
         }
 
-        WidgetKind::PaginationItem { label, active, disabled, .. } => {
+        WidgetKind::PaginationItem {
+            label,
+            active,
+            disabled,
+            ..
+        } => {
             let intensity = if *active {
                 0.35
             } else if hovered && !*disabled {
@@ -1195,13 +2820,33 @@ fn render_kind(
             };
 
             let bg = if *active {
-                [theme.accent[0] * 0.35, theme.accent[1] * 0.35, theme.accent[2] * 0.35, 0.95]
+                [
+                    theme.accent[0] * 0.35,
+                    theme.accent[1] * 0.35,
+                    theme.accent[2] * 0.35,
+                    0.95,
+                ]
             } else if *disabled {
-                [theme.glass_bg[0] * 0.40, theme.glass_bg[1] * 0.40, theme.glass_bg[2] * 0.40, 0.30]
+                [
+                    theme.glass_bg[0] * 0.40,
+                    theme.glass_bg[1] * 0.40,
+                    theme.glass_bg[2] * 0.40,
+                    0.30,
+                ]
             } else if hovered {
-                [theme.accent[0] * 0.20, theme.accent[1] * 0.20, theme.accent[2] * 0.20, 0.70]
+                [
+                    theme.accent[0] * 0.20,
+                    theme.accent[1] * 0.20,
+                    theme.accent[2] * 0.20,
+                    0.70,
+                ]
             } else {
-                [theme.glass_bg[0] * 0.60, theme.glass_bg[1] * 0.60, theme.glass_bg[2] * 0.60, 0.50]
+                [
+                    theme.glass_bg[0] * 0.60,
+                    theme.glass_bg[1] * 0.60,
+                    theme.glass_bg[2] * 0.60,
+                    0.50,
+                ]
             };
 
             let border_color = if *active {
@@ -1212,50 +2857,145 @@ fn render_kind(
                 [0.0, 0.0, 0.0, 0.0]
             };
 
-            frame.instances.push(custom_glass_instance(bounds, clip, bg, border_color, 4.0, if *active || hovered { 1.0 } else { 0.0 }, intensity));
+            frame.instances.push(custom_glass_instance(
+                bounds,
+                clip,
+                bg,
+                border_color,
+                4.0,
+                if *active || hovered { 1.0 } else { 0.0 },
+                intensity,
+            ));
 
             let text_color = if *active {
                 [1.0, 1.0, 1.0, 1.0]
             } else if *disabled {
-                [theme.text_muted[0], theme.text_muted[1], theme.text_muted[2], 0.35]
+                [
+                    theme.text_muted[0],
+                    theme.text_muted[1],
+                    theme.text_muted[2],
+                    0.35,
+                ]
             } else if hovered {
                 theme.accent
             } else {
                 theme.text_color
             };
 
-            frame.texts.push(text_spec(label.clone(), bounds, clip, theme, text_color, TextAlign::Center, TextRole::Small));
+            frame.texts.push(text_spec(
+                label.clone(),
+                bounds,
+                clip,
+                theme,
+                text_color,
+                TextAlign::Center,
+                TextRole::Small,
+            ));
         }
 
         WidgetKind::Badge { label, badge } => {
             let (accent_color, bg_tint) = match badge {
-                crate::kind::ListItemBadge::Success => (theme.success, [theme.success[0] * 0.15, theme.success[1] * 0.15, theme.success[2] * 0.15, 0.85]),
-                crate::kind::ListItemBadge::Warning => (theme.warning, [theme.warning[0] * 0.15, theme.warning[1] * 0.15, theme.warning[2] * 0.15, 0.85]),
-                crate::kind::ListItemBadge::Active(_) => (theme.accent, [theme.accent[0] * 0.15, theme.accent[1] * 0.15, theme.accent[2] * 0.15, 0.85]),
-                crate::kind::ListItemBadge::Custom { color, .. } => (*color, [color[0] * 0.15, color[1] * 0.15, color[2] * 0.15, 0.85]),
-                crate::kind::ListItemBadge::None => (theme.accent_secondary, [theme.glass_bg[0] * 0.6, theme.glass_bg[1] * 0.6, theme.glass_bg[2] * 0.6, 0.6]),
+                crate::kind::ListItemBadge::Success => (
+                    theme.success,
+                    [
+                        theme.success[0] * 0.15,
+                        theme.success[1] * 0.15,
+                        theme.success[2] * 0.15,
+                        0.85,
+                    ],
+                ),
+                crate::kind::ListItemBadge::Warning => (
+                    theme.warning,
+                    [
+                        theme.warning[0] * 0.15,
+                        theme.warning[1] * 0.15,
+                        theme.warning[2] * 0.15,
+                        0.85,
+                    ],
+                ),
+                crate::kind::ListItemBadge::Active(_) => (
+                    theme.accent,
+                    [
+                        theme.accent[0] * 0.15,
+                        theme.accent[1] * 0.15,
+                        theme.accent[2] * 0.15,
+                        0.85,
+                    ],
+                ),
+                crate::kind::ListItemBadge::Custom { color, .. } => (
+                    *color,
+                    [color[0] * 0.15, color[1] * 0.15, color[2] * 0.15, 0.85],
+                ),
+                crate::kind::ListItemBadge::None => (
+                    theme.accent_secondary,
+                    [
+                        theme.glass_bg[0] * 0.6,
+                        theme.glass_bg[1] * 0.6,
+                        theme.glass_bg[2] * 0.6,
+                        0.6,
+                    ],
+                ),
             };
 
-            frame.instances.push(custom_glass_instance(bounds, clip, bg_tint, accent_color, 4.0, 1.0, 0.15));
-            frame.texts.push(text_spec(label.clone(), bounds, clip, theme, accent_color, TextAlign::Center, TextRole::Caption));
+            frame.instances.push(custom_glass_instance(
+                bounds,
+                clip,
+                bg_tint,
+                accent_color,
+                4.0,
+                1.0,
+                0.15,
+            ));
+            frame.texts.push(text_spec(
+                label.clone(),
+                bounds,
+                clip,
+                theme,
+                accent_color,
+                TextAlign::Center,
+                TextRole::Caption,
+            ));
         }
 
         WidgetKind::ColorSwatch { color, label, .. } => {
             let intensity = if hovered || pressed { 0.35 } else { 0.0 };
-            let border_color = if hovered || pressed { theme.accent } else { theme.accent_secondary };
+            let border_color = if hovered || pressed {
+                theme.accent
+            } else {
+                theme.accent_secondary
+            };
 
             let (box_bounds, text_bounds) = if let Some(_) = label {
                 let box_h = (bounds[3] - 18.0).max(12.0);
-                ([bounds[0], bounds[1], bounds[2], box_h], Some([bounds[0], bounds[1] + box_h + 2.0, bounds[2], 14.0]))
+                (
+                    [bounds[0], bounds[1], bounds[2], box_h],
+                    Some([bounds[0], bounds[1] + box_h + 2.0, bounds[2], 14.0]),
+                )
             } else {
                 (bounds, None)
             };
 
             // Outer glass frame
-            frame.instances.push(custom_glass_instance(box_bounds, clip, *color, border_color, 6.0, 1.0, intensity));
+            frame.instances.push(custom_glass_instance(
+                box_bounds,
+                clip,
+                *color,
+                border_color,
+                6.0,
+                1.0,
+                intensity,
+            ));
 
             if let (Some(lbl), Some(tb)) = (label, text_bounds) {
-                frame.texts.push(text_spec(lbl.clone(), tb, clip, theme, theme.text_muted, TextAlign::Center, TextRole::Caption));
+                frame.texts.push(text_spec(
+                    lbl.clone(),
+                    tb,
+                    clip,
+                    theme,
+                    theme.text_muted,
+                    TextAlign::Center,
+                    TextRole::Caption,
+                ));
             }
         }
 
@@ -1266,14 +3006,35 @@ fn render_kind(
             let pad = 10.0;
 
             // 1. Outer container glass card
-            let bg = [theme.glass_bg[0] + 0.02, theme.glass_bg[1] + 0.03, theme.glass_bg[2] + 0.06, 0.94];
-            frame.instances.push(custom_glass_instance(bounds, clip, bg, theme.accent_secondary, 12.0, 1.2, intensity));
+            let bg = [
+                theme.glass_bg[0] + 0.02,
+                theme.glass_bg[1] + 0.03,
+                theme.glass_bg[2] + 0.06,
+                0.94,
+            ];
+            frame.instances.push(custom_glass_instance(
+                bounds,
+                clip,
+                bg,
+                theme.accent_secondary,
+                12.0,
+                1.2,
+                intensity,
+            ));
 
             // 2. Top Area: [Preview Swatch] (Left) + [2D SV Canvas] (Right)
             let top_h = (bounds[3] * 0.42).clamp(70.0, 96.0);
             let swatch_w = 110.0;
             let swatch_bounds = [bounds[0] + pad, bounds[1] + pad, swatch_w, top_h];
-            frame.instances.push(custom_glass_instance(swatch_bounds, clip, *color, [1.0, 1.0, 1.0, 0.4], 6.0, 1.0, 0.2));
+            frame.instances.push(custom_glass_instance(
+                swatch_bounds,
+                clip,
+                *color,
+                [1.0, 1.0, 1.0, 0.4],
+                6.0,
+                1.0,
+                0.2,
+            ));
 
             // Right 2D Saturation / Value Gradient Canvas
             let sv_x = swatch_bounds[0] + swatch_w + 8.0;
@@ -1295,18 +3056,43 @@ fn render_kind(
                     let cx = sv_x + c as f32 * cell_w;
                     let cy = sv_y + r as f32 * cell_h;
                     let cb = [cx, cy, cell_w + 0.5, cell_h + 0.5];
-                    frame.instances.push(custom_glass_instance(cb, clip, cell_col, [0.0, 0.0, 0.0, 0.0], 0.0, 0.0, 0.0));
+                    frame.instances.push(custom_glass_instance(
+                        cb,
+                        clip,
+                        cell_col,
+                        [0.0, 0.0, 0.0, 0.0],
+                        0.0,
+                        0.0,
+                        0.0,
+                    ));
                 }
             }
             // Canvas border overlay
-            frame.instances.push(custom_glass_instance(sv_bounds, clip, [0.0, 0.0, 0.0, 0.0], [0.35, 0.45, 0.55, 0.7], 6.0, 1.0, 0.0));
+            frame.instances.push(custom_glass_instance(
+                sv_bounds,
+                clip,
+                [0.0, 0.0, 0.0, 0.0],
+                [0.35, 0.45, 0.55, 0.7],
+                6.0,
+                1.0,
+                0.0,
+            ));
 
             // Reticle circle on 2D SV Canvas
             let reticle_r = 7.0;
             let rx = (sv_x + cur_s * sv_w - reticle_r).clamp(sv_x, sv_x + sv_w - reticle_r * 2.0);
-            let ry = (sv_y + (1.0 - cur_v) * sv_h - reticle_r).clamp(sv_y, sv_y + sv_h - reticle_r * 2.0);
+            let ry = (sv_y + (1.0 - cur_v) * sv_h - reticle_r)
+                .clamp(sv_y, sv_y + sv_h - reticle_r * 2.0);
             let reticle_bounds = [rx, ry, reticle_r * 2.0, reticle_r * 2.0];
-            frame.instances.push(custom_glass_instance(reticle_bounds, clip, *color, [1.0, 1.0, 1.0, 1.0], reticle_r, 2.0, 0.4));
+            frame.instances.push(custom_glass_instance(
+                reticle_bounds,
+                clip,
+                *color,
+                [1.0, 1.0, 1.0, 1.0],
+                reticle_r,
+                2.0,
+                0.4,
+            ));
 
             // 3. Middle Area: [Rainbow Hue Slider Bar]
             let hue_y = sv_y + sv_h + 8.0;
@@ -1322,18 +3108,43 @@ fn render_kind(
                 let sx = hue_x + (i as f32 * hue_w / seg_count as f32);
                 let sw = (hue_w / seg_count as f32) + 0.5;
                 let sb = [sx, hue_y, sw, hue_h];
-                frame.instances.push(custom_glass_instance(sb, clip, seg_color, [0.0, 0.0, 0.0, 0.0], 0.0, 0.0, 0.0));
+                frame.instances.push(custom_glass_instance(
+                    sb,
+                    clip,
+                    seg_color,
+                    [0.0, 0.0, 0.0, 0.0],
+                    0.0,
+                    0.0,
+                    0.0,
+                ));
             }
-            frame.instances.push(custom_glass_instance(hue_bounds, clip, [0.0, 0.0, 0.0, 0.0], [0.35, 0.45, 0.55, 0.6], 6.0, 1.0, 0.0));
+            frame.instances.push(custom_glass_instance(
+                hue_bounds,
+                clip,
+                [0.0, 0.0, 0.0, 0.0],
+                [0.35, 0.45, 0.55, 0.6],
+                6.0,
+                1.0,
+                0.0,
+            ));
 
             // Hue Thumb Indicator
             let hue_ratio = (cur_h / 360.0).clamp(0.0, 1.0);
             let thumb_r = 8.0;
-            let thumb_x = (hue_x + hue_ratio * hue_w - thumb_r).clamp(hue_x, hue_x + hue_w - thumb_r * 2.0);
+            let thumb_x =
+                (hue_x + hue_ratio * hue_w - thumb_r).clamp(hue_x, hue_x + hue_w - thumb_r * 2.0);
             let thumb_y = hue_y - 2.0;
             let thumb_bounds = [thumb_x, thumb_y, thumb_r * 2.0, thumb_r * 2.0];
             let pure_hue = crate::color::Color::from_hsv(cur_h, 1.0, 1.0, 1.0).to_array();
-            frame.instances.push(custom_glass_instance(thumb_bounds, clip, pure_hue, [1.0, 1.0, 1.0, 1.0], thumb_r, 2.0, 0.5));
+            frame.instances.push(custom_glass_instance(
+                thumb_bounds,
+                clip,
+                pure_hue,
+                [1.0, 1.0, 1.0, 1.0],
+                thumb_r,
+                2.0,
+                0.5,
+            ));
 
             // 4. Middle-Bottom Area: [HEX Box with Copy Indicator]
             let hex_y = hue_y + hue_h + 8.0;
@@ -1341,8 +3152,21 @@ fn render_kind(
             let hex_x = bounds[0] + pad;
             let hex_w = bounds[2] - 2.0 * pad;
             let hex_bounds = [hex_x, hex_y, hex_w, hex_h];
-            let hex_bg = [theme.glass_bg[0] * 0.7, theme.glass_bg[1] * 0.7, theme.glass_bg[2] * 0.7, 0.6];
-            frame.instances.push(custom_glass_instance(hex_bounds, clip, hex_bg, theme.accent_secondary, 6.0, 1.0, 0.05));
+            let hex_bg = [
+                theme.glass_bg[0] * 0.7,
+                theme.glass_bg[1] * 0.7,
+                theme.glass_bg[2] * 0.7,
+                0.6,
+            ];
+            frame.instances.push(custom_glass_instance(
+                hex_bounds,
+                clip,
+                hex_bg,
+                theme.accent_secondary,
+                6.0,
+                1.0,
+                0.05,
+            ));
 
             let hex_text = format!("HEX   {}", col.to_hex_with_alpha());
             let hex_text_bounds = [hex_x + 12.0, hex_y, hex_w - 40.0, hex_h];
@@ -1356,7 +3180,15 @@ fn render_kind(
                 clip,
             });
             let copy_bounds = [hex_x + hex_w - 28.0, hex_y, 22.0, hex_h];
-            frame.texts.push(text_spec("⎘".to_string(), copy_bounds, clip, theme, theme.accent, TextAlign::Center, TextRole::Body));
+            frame.texts.push(text_spec(
+                "⎘".to_string(),
+                copy_bounds,
+                clip,
+                theme,
+                theme.accent,
+                TextAlign::Center,
+                TextRole::Body,
+            ));
 
             // 5. Bottom Area: [4 Multi-space Mini-Cards] (RGB, CMYK, HSV, LAB)
             let cards_y = hex_y + hex_h + 6.0;
@@ -1369,25 +3201,85 @@ fn render_kind(
             let (l, a_val, b_val) = col.to_lab();
 
             let metrics = [
-                ("RGB", format!("{}, {}, {}", r, g, b), *space == crate::color::ColorSpace::Rgb),
-                ("CMYK", format!("{:.0}%, {:.0}%, {:.0}%, {:.0}%", c, m, y, k), *space == crate::color::ColorSpace::Cmyk),
-                ("HSV", format!("{:.0}°, {:.0}%, {:.0}%", cur_h, cur_s * 100.0, cur_v * 100.0), false),
-                ("LAB", format!("{:.0}, {:+.0}, {:+.0}", l, a_val, b_val), *space == crate::color::ColorSpace::Lab),
+                (
+                    "RGB",
+                    format!("{}, {}, {}", r, g, b),
+                    *space == crate::color::ColorSpace::Rgb,
+                ),
+                (
+                    "CMYK",
+                    format!("{:.0}%, {:.0}%, {:.0}%, {:.0}%", c, m, y, k),
+                    *space == crate::color::ColorSpace::Cmyk,
+                ),
+                (
+                    "HSV",
+                    format!(
+                        "{:.0}°, {:.0}%, {:.0}%",
+                        cur_h,
+                        cur_s * 100.0,
+                        cur_v * 100.0
+                    ),
+                    false,
+                ),
+                (
+                    "LAB",
+                    format!("{:.0}, {:+.0}, {:+.0}", l, a_val, b_val),
+                    *space == crate::color::ColorSpace::Lab,
+                ),
             ];
 
             for (idx, (m_title, m_val, is_sel)) in metrics.iter().enumerate() {
                 let mx = bounds[0] + pad + idx as f32 * (card_w + card_gap);
                 let mb = [mx, cards_y, card_w, cards_h];
                 let m_bg = if *is_sel {
-                    [theme.accent[0] * 0.25, theme.accent[1] * 0.25, theme.accent[2] * 0.25, 0.9]
+                    [
+                        theme.accent[0] * 0.25,
+                        theme.accent[1] * 0.25,
+                        theme.accent[2] * 0.25,
+                        0.9,
+                    ]
                 } else {
-                    [theme.glass_bg[0] * 0.5, theme.glass_bg[1] * 0.5, theme.glass_bg[2] * 0.5, 0.4]
+                    [
+                        theme.glass_bg[0] * 0.5,
+                        theme.glass_bg[1] * 0.5,
+                        theme.glass_bg[2] * 0.5,
+                        0.4,
+                    ]
                 };
-                let m_border = if *is_sel { theme.accent } else { [theme.accent_secondary[0] * 0.25, theme.accent_secondary[1] * 0.25, theme.accent_secondary[2] * 0.25, 0.35] };
-                frame.instances.push(custom_glass_instance(mb, clip, m_bg, m_border, 5.0, 1.0, if *is_sel { 0.15 } else { 0.0 }));
+                let m_border = if *is_sel {
+                    theme.accent
+                } else {
+                    [
+                        theme.accent_secondary[0] * 0.25,
+                        theme.accent_secondary[1] * 0.25,
+                        theme.accent_secondary[2] * 0.25,
+                        0.35,
+                    ]
+                };
+                frame.instances.push(custom_glass_instance(
+                    mb,
+                    clip,
+                    m_bg,
+                    m_border,
+                    5.0,
+                    1.0,
+                    if *is_sel { 0.15 } else { 0.0 },
+                ));
 
                 let t_box = [mx + 4.0, cards_y + 2.0, card_w - 8.0, 12.0];
-                frame.texts.push(text_spec(m_title.to_string(), t_box, clip, theme, if *is_sel { theme.accent } else { theme.text_muted }, TextAlign::Center, TextRole::Caption));
+                frame.texts.push(text_spec(
+                    m_title.to_string(),
+                    t_box,
+                    clip,
+                    theme,
+                    if *is_sel {
+                        theme.accent
+                    } else {
+                        theme.text_muted
+                    },
+                    TextAlign::Center,
+                    TextRole::Caption,
+                ));
 
                 let v_box = [mx + 2.0, cards_y + 14.0, card_w - 4.0, 14.0];
                 frame.texts.push(TextSpec {
@@ -1402,7 +3294,13 @@ fn render_kind(
             }
         }
 
-        WidgetKind::Media { kind, resource_id, fit, radius, .. } => {
+        WidgetKind::Media {
+            kind,
+            resource_id,
+            fit,
+            radius,
+            ..
+        } => {
             let r = radius.unwrap_or(theme.corner_radius);
             frame.media.push(MediaSpec {
                 kind: *kind,
@@ -1414,7 +3312,13 @@ fn render_kind(
             });
         }
 
-        WidgetKind::VideoPlayer { resource_id, playing, progress, duration_sec, .. } => {
+        WidgetKind::VideoPlayer {
+            resource_id,
+            playing,
+            progress,
+            duration_sec,
+            ..
+        } => {
             // 1. Video frame media spec
             let r = theme.corner_radius;
             frame.media.push(MediaSpec {
@@ -1427,28 +3331,75 @@ fn render_kind(
             });
 
             // 2. Glass frame border & ambient glow
-            frame.instances.push(glass_instance(bounds, clip, [0.0, 0.0, 0.0, 0.0], theme.accent, if hovered { 0.20 } else { 0.05 }, theme));
+            frame.instances.push(glass_instance(
+                bounds,
+                clip,
+                [0.0, 0.0, 0.0, 0.0],
+                theme.accent,
+                if hovered { 0.20 } else { 0.05 },
+                theme,
+            ));
 
             // 3. Cyber Glass Bottom Transport Bar (h = 36px)
             let bar_h = 36.0;
             let bar_y = bounds[1] + bounds[3] - bar_h - 6.0;
             let bar_bounds = [bounds[0] + 8.0, bar_y, bounds[2] - 16.0, bar_h];
-            let bar_bg = [theme.glass_bg[0] * 0.9, theme.glass_bg[1] * 0.9, theme.glass_bg[2] * 0.9, 0.92];
-            frame.instances.push(custom_glass_instance(bar_bounds, clip, bar_bg, theme.accent_secondary, 6.0, 1.0, 0.15));
+            let bar_bg = [
+                theme.glass_bg[0] * 0.9,
+                theme.glass_bg[1] * 0.9,
+                theme.glass_bg[2] * 0.9,
+                0.92,
+            ];
+            frame.instances.push(custom_glass_instance(
+                bar_bounds,
+                clip,
+                bar_bg,
+                theme.accent_secondary,
+                6.0,
+                1.0,
+                0.15,
+            ));
 
             // Play / Pause button glyph
             let play_glyph = if *playing { "⏸" } else { "▶" };
             let play_bounds = [bar_bounds[0] + 6.0, bar_y, 24.0, bar_h];
-            frame.texts.push(text_spec(play_glyph.to_string(), play_bounds, clip, theme, theme.accent, TextAlign::Center, TextRole::Body));
+            frame.texts.push(text_spec(
+                play_glyph.to_string(),
+                play_bounds,
+                clip,
+                theme,
+                theme.accent,
+                TextAlign::Center,
+                TextRole::Body,
+            ));
 
             // Timecode labels: current / total
             let cur_sec = (progress * duration_sec).round() as u32;
             let tot_sec = duration_sec.round() as u32;
-            let time_str = format!("{:02}:{:02} / {:02}:{:02}", cur_sec / 60, cur_sec % 60, tot_sec / 60, tot_sec % 60);
+            let time_str = format!(
+                "{:02}:{:02} / {:02}:{:02}",
+                cur_sec / 60,
+                cur_sec % 60,
+                tot_sec / 60,
+                tot_sec % 60
+            );
 
             let time_w = 90.0;
-            let time_bounds = [bar_bounds[0] + bar_bounds[2] - time_w - 8.0, bar_y, time_w, bar_h];
-            frame.texts.push(text_spec(time_str, time_bounds, clip, theme, theme.text_muted, TextAlign::Right, TextRole::Caption));
+            let time_bounds = [
+                bar_bounds[0] + bar_bounds[2] - time_w - 8.0,
+                bar_y,
+                time_w,
+                bar_h,
+            ];
+            frame.texts.push(text_spec(
+                time_str,
+                time_bounds,
+                clip,
+                theme,
+                theme.text_muted,
+                TextAlign::Right,
+                TextRole::Caption,
+            ));
 
             // Timeline Scrubber track between play button and timecode
             let track_x = bar_bounds[0] + 34.0;
@@ -1456,24 +3407,52 @@ fn render_kind(
             let track_h = 4.0;
             let track_y = bar_y + (bar_h - track_h) * 0.5;
             let track_bounds = [track_x, track_y, track_w, track_h];
-            frame.instances.push(glass_instance(track_bounds, clip, [0.15, 0.20, 0.30, 0.8], theme.accent_secondary, 0.0, theme));
+            frame.instances.push(glass_instance(
+                track_bounds,
+                clip,
+                [0.15, 0.20, 0.30, 0.8],
+                theme.accent_secondary,
+                0.0,
+                theme,
+            ));
 
             // Scrubber fill progress
             let fill_w = (track_w * progress.clamp(0.0, 1.0)).max(2.0);
             let fill_bounds = [track_x, track_y, fill_w, track_h];
-            frame.instances.push(glass_instance(fill_bounds, clip, theme.accent, theme.accent, 0.4, theme));
+            frame.instances.push(glass_instance(
+                fill_bounds,
+                clip,
+                theme.accent,
+                theme.accent,
+                0.4,
+                theme,
+            ));
 
             // Scrubber Thumb dot
             let thumb_size = 10.0;
             let thumb_x = track_x + fill_w - thumb_size * 0.5;
             let thumb_y = bar_y + (bar_h - thumb_size) * 0.5;
             let thumb_bounds = [thumb_x, thumb_y, thumb_size, thumb_size];
-            frame.instances.push(glass_instance(thumb_bounds, clip, [1.0, 1.0, 1.0, 1.0], theme.accent, 0.5, theme));
+            frame.instances.push(glass_instance(
+                thumb_bounds,
+                clip,
+                [1.0, 1.0, 1.0, 1.0],
+                theme.accent,
+                0.5,
+                theme,
+            ));
         }
 
         WidgetKind::AudioVisualizer { values, peak, .. } => {
             // Ambient container glass
-            frame.instances.push(glass_instance(bounds, clip, theme.glass_bg, theme.accent_secondary, 0.08, theme));
+            frame.instances.push(glass_instance(
+                bounds,
+                clip,
+                theme.glass_bg,
+                theme.accent_secondary,
+                0.08,
+                theme,
+            ));
 
             let pad_x = 10.0;
             let pad_y = 10.0;
@@ -1501,39 +3480,98 @@ fn render_kind(
                         theme.accent[2] * (1.0 - t) + theme.accent_secondary[2] * t,
                         0.90,
                     ];
-                    frame.instances.push(custom_glass_instance(bar_bounds, clip, bar_color, bar_color, 2.0, 0.5, 0.35));
+                    frame.instances.push(custom_glass_instance(
+                        bar_bounds, clip, bar_color, bar_color, 2.0, 0.5, 0.35,
+                    ));
                 }
             }
         }
 
         WidgetKind::CustomPaint { commands, .. } => {
             // Ambient container glass background
-            frame.instances.push(glass_instance(bounds, clip, theme.glass_bg, theme.accent_secondary, 0.05, theme));
+            frame.instances.push(glass_instance(
+                bounds,
+                clip,
+                theme.glass_bg,
+                theme.accent_secondary,
+                0.05,
+                theme,
+            ));
 
             let origin_x = bounds[0];
             let origin_y = bounds[1];
 
             for cmd in commands {
                 match cmd {
-                    crate::paint::PaintCommand::Line { from, to, stroke_width, color } => {
+                    crate::paint::PaintCommand::Line {
+                        from,
+                        to,
+                        stroke_width,
+                        color,
+                    } => {
                         let p1 = [origin_x + from[0], origin_y + from[1]];
                         let p2 = [origin_x + to[0], origin_y + to[1]];
                         render_custom_paint_line(p1, p2, *stroke_width, *color, clip, frame);
                     }
-                    crate::paint::PaintCommand::Rect { bounds: r_bounds, corner_radius, fill, stroke } => {
-                        let rect_abs = [origin_x + r_bounds[0], origin_y + r_bounds[1], r_bounds[2], r_bounds[3]];
+                    crate::paint::PaintCommand::Rect {
+                        bounds: r_bounds,
+                        corner_radius,
+                        fill,
+                        stroke,
+                    } => {
+                        let rect_abs = [
+                            origin_x + r_bounds[0],
+                            origin_y + r_bounds[1],
+                            r_bounds[2],
+                            r_bounds[3],
+                        ];
                         let bg = fill.unwrap_or([0.0, 0.0, 0.0, 0.0]);
-                        let (stroke_color, border_w) = stroke.unwrap_or(([0.0, 0.0, 0.0, 0.0], 0.0));
-                        frame.instances.push(custom_glass_instance(rect_abs, clip, bg, stroke_color, *corner_radius, border_w, 0.1));
+                        let (stroke_color, border_w) =
+                            stroke.unwrap_or(([0.0, 0.0, 0.0, 0.0], 0.0));
+                        frame.instances.push(custom_glass_instance(
+                            rect_abs,
+                            clip,
+                            bg,
+                            stroke_color,
+                            *corner_radius,
+                            border_w,
+                            0.1,
+                        ));
                     }
-                    crate::paint::PaintCommand::Circle { center, radius, fill, stroke } => {
+                    crate::paint::PaintCommand::Circle {
+                        center,
+                        radius,
+                        fill,
+                        stroke,
+                    } => {
                         let d = radius * 2.0;
-                        let circle_abs = [origin_x + center[0] - radius, origin_y + center[1] - radius, d, d];
+                        let circle_abs = [
+                            origin_x + center[0] - radius,
+                            origin_y + center[1] - radius,
+                            d,
+                            d,
+                        ];
                         let bg = fill.unwrap_or([0.0, 0.0, 0.0, 0.0]);
-                        let (stroke_color, border_w) = stroke.unwrap_or(([0.0, 0.0, 0.0, 0.0], 0.0));
-                        frame.instances.push(custom_glass_instance(circle_abs, clip, bg, stroke_color, *radius, border_w, 0.2));
+                        let (stroke_color, border_w) =
+                            stroke.unwrap_or(([0.0, 0.0, 0.0, 0.0], 0.0));
+                        frame.instances.push(custom_glass_instance(
+                            circle_abs,
+                            clip,
+                            bg,
+                            stroke_color,
+                            *radius,
+                            border_w,
+                            0.2,
+                        ));
                     }
-                    crate::paint::PaintCommand::Bezier { start, ctrl1, ctrl2, end, stroke_width, color } => {
+                    crate::paint::PaintCommand::Bezier {
+                        start,
+                        ctrl1,
+                        ctrl2,
+                        end,
+                        stroke_width,
+                        color,
+                    } => {
                         let p0 = [origin_x + start[0], origin_y + start[1]];
                         let p1 = [origin_x + ctrl1[0], origin_y + ctrl1[1]];
                         let p2 = [origin_x + ctrl2[0], origin_y + ctrl2[1]];
@@ -1544,26 +3582,65 @@ fn render_kind(
                         for i in 1..=SUBDIVISIONS {
                             let t = i as f32 / SUBDIVISIONS as f32;
                             let pt = crate::paint::eval_cubic_bezier(p0, p1, p2, p3, t);
-                            render_custom_paint_line(prev_pt, pt, *stroke_width, *color, clip, frame);
+                            render_custom_paint_line(
+                                prev_pt,
+                                pt,
+                                *stroke_width,
+                                *color,
+                                clip,
+                                frame,
+                            );
                             prev_pt = pt;
                         }
                     }
-                    crate::paint::PaintCommand::Polyline { points, stroke_width, color, closed } => {
+                    crate::paint::PaintCommand::Polyline {
+                        points,
+                        stroke_width,
+                        color,
+                        closed,
+                    } => {
                         if points.len() >= 2 {
                             for i in 0..(points.len() - 1) {
                                 let p1 = [origin_x + points[i][0], origin_y + points[i][1]];
                                 let p2 = [origin_x + points[i + 1][0], origin_y + points[i + 1][1]];
-                                render_custom_paint_line(p1, p2, *stroke_width, *color, clip, frame);
+                                render_custom_paint_line(
+                                    p1,
+                                    p2,
+                                    *stroke_width,
+                                    *color,
+                                    clip,
+                                    frame,
+                                );
                             }
                             if *closed {
-                                let p1 = [origin_x + points[points.len() - 1][0], origin_y + points[points.len() - 1][1]];
+                                let p1 = [
+                                    origin_x + points[points.len() - 1][0],
+                                    origin_y + points[points.len() - 1][1],
+                                ];
                                 let p2 = [origin_x + points[0][0], origin_y + points[0][1]];
-                                render_custom_paint_line(p1, p2, *stroke_width, *color, clip, frame);
+                                render_custom_paint_line(
+                                    p1,
+                                    p2,
+                                    *stroke_width,
+                                    *color,
+                                    clip,
+                                    frame,
+                                );
                             }
                         }
                     }
-                    crate::paint::PaintCommand::Text { position, text, font_size, color } => {
-                        let text_bounds = [origin_x + position[0], origin_y + position[1], bounds[2] - position[0], *font_size + 4.0];
+                    crate::paint::PaintCommand::Text {
+                        position,
+                        text,
+                        font_size,
+                        color,
+                    } => {
+                        let text_bounds = [
+                            origin_x + position[0],
+                            origin_y + position[1],
+                            bounds[2] - position[0],
+                            *font_size + 4.0,
+                        ];
                         frame.texts.push(TextSpec {
                             text: text.clone(),
                             bounds: text_bounds,
@@ -1594,8 +3671,15 @@ fn render_custom_paint_line(
     let r = (stroke_width * 0.5).max(0.5);
 
     if len < 1.0 {
-        let b = [from[0] - r, from[1] - r, stroke_width.max(1.0), stroke_width.max(1.0)];
-        frame.instances.push(custom_glass_instance(b, clip, color, color, r, 0.0, 0.2));
+        let b = [
+            from[0] - r,
+            from[1] - r,
+            stroke_width.max(1.0),
+            stroke_width.max(1.0),
+        ];
+        frame
+            .instances
+            .push(custom_glass_instance(b, clip, color, color, r, 0.0, 0.2));
         return;
     }
 
@@ -1607,7 +3691,9 @@ fn render_custom_paint_line(
         let x = from[0] + dx * t;
         let y = from[1] + dy * t;
         let b = [x - r, y - r, stroke_width.max(1.0), stroke_width.max(1.0)];
-        frame.instances.push(custom_glass_instance(b, clip, color, color, r, 0.0, 0.2));
+        frame
+            .instances
+            .push(custom_glass_instance(b, clip, color, color, r, 0.0, 0.2));
     }
 }
 
@@ -1620,7 +3706,29 @@ pub fn estimate_char_width(ch: char, font_size: f32) -> f32 {
         '/' | '\\' | '*' | '?' | '"' | '^' => 0.38,
         's' | 'z' | 'c' | 'k' | 'J' => 0.44,
         'e' | 'x' | 'v' | 'y' => 0.47,
-        'a' | 'b' | 'd' | 'g' | 'h' | 'n' | 'o' | 'p' | 'q' | 'u' | '0'..='9' | 'é' | 'è' | 'ê' | 'ë' | 'à' | 'â' | 'î' | 'ï' | 'ô' | 'ù' | 'û' | 'ç' => 0.50,
+        'a'
+        | 'b'
+        | 'd'
+        | 'g'
+        | 'h'
+        | 'n'
+        | 'o'
+        | 'p'
+        | 'q'
+        | 'u'
+        | '0'..='9'
+        | 'é'
+        | 'è'
+        | 'ê'
+        | 'ë'
+        | 'à'
+        | 'â'
+        | 'î'
+        | 'ï'
+        | 'ô'
+        | 'ù'
+        | 'û'
+        | 'ç' => 0.50,
         'w' => 0.69,
         'm' => 0.77,
         'M' | 'W' | '@' | '%' | '&' | '#' | '_' | '~' | '+' | '=' | '<' | '>' => 0.75,
@@ -1632,7 +3740,9 @@ pub fn estimate_char_width(ch: char, font_size: f32) -> f32 {
 
 /// Accurate proportional text width estimation for caret positioning.
 pub fn estimate_text_width(text: &str, font_size: f32) -> f32 {
-    text.chars().map(|ch| estimate_char_width(ch, font_size)).sum()
+    text.chars()
+        .map(|ch| estimate_char_width(ch, font_size))
+        .sum()
 }
 
 /// Finds the character boundary in `line` whose accumulated text width is closest to `target_x`.

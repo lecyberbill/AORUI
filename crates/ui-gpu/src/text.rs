@@ -31,9 +31,15 @@ impl TextLayer {
         let font_system = FontSystem::new();
         let swash_cache = SwashCache::new();
         let mut atlas = TextAtlas::new(device, queue, format);
-        let renderer = GlyphonRenderer::new(&mut atlas, device, wgpu::MultisampleState::default(), None);
+        let renderer =
+            GlyphonRenderer::new(&mut atlas, device, wgpu::MultisampleState::default(), None);
 
-        Self { font_system, swash_cache, atlas, renderer }
+        Self {
+            font_system,
+            swash_cache,
+            atlas,
+            renderer,
+        }
     }
 
     /// Crée un buffer de texte prêt à être positionné par [`TextRun`].
@@ -55,7 +61,11 @@ impl TextLayer {
         weight: Weight,
     ) -> Buffer {
         let mut buffer = Buffer::new(&mut self.font_system, Metrics::new(font_size, line_height));
-        buffer.set_size(&mut self.font_system, width.max(1.0), height.max(line_height));
+        buffer.set_size(
+            &mut self.font_system,
+            width.max(1.0),
+            height.max(line_height),
+        );
         let attrs = Attrs::new().family(family).weight(weight);
         buffer.set_text(&mut self.font_system, text, attrs, Shaping::Advanced);
         for line in buffer.lines.iter_mut() {
@@ -86,13 +96,19 @@ impl TextLayer {
             queue,
             &mut self.font_system,
             &mut self.atlas,
-            Resolution { width: screen_size.0, height: screen_size.1 },
+            Resolution {
+                width: screen_size.0,
+                height: screen_size.1,
+            },
             areas,
             &mut self.swash_cache,
         )
     }
 
-    pub fn render<'pass>(&'pass self, pass: &mut wgpu::RenderPass<'pass>) -> Result<(), glyphon::RenderError> {
+    pub fn render<'pass>(
+        &'pass self,
+        pass: &mut wgpu::RenderPass<'pass>,
+    ) -> Result<(), glyphon::RenderError> {
         self.renderer.render(&self.atlas, pass)
     }
 

@@ -46,7 +46,9 @@ mod tests {
             naga::valid::ValidationFlags::all(),
             naga::valid::Capabilities::all(),
         );
-        validator.validate(&module).expect("shader must pass naga validation");
+        validator
+            .validate(&module)
+            .expect("shader must pass naga validation");
     }
 
     #[test]

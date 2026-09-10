@@ -14,7 +14,7 @@ pub const NO_CLIP: [f32; 4] = [-1.0e7, -1.0e7, 2.0e7, 2.0e7];
 /// cumulative scroll offsets from ancestor `ScrollView`s (`visual`), and the visible
 /// viewport boundary region formed by intersecting all ancestor scroll clipping rects (`clip`).
 ///
-/// INV-GPU-2: Shared between [`crate::frame`] (rendering) and [`crate::interaction`] (hit-testing)
+/// INV-GPU-2: Shared between frame rendering and interaction hit-testing
 /// ensuring that widgets scrolled out of view are neither rendered nor clickable.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct EffectiveBounds {
@@ -40,7 +40,10 @@ pub(crate) fn intersect(a: [f32; 4], b: [f32; 4]) -> [f32; 4] {
 impl WidgetTree {
     /// Computes [`EffectiveBounds`] for all nodes descending from `root` (including root).
     /// Nodes without a `ScrollView` ancestor carry `clip = NO_CLIP`.
-    pub fn effective_bounds(&self, root: NodeId) -> Result<HashMap<NodeId, EffectiveBounds>, LayoutError> {
+    pub fn effective_bounds(
+        &self,
+        root: NodeId,
+    ) -> Result<HashMap<NodeId, EffectiveBounds>, LayoutError> {
         let raw = self.resolved_bounds(root)?;
         let mut out = HashMap::new();
         self.walk_effective(root, &raw, [0.0, 0.0], NO_CLIP, &mut out)?;
@@ -56,15 +59,24 @@ impl WidgetTree {
         out: &mut HashMap<NodeId, EffectiveBounds>,
     ) -> Result<(), LayoutError> {
         let raw_bounds = raw[&node];
-        let visual = [raw_bounds[0] - offset[0], raw_bounds[1] - offset[1], raw_bounds[2], raw_bounds[3]];
+        let visual = [
+            raw_bounds[0] - offset[0],
+            raw_bounds[1] - offset[1],
+            raw_bounds[2],
+            raw_bounds[3],
+        ];
         out.insert(node, EffectiveBounds { visual, clip });
 
         // Children of a ScrollView inherit accumulated scroll offsets and a clip
         // rectangle intersected with its visual viewport.
         let (child_offset, child_clip) = match self.layout().payload(node) {
-            Some(WidgetKind::ScrollView { offset: scroll_offset, .. }) => {
-                ([offset[0] + scroll_offset[0], offset[1] + scroll_offset[1]], intersect(clip, visual))
-            }
+            Some(WidgetKind::ScrollView {
+                offset: scroll_offset,
+                ..
+            }) => (
+                [offset[0] + scroll_offset[0], offset[1] + scroll_offset[1]],
+                intersect(clip, visual),
+            ),
             _ => (offset, clip),
         };
 
@@ -76,7 +88,11 @@ impl WidgetTree {
 
     /// Scroll-aware hit testing: a pointer coordinate falling outside the visible
     /// rectangle of a widget's ancestor `ScrollView` will not hit the widget.
-    pub fn hit_test_effective(&self, root: NodeId, point: (f32, f32)) -> Result<Option<NodeId>, LayoutError> {
+    pub fn hit_test_effective(
+        &self,
+        root: NodeId,
+        point: (f32, f32),
+    ) -> Result<Option<NodeId>, LayoutError> {
         let effective = self.effective_bounds(root)?;
         self.hit_test_effective_recursive(root, point, &effective)
     }
@@ -106,7 +122,11 @@ impl WidgetTree {
 
     /// Finds the nearest ancestor `ScrollView` containing `point` (either the `ScrollView` itself
     /// or one containing the deepest hovered child widget).
-    pub fn scrollview_at(&self, root: NodeId, point: (f32, f32)) -> Result<Option<NodeId>, LayoutError> {
+    pub fn scrollview_at(
+        &self,
+        root: NodeId,
+        point: (f32, f32),
+    ) -> Result<Option<NodeId>, LayoutError> {
         let effective = self.effective_bounds(root)?;
         let mut found = None;
         self.scrollview_at_recursive(root, point, &effective, &mut found)?;
@@ -129,7 +149,10 @@ impl WidgetTree {
             return Ok(());
         }
 
-        if matches!(self.layout().payload(node), Some(WidgetKind::ScrollView { .. })) {
+        if matches!(
+            self.layout().payload(node),
+            Some(WidgetKind::ScrollView { .. })
+        ) {
             *found = Some(node);
         }
 

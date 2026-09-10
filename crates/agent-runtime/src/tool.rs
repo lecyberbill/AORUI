@@ -15,7 +15,7 @@ pub struct ToolError(pub String);
 /// An executable tool for the agent runtime, decoupled from the FSM (INV-CORE-1).
 ///
 /// INV-SEC-3: `schema()` describes the expected JSON argument structure — validated
-/// by `Agent::execute_tool` via [`crate::schema::validate`] prior to `execute`.
+/// by `Agent::execute_tool` prior to `execute`.
 pub trait Tool: Send + Sync {
     fn name(&self) -> &str;
     fn schema(&self) -> Value;

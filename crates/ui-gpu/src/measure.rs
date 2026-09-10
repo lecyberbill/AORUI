@@ -49,10 +49,19 @@ impl TextMeasure for CosmicTextMeasure {
             return 0.0;
         }
         let buffer = self.shape_buffer(text, font_family, font_size);
-        buffer.layout_runs().map(|run| run.line_w).fold(0.0, f32::max)
+        buffer
+            .layout_runs()
+            .map(|run| run.line_w)
+            .fold(0.0, f32::max)
     }
 
-    fn caret_x(&self, text: &str, font_family: &FontFamily, font_size: f32, byte_offset: usize) -> f32 {
+    fn caret_x(
+        &self,
+        text: &str,
+        font_family: &FontFamily,
+        font_size: f32,
+        byte_offset: usize,
+    ) -> f32 {
         if text.is_empty() || byte_offset == 0 {
             return 0.0;
         }
@@ -89,7 +98,14 @@ impl TextMeasure for CosmicTextMeasure {
         0.0
     }
 
-    fn hit_test(&self, text: &str, font_family: &FontFamily, font_size: f32, x: f32, y: f32) -> usize {
+    fn hit_test(
+        &self,
+        text: &str,
+        font_family: &FontFamily,
+        font_size: f32,
+        x: f32,
+        y: f32,
+    ) -> usize {
         if text.is_empty() || x <= 0.0 {
             return 0;
         }
@@ -153,7 +169,10 @@ mod tests {
         let mut prev_x = 0.0;
         for (idx, _) in text.char_indices().skip(1) {
             let x = measure.caret_x(text, &family, 15.0, idx);
-            assert!(x > prev_x, "caret X must advance monotonically: {x} > {prev_x}");
+            assert!(
+                x > prev_x,
+                "caret X must advance monotonically: {x} > {prev_x}"
+            );
             prev_x = x;
         }
     }
