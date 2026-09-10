@@ -216,8 +216,9 @@ const LIST_MAX_SCROLL_Y: f32 = LIST_CONTENT_HEIGHT - LIST_VIEWPORT_HEIGHT;
 const LIST_SCROLL_ID: &str = "demo_list_scroll";
 
 /// Window dimensions.
-const WINDOW_WIDTH: f32 = 580.0;
-const WINDOW_HEIGHT: f32 = 780.0;
+const WINDOW_MARGIN: f32 = 14.0;
+const WINDOW_WIDTH: f32 = 608.0;
+const WINDOW_HEIGHT: f32 = 808.0;
 
 /// Interactive text editor buffer supporting cursor positioning, selection, and multi-line navigation.
 #[derive(Debug, Clone)]
@@ -1273,7 +1274,21 @@ fn build_base_ui(tree: &mut WidgetTree, state: &DemoState, width: f32, height: f
     };
 
     let main_content = tree.container(&[title, menubar, breadcrumb_node, search_input, divider1, tabbar, tab_content], window_content(8.0)).unwrap();
-    tree.window(WidgetId::new("main_window"), "AORUI — An Other Rust UI", &[main_content], leaf(width, height)).unwrap()
+    let win_w = (width - WINDOW_MARGIN * 2.0).max(100.0);
+    let win_h = (height - WINDOW_MARGIN * 2.0).max(100.0);
+    let win_style = Style {
+        position: ui_layout::Position::Absolute,
+        inset: Rect {
+            top: length(WINDOW_MARGIN),
+            left: length(WINDOW_MARGIN),
+            right: ui_layout::auto(),
+            bottom: ui_layout::auto(),
+        },
+        size: Size { width: length(win_w), height: length(win_h) },
+        ..Default::default()
+    };
+    let window_card = tree.window(WidgetId::new("main_window"), "AORUI — An Other Rust UI", &[main_content], win_style).unwrap();
+    tree.container(&[window_card], leaf(width, height)).unwrap()
 }
 
 fn build_modal_ui(tree: &mut WidgetTree, state: &DemoState, width: f32, height: f32) -> ui_layout::NodeId {
@@ -1415,7 +1430,7 @@ fn build_popover_ui(tree: &mut WidgetTree, state: &DemoState, width: f32, height
                 format!("main_menubar:{}", active_idx),
                 &items,
                 leaf(202.0, item_h),
-                popover_style(x, 108.0, 210.0, popover_h),
+                popover_style(x + WINDOW_MARGIN, 108.0 + WINDOW_MARGIN, 210.0, popover_h),
             )
             .unwrap();
         overlay_nodes.push(popover);
@@ -1433,7 +1448,7 @@ fn build_popover_ui(tree: &mut WidgetTree, state: &DemoState, width: f32, height
                 "env_dropdown",
                 &env_items,
                 leaf(370.0, 26.0),
-                popover_style(154.0, 286.0, 378.0, 94.0),
+                popover_style(154.0 + WINDOW_MARGIN, 286.0 + WINDOW_MARGIN, 378.0, 94.0),
             )
             .unwrap();
         overlay_nodes.push(popover);
@@ -1447,7 +1462,7 @@ fn build_popover_ui(tree: &mut WidgetTree, state: &DemoState, width: f32, height
                 title,
                 msg,
                 *kind,
-                toast_style(width - 340.0, height - 76.0, 320.0, 60.0),
+                toast_style(width - 340.0 - WINDOW_MARGIN, height - 76.0 - WINDOW_MARGIN, 320.0, 60.0),
             )
             .unwrap();
         overlay_nodes.push(toast_node);
@@ -1559,12 +1574,12 @@ impl App {
                 selected_color: [0.0, 0.85, 1.0, 1.0],
                 color_space: ColorSpace::Lab,
                 show_tools_palette: true,
-                tools_palette_pos: (24.0, 110.0),
+                tools_palette_pos: (24.0 + WINDOW_MARGIN, 110.0 + WINDOW_MARGIN),
                 tools_palette_size: (150.0, 180.0),
                 tools_palette_folded: false,
                 active_tool: "brush".to_string(),
                 show_inspector_palette: true,
-                inspector_palette_pos: (390.0, 110.0),
+                inspector_palette_pos: (390.0 + WINDOW_MARGIN, 110.0 + WINDOW_MARGIN),
                 inspector_palette_size: (166.0, 180.0),
                 inspector_palette_folded: false,
                 video_playing: true,

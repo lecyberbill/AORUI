@@ -721,6 +721,13 @@ fn render_kind(
         }
 
         WidgetKind::Window { title, .. } => {
+            // Soft drop shadow under the main window card
+            let shadow_color = [0.0, 0.0, 0.0, 0.55];
+            let shadow_glow = [0.0, 0.0, 0.0, 0.70];
+            let shadow_bounds = [bounds[0], bounds[1] + 5.0, bounds[2], bounds[3]];
+            frame.instances.push(custom_glass_instance(shadow_bounds, clip, shadow_color, shadow_glow, theme.corner_radius + 2.0, 0.0, 0.60));
+
+            // Main window glass body
             frame.instances.push(glass_instance(bounds, clip, theme.glass_bg, theme.accent_secondary, theme.glow_intensity, theme));
             let title_bar = [bounds[0] + 16.0, bounds[1] + 8.0, bounds[2] - 48.0, 28.0];
             frame.texts.push(text_spec(title.clone(), title_bar, clip, theme, theme.text_color, TextAlign::Left, TextRole::Title));

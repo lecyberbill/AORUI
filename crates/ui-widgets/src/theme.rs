@@ -70,7 +70,7 @@ impl Theme {
     /// Default cyber-glass theme: neon cyan accents on translucent dark glass.
     pub fn cyber_glass() -> Self {
         Self {
-            glass_bg: [0.10, 0.13, 0.19, 0.78],
+            glass_bg: [0.10, 0.13, 0.19, 0.85],
             accent: [0.0, 0.88, 0.98, 1.0],
             accent_secondary: [0.72, 0.38, 0.98, 1.0],
             danger: [1.0, 0.28, 0.38, 1.0],
