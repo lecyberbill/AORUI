@@ -7,6 +7,7 @@
 
 mod blur_pipeline;
 mod context;
+pub mod measure;
 mod media_pipeline;
 mod renderer;
 mod resources;
@@ -15,6 +16,7 @@ mod text;
 mod textures;
 
 pub use context::GpuContext;
+pub use measure::CosmicTextMeasure;
 pub use media_pipeline::{MediaInstance, MediaPipeline};
 pub use renderer::{GpuRenderer, RenderLayer};
 pub use resources::ResourceTable;

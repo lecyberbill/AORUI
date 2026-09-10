@@ -23,6 +23,7 @@ pub struct GpuRenderer {
     blur_pipeline: BlurPipeline,
     sdf_pipeline: SdfPipeline,
     text: TextLayer,
+    measure: crate::measure::CosmicTextMeasure,
     /// Open pipeline registry for content formats beyond SDF glass
     /// (image/video/markdown/3D — see `media_pipeline`). Empty by default:
     /// has no performance or rendering impact when no media pipelines are registered (INV-EXT-1).
@@ -43,8 +44,13 @@ impl GpuRenderer {
         let blur_pipeline = BlurPipeline::new(&ctx.device, format);
         let sdf_pipeline = SdfPipeline::new(&ctx.device, format);
         let text = TextLayer::new(&ctx.device, &ctx.queue, format);
+        let measure = crate::measure::CosmicTextMeasure::new();
 
-        Self { ctx, background, blur_half, blurred_full, blur_pipeline, sdf_pipeline, text, media_pipelines: Vec::new() }
+        Self { ctx, background, blur_half, blurred_full, blur_pipeline, sdf_pipeline, text, measure, media_pipelines: Vec::new() }
+    }
+
+    pub fn text_measure(&self) -> crate::measure::CosmicTextMeasure {
+        self.measure.clone()
     }
 
     pub fn window_size(&self) -> (u32, u32) {

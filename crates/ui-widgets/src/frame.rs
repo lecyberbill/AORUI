@@ -7,6 +7,8 @@ use crate::media::MediaSpec;
 use crate::theme::{FontWeight, Theme};
 use crate::tree::WidgetTree;
 
+use crate::text_measure::TextMeasure;
+
 /// Horizontal text alignment within bounding box.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum TextAlign {
@@ -38,10 +40,15 @@ pub struct Frame {
 }
 
 /// Current interaction state provided to [`WidgetTree::build_frame`] to drive visual feedback.
-#[derive(Debug, Clone, Copy, Default)]
+#[derive(Clone, Copy, Default)]
 pub struct InteractionState<'a> {
     pub hovered: Option<&'a InteractionKey>,
     pub pressed: Option<&'a InteractionKey>,
+    pub measure: Option<&'a dyn TextMeasure>,
+}
+
+fn get_measure<'a>(interaction: &'a InteractionState<'a>) -> &'a dyn TextMeasure {
+    interaction.measure.unwrap_or(&crate::text_measure::DefaultTextMeasure)
 }
 
 impl WidgetTree {
@@ -67,7 +74,8 @@ impl WidgetTree {
             let key = kind.interaction_key();
             let hovered = key.is_some() && key.as_ref() == interaction.hovered;
             let pressed = key.is_some() && key.as_ref() == interaction.pressed;
-            render_kind(kind, node_effective.visual, node_effective.clip, theme, hovered, pressed, frame);
+            let measure = get_measure(&interaction);
+            render_kind(kind, node_effective.visual, node_effective.clip, theme, hovered, pressed, measure, frame);
         }
         for child in self.layout().children(node)? {
             self.visit(child, effective, theme, interaction, frame)?;
@@ -185,7 +193,16 @@ fn interactive_glow(base_intensity: f32, hovered: bool, pressed: bool, theme: &T
     }
 }
 
-fn render_kind(kind: &WidgetKind, bounds: [f32; 4], clip: [f32; 4], theme: &Theme, hovered: bool, pressed: bool, frame: &mut Frame) {
+fn render_kind(
+    kind: &WidgetKind,
+    bounds: [f32; 4],
+    clip: [f32; 4],
+    theme: &Theme,
+    hovered: bool,
+    pressed: bool,
+    measure: &dyn TextMeasure,
+    frame: &mut Frame,
+) {
     let bounds = press_offset(bounds, pressed);
 
     match kind {
@@ -463,8 +480,8 @@ fn render_kind(kind: &WidgetKind, bounds: [f32; 4], clip: [f32; 4], theme: &Them
                     if s_start != s_end {
                         let min_s = (*s_start).min(*s_end).min(value.len());
                         let max_s = (*s_start).max(*s_end).min(value.len());
-                        let x1 = bounds[0] + 12.0 + estimate_text_width(&value[..min_s], theme.typography.body_size);
-                        let x2 = bounds[0] + 12.0 + estimate_text_width(&value[..max_s], theme.typography.body_size);
+                        let x1 = bounds[0] + 12.0 + measure.caret_x(value, &theme.typography.family, theme.typography.body_size, min_s);
+                        let x2 = bounds[0] + 12.0 + measure.caret_x(value, &theme.typography.family, theme.typography.body_size, max_s);
                         let sel_bounds = [x1, cursor_y, (x2 - x1).max(2.0), cursor_h];
                         let sel_bg = [1.0 / 255.0, 35.0 / 255.0, 45.0 / 255.0, 0.90];
                         let sel_border = [theme.accent[0] * 0.7, theme.accent[1] * 0.7, theme.accent[2] * 0.7, 0.8];
@@ -474,7 +491,7 @@ fn render_kind(kind: &WidgetKind, bounds: [f32; 4], clip: [f32; 4], theme: &Them
 
                 // Caret line at exact cursor index
                 let safe_cursor = (*cursor).min(value.len());
-                let text_w = estimate_text_width(&value[..safe_cursor], theme.typography.body_size);
+                let text_w = measure.caret_x(value, &theme.typography.family, theme.typography.body_size, safe_cursor);
                 let cursor_x = (bounds[0] + 12.0 + text_w).min(bounds[0] + bounds[2] - 14.0);
                 let cursor_bounds = [cursor_x, cursor_y, 2.0, cursor_h];
                 frame.instances.push(glass_instance(cursor_bounds, clip, theme.accent, theme.accent, 0.6, theme));
@@ -541,8 +558,8 @@ fn render_kind(kind: &WidgetKind, bounds: [f32; 4], clip: [f32; 4], theme: &Them
                                 if max_s > line_offset && min_s < line_end {
                                     let l_start = min_s.saturating_sub(line_offset).min(line_len);
                                     let l_end = (max_s - line_offset).min(line_len);
-                                    let x1 = text_offset_x + estimate_text_width(&line_str[..l_start], theme.typography.body_size);
-                                    let x2 = text_offset_x + estimate_text_width(&line_str[..l_end], theme.typography.body_size);
+                                    let x1 = text_offset_x + measure.caret_x(line_str, &theme.typography.family, theme.typography.body_size, l_start);
+                                    let x2 = text_offset_x + measure.caret_x(line_str, &theme.typography.family, theme.typography.body_size, l_end);
                                     let cur_y = start_y + idx as f32 * line_h;
                                     if cur_y + line_h <= bounds[1] + bounds[3] {
                                         let sel_bounds = [x1, cur_y + 1.0, (x2 - x1).max(2.0), line_h - 2.0];
@@ -573,8 +590,7 @@ fn render_kind(kind: &WidgetKind, bounds: [f32; 4], clip: [f32; 4], theme: &Them
                     }
 
                     let cur_line_str = lines.get(cur_line_idx).unwrap_or(&"");
-                    let col_prefix = if cur_col_idx <= cur_line_str.len() { &cur_line_str[..cur_col_idx] } else { cur_line_str };
-                    let cursor_x = (text_offset_x + estimate_text_width(col_prefix, theme.typography.body_size)).min(bounds[0] + bounds[2] - 12.0);
+                    let cursor_x = (text_offset_x + measure.caret_x(cur_line_str, &theme.typography.family, theme.typography.body_size, cur_col_idx)).min(bounds[0] + bounds[2] - 12.0);
                     let cur_y = start_y + cur_line_idx as f32 * line_h;
 
                     if cur_y + line_h <= bounds[1] + bounds[3] {
@@ -611,7 +627,7 @@ fn render_kind(kind: &WidgetKind, bounds: [f32; 4], clip: [f32; 4], theme: &Them
             if *focused {
                 let safe_cursor = (*cursor).min(value.len());
                 let text_w = if *revealed {
-                    estimate_text_width(&value[..safe_cursor], theme.typography.body_size)
+                    measure.caret_x(value, &theme.typography.family, theme.typography.body_size, safe_cursor)
                 } else {
                     let char_count = value[..safe_cursor].chars().count();
                     char_count as f32 * (theme.typography.body_size * 0.55)

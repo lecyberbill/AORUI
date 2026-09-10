@@ -2073,6 +2073,7 @@ dependencies = [
  "pollster",
  "thiserror 1.0.69",
  "ui-core",
+ "ui-widgets",
  "wgpu",
  "winit",
 ]

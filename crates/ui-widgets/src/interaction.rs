@@ -479,8 +479,12 @@ impl WidgetTree {
         &self,
         root: NodeId,
         point: (f32, f32),
+        font_family: &crate::theme::FontFamily,
         body_font_size: f32,
+        measure: Option<&dyn crate::text_measure::TextMeasure>,
     ) -> Result<Option<(String, usize)>, ui_layout::LayoutError> {
+        let def_measure = crate::text_measure::DefaultTextMeasure;
+        let m = measure.unwrap_or(&def_measure);
         let effective = self.effective_bounds(root)?;
         for (node, bounds) in &effective {
             let b = bounds.visual;
@@ -492,14 +496,14 @@ impl WidgetTree {
                     WidgetKind::TextInput { id, value, .. } => {
                         let text_start_x = b[0] + 12.0;
                         let rel_x = (point.0 - text_start_x).max(0.0);
-                        let idx = crate::frame::find_cursor_index_in_line(value, rel_x, body_font_size);
+                        let idx = m.hit_test(value, font_family, body_font_size, rel_x, 0.0);
                         return Ok(Some((id.to_string(), idx)));
                     }
                     WidgetKind::PasswordInput { id, value, revealed, .. } => {
                         let text_start_x = b[0] + 12.0;
                         let rel_x = (point.0 - text_start_x).max(0.0);
                         let idx = if *revealed {
-                            crate::frame::find_cursor_index_in_line(value, rel_x, body_font_size)
+                            m.hit_test(value, font_family, body_font_size, rel_x, 0.0)
                         } else {
                             let char_w = body_font_size * 0.55;
                             ((rel_x / char_w).round() as usize).min(value.len())
@@ -520,7 +524,7 @@ impl WidgetTree {
 
                         let line_str = lines.get(actual_line_idx).unwrap_or(&"");
                         let rel_x = (point.0 - text_offset_x).max(0.0);
-                        let col_idx = crate::frame::find_cursor_index_in_line(line_str, rel_x, body_font_size);
+                        let col_idx = m.hit_test(line_str, font_family, body_font_size, rel_x, 0.0);
 
                         // Convert (actual_line_idx, col_idx) to global character offset
                         let mut byte_offset = 0;

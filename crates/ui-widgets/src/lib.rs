@@ -19,6 +19,7 @@ mod id;
 mod interaction;
 mod kind;
 mod media;
+pub mod text_measure;
 mod theme;
 mod tree;
 
@@ -28,6 +29,7 @@ pub use frame::{Frame, InteractionState, TextAlign, TextSpec};
 pub use id::WidgetId;
 pub use kind::{IconKind, InteractionKey, ListItemBadge, SplitOrientation, ToastKind, WidgetKind};
 pub use media::{MediaKind, MediaSpec};
+pub use text_measure::{DefaultTextMeasure, TextMeasure};
 pub use theme::{FontFamily, FontWeight, Theme, Typography};
 pub use tree::WidgetTree;
 
@@ -144,7 +146,7 @@ mod tests {
         let key = WidgetId::new("submit");
         let hovered_key = crate::InteractionKey { widget_id: key, index: None };
         let hovered = tree
-            .build_frame(root, &theme, InteractionState { hovered: Some(&hovered_key), pressed: None })
+            .build_frame(root, &theme, InteractionState { hovered: Some(&hovered_key), pressed: None, ..Default::default() })
             .unwrap();
 
         assert!(
@@ -710,11 +712,11 @@ mod tests {
         assert!(frame.instances.len() >= 2);
 
         // Click at text start -> char index 0
-        let cur_start = tree.text_cursor_at(root, (12.0, 16.0), 15.0).unwrap();
+        let cur_start = tree.text_cursor_at(root, (12.0, 16.0), &theme.typography.family, 15.0, None).unwrap();
         assert_eq!(cur_start, Some(("search".to_string(), 0)));
 
         // Click far to the right -> char index 6 (end of string)
-        let cur_end = tree.text_cursor_at(root, (180.0, 16.0), 15.0).unwrap();
+        let cur_end = tree.text_cursor_at(root, (180.0, 16.0), &theme.typography.family, 15.0, None).unwrap();
         assert_eq!(cur_end, Some(("search".to_string(), 6)));
     }
 
@@ -736,7 +738,7 @@ mod tests {
 
         // Click on Line 2 (start_y=8, line_h=20 -> y=32 is Line 2)
         // Line 1 is 13 chars + 1 ('\n') = 14 bytes offset.
-        let cur_line2 = tree.text_cursor_at(root, (50.0, 32.0), 15.0).unwrap();
+        let cur_line2 = tree.text_cursor_at(root, (50.0, 32.0), &theme.typography.family, 15.0, None).unwrap();
         assert!(cur_line2.is_some());
         let (id, offset) = cur_line2.unwrap();
         assert_eq!(id, "editor");

@@ -1411,6 +1411,8 @@ impl App {
             return;
         }
 
+        let measure = renderer.text_measure();
+
         let base_hovered = if !self.state.show_modal && self.state.active_menu.is_none() && !self.state.dropdown_open {
             base_tree.interaction_key_at(base_root, self.cursor_pos).unwrap_or(None)
         } else {
@@ -1419,6 +1421,7 @@ impl App {
         let base_interaction = InteractionState {
             hovered: base_hovered.as_ref(),
             pressed: if !self.state.show_modal { self.pressed.as_ref() } else { None },
+            measure: Some(&measure),
         };
 
         let base_frame = match base_tree.build_frame(base_root, &self.theme, base_interaction) {
@@ -1472,6 +1475,7 @@ impl App {
             let modal_interaction = InteractionState {
                 hovered: modal_hovered.as_ref(),
                 pressed: self.pressed.as_ref(),
+                measure: Some(&measure),
             };
 
             let modal_frame = match modal_tree.build_frame(modal_root, &self.theme, modal_interaction) {
@@ -1521,6 +1525,7 @@ impl App {
                     let pop_interaction = InteractionState {
                         hovered: pop_hovered.as_ref(),
                         pressed: self.pressed.as_ref(),
+                        measure: Some(&measure),
                     };
 
                     if let Ok(pop_frame) = popover_tree.build_frame(pop_root, &self.theme, pop_interaction) {
@@ -1619,7 +1624,9 @@ impl App {
             self.color_picker_drag = Some(id);
         }
 
-        if let Ok(Some((widget_id, cursor_idx))) = self.tree.text_cursor_at(root, self.cursor_pos, self.theme.typography.body_size) {
+        let measure = self.renderer.as_ref().map(|r| r.text_measure());
+        let measure_ref = measure.as_ref().map(|m| m as &dyn ui_widgets::TextMeasure);
+        if let Ok(Some((widget_id, cursor_idx))) = self.tree.text_cursor_at(root, self.cursor_pos, &self.theme.typography.family, self.theme.typography.body_size, measure_ref) {
             self.state.focused_input = Some(widget_id.clone());
             self.text_drag = Some((widget_id.clone(), cursor_idx));
             match widget_id.as_str() {
@@ -1780,7 +1787,9 @@ impl App {
         }
         let Some((ref drag_id, anchor_idx)) = self.text_drag else { return };
         let Some(root) = self.root else { return };
-        if let Ok(Some((widget_id, cur_idx))) = self.tree.text_cursor_at(root, self.cursor_pos, self.theme.typography.body_size) {
+        let measure = self.renderer.as_ref().map(|r| r.text_measure());
+        let measure_ref = measure.as_ref().map(|m| m as &dyn ui_widgets::TextMeasure);
+        if let Ok(Some((widget_id, cur_idx))) = self.tree.text_cursor_at(root, self.cursor_pos, &self.theme.typography.family, self.theme.typography.body_size, measure_ref) {
             if &widget_id == drag_id {
                 let sel = if anchor_idx != cur_idx {
                     Some((anchor_idx, cur_idx))
