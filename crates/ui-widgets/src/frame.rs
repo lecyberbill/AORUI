@@ -1258,19 +1258,21 @@ fn render_kind(kind: &WidgetKind, bounds: [f32; 4], clip: [f32; 4], theme: &Them
     }
 }
 
-/// Precise proportional width of a single character.
+/// Precise proportional width of a single character calibrated to Sans-Serif (Segoe UI / Roboto / Inter).
 pub fn estimate_char_width(ch: char, font_size: f32) -> f32 {
     let ratio = match ch {
-        ' ' => 0.32,
-        'i' | 'j' | 'l' | '!' | '|' | ':' | ';' | '\'' | '`' | ',' | '.' => 0.28,
-        'f' | 't' | 'I' | 'r' | '(' | ')' | '[' | ']' | '{' | '}' | '-' => 0.38,
-        '/' | '\\' | '*' | '?' | '"' | '^' => 0.46,
-        's' | 'z' | 'c' | 'k' | 'v' | 'x' | 'y' | 'e' => 0.54,
-        'a' | 'b' | 'd' | 'g' | 'h' | 'n' | 'o' | 'p' | 'q' | 'u' | '0'..='9' | 'é' | 'è' | 'ê' | 'ë' | 'à' | 'â' | 'î' | 'ï' | 'ô' | 'ù' | 'û' | 'ç' => 0.60,
-        'w' | 'm' => 0.84,
-        'M' | 'W' | '@' | '%' | '&' | '#' | '_' | '~' | '+' | '=' | '<' | '>' => 0.88,
-        'A'..='Z' => 0.68,
-        _ => 0.58,
+        ' ' => 0.26,
+        'i' | 'j' | 'l' | '!' | '|' | ':' | ';' | '\'' | '`' | ',' | '.' => 0.23,
+        'f' | 't' | 'I' | 'r' | '(' | ')' | '[' | ']' | '{' | '}' | '-' => 0.31,
+        '/' | '\\' | '*' | '?' | '"' | '^' => 0.38,
+        's' | 'z' | 'c' | 'k' | 'J' => 0.44,
+        'e' | 'x' | 'v' | 'y' => 0.47,
+        'a' | 'b' | 'd' | 'g' | 'h' | 'n' | 'o' | 'p' | 'q' | 'u' | '0'..='9' | 'é' | 'è' | 'ê' | 'ë' | 'à' | 'â' | 'î' | 'ï' | 'ô' | 'ù' | 'û' | 'ç' => 0.50,
+        'w' => 0.69,
+        'm' => 0.77,
+        'M' | 'W' | '@' | '%' | '&' | '#' | '_' | '~' | '+' | '=' | '<' | '>' => 0.75,
+        'A'..='Z' => 0.59,
+        _ => 0.50,
     };
     ratio * font_size
 }
@@ -1308,8 +1310,8 @@ mod tests {
         let narrow = estimate_text_width("iiii", 15.0);
         let wide = estimate_text_width("wwww", 15.0);
         assert!(narrow < wide);
-        assert_eq!(narrow, 0.28 * 15.0 * 4.0);
-        assert_eq!(wide, 0.84 * 15.0 * 4.0);
+        assert_eq!(narrow, 0.23 * 15.0 * 4.0);
+        assert_eq!(wide, 0.69 * 15.0 * 4.0);
     }
 
     const TRACK: [f32; 4] = [0.0, 0.0, 10.0, 100.0];

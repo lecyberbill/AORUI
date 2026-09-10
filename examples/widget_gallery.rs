@@ -164,11 +164,17 @@ impl TextEditorState {
     }
 
     fn move_left(&mut self, word: bool, select: bool) {
-        if select && self.selection.is_none() {
-            self.selection = Some((self.cursor, self.cursor));
-        } else if !select {
-            self.selection = None;
-        }
+        let anchor = if select {
+            self.selection.map(|(a, _)| a).unwrap_or(self.cursor)
+        } else {
+            if let Some((s1, s2)) = self.selection.take() {
+                if s1 != s2 {
+                    self.cursor = s1.min(s2);
+                    return;
+                }
+            }
+            self.cursor
+        };
 
         if self.cursor > 0 {
             if word {
@@ -195,18 +201,26 @@ impl TextEditorState {
         }
 
         if select {
-            if let Some((anchor, _)) = self.selection {
-                self.selection = Some((anchor, self.cursor));
-            }
+            self.selection = if anchor != self.cursor {
+                Some((anchor, self.cursor))
+            } else {
+                None
+            };
         }
     }
 
     fn move_right(&mut self, word: bool, select: bool) {
-        if select && self.selection.is_none() {
-            self.selection = Some((self.cursor, self.cursor));
-        } else if !select {
-            self.selection = None;
-        }
+        let anchor = if select {
+            self.selection.map(|(a, _)| a).unwrap_or(self.cursor)
+        } else {
+            if let Some((s1, s2)) = self.selection.take() {
+                if s1 != s2 {
+                    self.cursor = s1.max(s2);
+                    return;
+                }
+            }
+            self.cursor
+        };
 
         if self.cursor < self.text.len() {
             if word {
@@ -233,52 +247,61 @@ impl TextEditorState {
         }
 
         if select {
-            if let Some((anchor, _)) = self.selection {
-                self.selection = Some((anchor, self.cursor));
-            }
+            self.selection = if anchor != self.cursor {
+                Some((anchor, self.cursor))
+            } else {
+                None
+            };
         }
     }
 
     fn move_home(&mut self, select: bool) {
-        if select && self.selection.is_none() {
-            self.selection = Some((self.cursor, self.cursor));
-        } else if !select {
+        let anchor = if select {
+            self.selection.map(|(a, _)| a).unwrap_or(self.cursor)
+        } else {
             self.selection = None;
-        }
+            self.cursor
+        };
 
         let prev_newline = self.text[..self.cursor].rfind('\n').map(|i| i + 1).unwrap_or(0);
         self.cursor = prev_newline;
 
         if select {
-            if let Some((anchor, _)) = self.selection {
-                self.selection = Some((anchor, self.cursor));
-            }
+            self.selection = if anchor != self.cursor {
+                Some((anchor, self.cursor))
+            } else {
+                None
+            };
         }
     }
 
     fn move_end(&mut self, select: bool) {
-        if select && self.selection.is_none() {
-            self.selection = Some((self.cursor, self.cursor));
-        } else if !select {
+        let anchor = if select {
+            self.selection.map(|(a, _)| a).unwrap_or(self.cursor)
+        } else {
             self.selection = None;
-        }
+            self.cursor
+        };
 
         let next_newline = self.text[self.cursor..].find('\n').map(|i| self.cursor + i).unwrap_or(self.text.len());
         self.cursor = next_newline;
 
         if select {
-            if let Some((anchor, _)) = self.selection {
-                self.selection = Some((anchor, self.cursor));
-            }
+            self.selection = if anchor != self.cursor {
+                Some((anchor, self.cursor))
+            } else {
+                None
+            };
         }
     }
 
     fn move_up(&mut self, select: bool) {
-        if select && self.selection.is_none() {
-            self.selection = Some((self.cursor, self.cursor));
-        } else if !select {
+        let anchor = if select {
+            self.selection.map(|(a, _)| a).unwrap_or(self.cursor)
+        } else {
             self.selection = None;
-        }
+            self.cursor
+        };
 
         let lines: Vec<&str> = self.text.split('\n').collect();
         let mut acc = 0;
@@ -306,18 +329,21 @@ impl TextEditorState {
         }
 
         if select {
-            if let Some((anchor, _)) = self.selection {
-                self.selection = Some((anchor, self.cursor));
-            }
+            self.selection = if anchor != self.cursor {
+                Some((anchor, self.cursor))
+            } else {
+                None
+            };
         }
     }
 
     fn move_down(&mut self, select: bool) {
-        if select && self.selection.is_none() {
-            self.selection = Some((self.cursor, self.cursor));
-        } else if !select {
+        let anchor = if select {
+            self.selection.map(|(a, _)| a).unwrap_or(self.cursor)
+        } else {
             self.selection = None;
-        }
+            self.cursor
+        };
 
         let lines: Vec<&str> = self.text.split('\n').collect();
         let mut acc = 0;
@@ -345,9 +371,11 @@ impl TextEditorState {
         }
 
         if select {
-            if let Some((anchor, _)) = self.selection {
-                self.selection = Some((anchor, self.cursor));
-            }
+            self.selection = if anchor != self.cursor {
+                Some((anchor, self.cursor))
+            } else {
+                None
+            };
         }
     }
 
@@ -1284,6 +1312,7 @@ struct App {
     color_picker_drag: Option<String>,
     palette_drag: Option<(String, (f32, f32))>,
     palette_resize: Option<(String, (f32, f32), (f32, f32))>,
+    text_drag: Option<(String, usize)>,
     shift_held: bool,
     ctrl_held: bool,
 }
@@ -1358,6 +1387,7 @@ impl App {
             color_picker_drag: None,
             palette_drag: None,
             palette_resize: None,
+            text_drag: None,
             shift_held: false,
             ctrl_held: false,
         }
@@ -1591,6 +1621,7 @@ impl App {
 
         if let Ok(Some((widget_id, cursor_idx))) = self.tree.text_cursor_at(root, self.cursor_pos, self.theme.typography.body_size) {
             self.state.focused_input = Some(widget_id.clone());
+            self.text_drag = Some((widget_id.clone(), cursor_idx));
             match widget_id.as_str() {
                 "global_search" => {
                     self.state.search_editor.cursor = cursor_idx;
@@ -1743,6 +1774,38 @@ impl App {
         }
     }
 
+    fn update_text_drag(&mut self) {
+        if self.state.show_modal {
+            return;
+        }
+        let Some((ref drag_id, anchor_idx)) = self.text_drag else { return };
+        let Some(root) = self.root else { return };
+        if let Ok(Some((widget_id, cur_idx))) = self.tree.text_cursor_at(root, self.cursor_pos, self.theme.typography.body_size) {
+            if &widget_id == drag_id {
+                let sel = if anchor_idx != cur_idx {
+                    Some((anchor_idx, cur_idx))
+                } else {
+                    None
+                };
+                match widget_id.as_str() {
+                    "global_search" => {
+                        self.state.search_editor.cursor = cur_idx;
+                        self.state.search_editor.selection = sel;
+                    }
+                    "master_token_pwd" => {
+                        self.state.password_editor.cursor = cur_idx;
+                        self.state.password_editor.selection = sel;
+                    }
+                    "studio_editor" => {
+                        self.state.studio_editor.cursor = cur_idx;
+                        self.state.studio_editor.selection = sel;
+                    }
+                    _ => {}
+                }
+            }
+        }
+    }
+
     fn handle_release(&mut self) {
         self.scrollbar_drag = None;
         self.slider_drag = None;
@@ -1751,6 +1814,7 @@ impl App {
         self.modal_drag = None;
         self.palette_drag = None;
         self.palette_resize = None;
+        self.text_drag = None;
 
         if self.state.show_modal {
             if let (Some(m_tree), Some(m_root)) = (&self.overlay_tree, self.overlay_root) {
@@ -1861,6 +1925,7 @@ impl ApplicationHandler for App {
                 self.update_slider_drag();
                 self.update_color_picker_drag();
                 self.update_splitter_drag();
+                self.update_text_drag();
                 if let Some(window) = &self.window {
                     window.request_redraw();
                 }
