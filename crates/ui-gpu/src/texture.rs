@@ -63,6 +63,21 @@ impl GpuTexture {
         })
     }
 
+    /// Wraps an existing GPU texture and view handle without reallocating.
+    pub fn from_texture_and_view(
+        texture: wgpu::Texture,
+        view: wgpu::TextureView,
+        width: u32,
+        height: u32,
+    ) -> Arc<Self> {
+        Arc::new(Self {
+            texture,
+            view,
+            width: width.max(1),
+            height: height.max(1),
+        })
+    }
+
     /// Dynamically writes new RGBA pixel bytes to the texture (e.g. video/canvas stream).
     pub fn update(&self, queue: &wgpu::Queue, data: &[u8]) {
         let size = wgpu::Extent3d {

@@ -109,6 +109,26 @@ impl GpuRenderer {
         (self.ctx.config.width, self.ctx.config.height)
     }
 
+    pub fn device(&self) -> &wgpu::Device {
+        &self.ctx.device
+    }
+
+    pub fn device_arc(&self) -> Arc<wgpu::Device> {
+        self.ctx.device.clone()
+    }
+
+    pub fn queue(&self) -> &wgpu::Queue {
+        &self.ctx.queue
+    }
+
+    pub fn queue_arc(&self) -> Arc<wgpu::Queue> {
+        self.ctx.queue.clone()
+    }
+
+    pub fn surface_format(&self) -> wgpu::TextureFormat {
+        self.ctx.config.format
+    }
+
     /// Registers a custom pipeline for an extended content format (see [`MediaPipeline`]).
     /// Multiple pipelines can coexist (one per `kind`). Registering the same `kind` twice
     /// gives priority to the latest registered.
@@ -223,29 +243,7 @@ impl GpuRenderer {
         }
 
         if layers.len() > 1 {
-            // --- Layer 0 (Base UI): rendered to surface_view AND background target for blur capture ---
-            let layer0 = &layers[0];
-            if !layer0.instances.is_empty() {
-                self.sdf_pipeline.upload_instances(
-                    &self.ctx.device,
-                    &self.ctx.queue,
-                    layer0.instances,
-                );
-                self.sdf_pipeline.render(
-                    &self.ctx.device,
-                    &mut encoder,
-                    &surface_view,
-                    &self.blurred_full.view,
-                );
-                self.sdf_pipeline.render(
-                    &self.ctx.device,
-                    &mut encoder,
-                    &self.background.view,
-                    &self.blurred_full.view,
-                );
-            }
-
-            // Render registered media pipelines on base UI
+            // --- Step 1: Render registered media pipelines (e.g. 3D Viewport canvas) FIRST ---
             for pipeline in self.media_pipelines.iter_mut() {
                 let matching: Vec<MediaInstance> = media
                     .iter()
@@ -270,6 +268,28 @@ impl GpuRenderer {
                         &matching,
                     );
                 }
+            }
+
+            // --- Step 2: Layer 0 (Base UI): rendered ON TOP of media to surface_view AND background target ---
+            let layer0 = &layers[0];
+            if !layer0.instances.is_empty() {
+                self.sdf_pipeline.upload_instances(
+                    &self.ctx.device,
+                    &self.ctx.queue,
+                    layer0.instances,
+                );
+                self.sdf_pipeline.render(
+                    &self.ctx.device,
+                    &mut encoder,
+                    &surface_view,
+                    &self.blurred_full.view,
+                );
+                self.sdf_pipeline.render(
+                    &self.ctx.device,
+                    &mut encoder,
+                    &self.background.view,
+                    &self.blurred_full.view,
+                );
             }
 
             if !layer0.texts.is_empty() {
@@ -397,21 +417,7 @@ impl GpuRenderer {
                 }
             }
         } else if let Some(layer) = layers.first() {
-            if !layer.instances.is_empty() {
-                self.sdf_pipeline.upload_instances(
-                    &self.ctx.device,
-                    &self.ctx.queue,
-                    layer.instances,
-                );
-                self.sdf_pipeline.render(
-                    &self.ctx.device,
-                    &mut encoder,
-                    &surface_view,
-                    &self.blurred_full.view,
-                );
-            }
-
-            // Render registered media pipelines between SDF background quads and text overlays
+            // Render registered media pipelines FIRST (Background / 3D Canvas)
             for pipeline in self.media_pipelines.iter_mut() {
                 let matching: Vec<MediaInstance> = media
                     .iter()
@@ -428,6 +434,21 @@ impl GpuRenderer {
                         &matching,
                     );
                 }
+            }
+
+            // Render SDF cards / palettes ON TOP of media
+            if !layer.instances.is_empty() {
+                self.sdf_pipeline.upload_instances(
+                    &self.ctx.device,
+                    &self.ctx.queue,
+                    layer.instances,
+                );
+                self.sdf_pipeline.render(
+                    &self.ctx.device,
+                    &mut encoder,
+                    &surface_view,
+                    &self.blurred_full.view,
+                );
             }
 
             if !layer.texts.is_empty() {

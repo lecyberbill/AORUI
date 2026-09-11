@@ -3023,8 +3023,9 @@ fn render_kind(
             ));
 
             // 2. Top Area: [Preview Swatch] (Left) + [2D SV Canvas] (Right)
-            let top_h = (bounds[3] * 0.42).clamp(70.0, 96.0);
-            let swatch_w = 110.0;
+            let top_h = (bounds[3] * 0.38).clamp(60.0, 90.0);
+            let inner_w = (bounds[2] - 2.0 * pad).max(20.0);
+            let swatch_w = (inner_w * 0.32).clamp(40.0, 85.0);
             let swatch_bounds = [bounds[0] + pad, bounds[1] + pad, swatch_w, top_h];
             frame.instances.push(custom_glass_instance(
                 swatch_bounds,
@@ -3488,18 +3489,11 @@ fn render_kind(
         }
 
         WidgetKind::CustomPaint { commands, .. } => {
-            // Ambient container glass background
-            frame.instances.push(glass_instance(
-                bounds,
-                clip,
-                theme.glass_bg,
-                theme.accent_secondary,
-                0.05,
-                theme,
-            ));
-
             let origin_x = bounds[0];
             let origin_y = bounds[1];
+            // Clip paint commands to the CustomPaint widget's own layout bounds
+            let own_clip = [bounds[0], bounds[1], bounds[2], bounds[3]];
+            let clip = crate::effective::intersect(clip, own_clip);
 
             for cmd in commands {
                 match cmd {

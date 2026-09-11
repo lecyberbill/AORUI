@@ -444,7 +444,6 @@ impl WidgetKind {
                 | WidgetKind::ResizeGrip { .. }
                 | WidgetKind::VideoPlayer { .. }
                 | WidgetKind::Media { .. }
-                | WidgetKind::CustomPaint { .. }
         )
     }
 

@@ -1316,7 +1316,26 @@ impl WidgetTree {
         let mut children = vec![header_node];
         if !folded {
             if let Some(c) = content {
-                children.push(c);
+                let padded_content_style = Style {
+                    padding: ui_layout::Rect {
+                        left: ui_layout::length(10.0),
+                        right: ui_layout::length(10.0),
+                        top: ui_layout::length(8.0),
+                        bottom: ui_layout::length(8.0),
+                    },
+                    size: Size {
+                        width: ui_layout::percent(1.0),
+                        height: ui_layout::auto(),
+                    },
+                    flex_direction: ui_layout::FlexDirection::Column,
+                    ..Default::default()
+                };
+                let padded_node = self.layout.insert_container(
+                    padded_content_style,
+                    &[c],
+                    WidgetKind::Container,
+                )?;
+                children.push(padded_node);
             }
             let grip_node = self.layout.insert_leaf(
                 Style {

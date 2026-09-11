@@ -167,8 +167,9 @@ impl WidgetTree {
                 let (cur_h, cur_s, cur_v) = crate::color::Color::from_array(*color).to_hsv();
                 let pad = 10.0;
 
-                let top_h = (bounds[3] * 0.42).clamp(70.0, 96.0);
-                let swatch_w = 110.0;
+                let top_h = (bounds[3] * 0.38).clamp(60.0, 90.0);
+                let inner_w = (bounds[2] - 2.0 * pad).max(20.0);
+                let swatch_w = (inner_w * 0.32).clamp(40.0, 85.0);
                 let sv_x = bounds[0] + pad + swatch_w + 8.0;
                 let sv_y = bounds[1] + pad;
                 let sv_w = (bounds[0] + bounds[2] - pad - sv_x).max(10.0);
@@ -617,8 +618,9 @@ impl WidgetTree {
         let (cur_h, cur_s, cur_v) = crate::color::Color::from_array(*color).to_hsv();
         let pad = 10.0;
 
-        let top_h = (bounds[3] * 0.42).clamp(70.0, 96.0);
-        let swatch_w = 110.0;
+        let top_h = (bounds[3] * 0.38).clamp(60.0, 90.0);
+        let inner_w = (bounds[2] - 2.0 * pad).max(20.0);
+        let swatch_w = (inner_w * 0.32).clamp(40.0, 85.0);
         let sv_x = bounds[0] + pad + swatch_w + 8.0;
         let sv_y = bounds[1] + pad;
         let sv_w = (bounds[0] + bounds[2] - pad - sv_x).max(10.0);
