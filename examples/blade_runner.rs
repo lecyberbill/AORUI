@@ -4,7 +4,7 @@ use std::sync::{Arc, RwLock};
 use std::time::Instant;
 
 use ui_core::UiEvent;
-use ui_gpu::{GpuRenderer, MediaInstance, RenderLayer, ResourceTable};
+use ui_gpu::{BackgroundParams, GpuRenderer, MediaInstance, RenderLayer, ResourceTable};
 use ui_layout::{
     auto, length, AlignItems, AvailableSpace, FlexDirection, JustifyContent, NodeId, Rect, Size, Style,
 };
@@ -1546,6 +1546,7 @@ impl App {
         let size = window.inner_size();
         let w = size.width as f32;
         let h = size.height as f32;
+        renderer.background_params_mut().screen_size = [w, h];
 
         let available = Size {
             width: AvailableSpace::Definite(w),
@@ -1771,7 +1772,20 @@ impl ApplicationHandler for App {
                 WINDOW_HEIGHT as u32,
             ));
         let window = Arc::new(event_loop.create_window(attrs).unwrap());
-        let renderer = GpuRenderer::new(window.clone());
+        let mut renderer = GpuRenderer::new(window.clone());
+        let mut bg_params = BackgroundParams::aether_os(
+            WINDOW_WIDTH,
+            WINDOW_HEIGHT,
+        );
+        // Remove white micro-grid dots
+        bg_params.grid_dot_size = 0.0;
+        bg_params.grid_opacity = 0.0;
+        // Darken base and bottom-right glow for a sleek, deep black cyber atmosphere
+        bg_params.base_color = [0.012, 0.016, 0.024, 1.0];
+        bg_params.grad1_color = [0.02, 0.03, 0.06, 0.08];
+        bg_params.grad2_color = [0.008, 0.022, 0.045, 0.06];
+        renderer.set_background_params(bg_params);
+
         self.window = Some(window);
         self.renderer = Some(renderer);
         event_loop.set_control_flow(ControlFlow::Poll);
