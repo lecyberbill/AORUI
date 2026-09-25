@@ -1,4 +1,4 @@
-// [WFGY] Zone: SAFE | λ: 0.2 | Fallbacks: 0 | Action: Blade Runner / Cyber-Ops Autonomous Sentinel Workstation
+// [WFGY] Zone: SAFE | λ: 0.2 | Fallbacks: 0 | Action: Blade Runner / Cyber-Ops Autonomous Sentinel Workstation (Frameless, Grounded Cards & Precise Alignment)
 use std::collections::VecDeque;
 use std::sync::{Arc, RwLock};
 use std::time::Instant;
@@ -6,7 +6,7 @@ use std::time::Instant;
 use ui_core::UiEvent;
 use ui_gpu::{GpuRenderer, MediaInstance, RenderLayer, ResourceTable};
 use ui_layout::{
-    auto, length, AlignItems, AvailableSpace, FlexDirection, NodeId, Rect, Size, Style,
+    auto, length, AlignItems, AvailableSpace, FlexDirection, JustifyContent, NodeId, Rect, Size, Style,
 };
 use ui_widgets::{
     IconKind, InteractionKey, InteractionState, ListItemBadge, Painter, Theme, ToastKind, WidgetId, WidgetTree,
@@ -18,9 +18,9 @@ use winit::event_loop::{ActiveEventLoop, ControlFlow, EventLoop};
 use winit::keyboard::{Key, NamedKey};
 use winit::window::{Window, WindowAttributes, WindowId};
 
-const WINDOW_WIDTH: f32 = 1440.0;
-const WINDOW_HEIGHT: f32 = 900.0;
-const WINDOW_MARGIN: f32 = 10.0;
+const WINDOW_WIDTH: f32 = 1380.0;
+const WINDOW_HEIGHT: f32 = 880.0;
+const WINDOW_MARGIN: f32 = 12.0;
 
 // ============================================================================
 // Layout Helpers
@@ -39,6 +39,7 @@ fn leaf(width: f32, height: f32) -> Style {
 fn row(gap: f32) -> Style {
     Style {
         flex_direction: FlexDirection::Row,
+        align_items: Some(AlignItems::Center),
         gap: Size {
             width: length(gap),
             height: length(0.0),
@@ -83,6 +84,23 @@ fn card_style(w: f32) -> Style {
             right: length(14.0),
             top: length(12.0),
             bottom: length(14.0),
+        },
+        ..Default::default()
+    }
+}
+
+fn window_content(gap: f32) -> Style {
+    Style {
+        flex_direction: FlexDirection::Column,
+        gap: Size {
+            width: length(0.0),
+            height: length(gap),
+        },
+        padding: Rect {
+            left: length(20.0),
+            right: length(20.0),
+            top: length(48.0), // Below custom cyber window titlebar
+            bottom: length(18.0),
         },
         ..Default::default()
     }
@@ -507,14 +525,11 @@ fn build_blade_runner_ui(
     width: f32,
     height: f32,
 ) -> NodeId {
-    let content_w = (width - WINDOW_MARGIN * 2.0 - 48.0).max(500.0);
+    let win_w = (width - WINDOW_MARGIN * 2.0).max(500.0);
+    let content_w = (win_w - 40.0).max(460.0);
     let half_col_w = ((content_w - 16.0) * 0.5).max(200.0);
 
-    // 1. Top Cyber-Ops Command Bar
-    let logo_label = tree
-        .label("⬡ BLADE RUNNER // CYBER-OPS", leaf(210.0, 24.0))
-        .unwrap();
-
+    // 1. Top Cyber-Ops Command Bar (Logo, DEFCON indicator, Quick Search, Bell, User Profile)
     let defcon_badge = tree
         .badge(
             state.defcon.name(),
@@ -525,12 +540,8 @@ fn build_blade_runner_ui(
                 DefconLevel::Defcon4 => ListItemBadge::Active("NOMINAL".to_string()),
                 DefconLevel::Defcon5 => ListItemBadge::Success,
             },
-            leaf(180.0, 24.0),
+            leaf(170.0, 24.0),
         )
-        .unwrap();
-
-    let left_header = tree
-        .container(&[logo_label, defcon_badge], row(12.0))
         .unwrap();
 
     let tabs = ["Threat Matrix", "Sentinel Fleet", "Tactical Radar", "Forensic Signals", "Cyber Terminal"];
@@ -547,7 +558,7 @@ fn build_blade_runner_ui(
     let cmd_btn = tree
         .button(
             WidgetId::new("quick_cmd_btn"),
-            "⌕ Commands  [Ctrl+K]",
+            "⌕ Commands [Ctrl+K]",
             true,
             leaf(142.0, 24.0),
         )
@@ -585,7 +596,7 @@ fn build_blade_runner_ui(
 
     let top_header = tree
         .container(
-            &[left_header, breadcrumb_node, right_header],
+            &[defcon_badge, breadcrumb_node, right_header],
             Style {
                 size: Size {
                     width: length(content_w),
@@ -593,7 +604,7 @@ fn build_blade_runner_ui(
                 },
                 flex_direction: FlexDirection::Row,
                 align_items: Some(AlignItems::Center),
-                justify_content: Some(ui_layout::JustifyContent::SpaceBetween),
+                justify_content: Some(JustifyContent::SpaceBetween),
                 ..Default::default()
             },
         )
@@ -615,12 +626,13 @@ fn build_blade_runner_ui(
     let tab_content = match state.active_tab {
         0 => {
             // --- Tab 0: Threat Matrix (Live Incident Table & Mitigation Surface) ---
+            let m_card_w = (content_w - 36.0) / 4.0;
             let m1 = tree
                 .metric_card(
                     "Active Threats",
                     format!("{}", state.incidents.iter().filter(|i| !i.quarantined).count()),
                     Some(("+2 New", false)),
-                    leaf((content_w - 48.0) / 4.0, 56.0),
+                    leaf(m_card_w, 56.0),
                 )
                 .unwrap();
             let m2 = tree
@@ -628,7 +640,7 @@ fn build_blade_runner_ui(
                     "Quarantined Nodes",
                     format!("{}", state.incidents.iter().filter(|i| i.quarantined).count()),
                     Some(("100% Isolated", true)),
-                    leaf((content_w - 48.0) / 4.0, 56.0),
+                    leaf(m_card_w, 56.0),
                 )
                 .unwrap();
             let m3 = tree
@@ -636,7 +648,7 @@ fn build_blade_runner_ui(
                     "Ingress Anomaly",
                     format!("{:.1}%", state.anomaly_score),
                     Some(("-4.2%", true)),
-                    leaf((content_w - 48.0) / 4.0, 56.0),
+                    leaf(m_card_w, 56.0),
                 )
                 .unwrap();
             let m4 = tree
@@ -644,7 +656,7 @@ fn build_blade_runner_ui(
                     "Zero-Trust Shield",
                     if state.zero_trust_enforced { "STRICT" } else { "PERMISSIVE" },
                     Some(("Active", true)),
-                    leaf((content_w - 48.0) / 4.0, 56.0),
+                    leaf(m_card_w, 56.0),
                 )
                 .unwrap();
             let metrics_grid = tree
@@ -654,11 +666,11 @@ fn build_blade_runner_ui(
             // Table of Ingress Incidents
             let col_step = (content_w - 28.0 - 48.0) / 5.0;
             let cols = [
-                ("Incident ID", col_step * 0.9, Some(true)),
-                ("Timestamp", col_step * 0.8, None),
-                ("Source IP", col_step * 1.1, None),
-                ("Target Node", col_step * 1.1, None),
-                ("Threat Classification", col_step * 1.5, None),
+                ("Incident ID", col_step * 0.9, if state.table_sort_col == 0 { Some(state.table_sort_asc) } else { None }),
+                ("Timestamp", col_step * 0.8, if state.table_sort_col == 1 { Some(state.table_sort_asc) } else { None }),
+                ("Source IP", col_step * 1.1, if state.table_sort_col == 2 { Some(state.table_sort_asc) } else { None }),
+                ("Target Node", col_step * 1.1, if state.table_sort_col == 3 { Some(state.table_sort_asc) } else { None }),
+                ("Threat Classification", col_step * 1.5, if state.table_sort_col == 4 { Some(state.table_sort_asc) } else { None }),
             ];
 
             let row_data: Vec<[(&str, ListItemBadge); 5]> = state
@@ -743,7 +755,7 @@ fn build_blade_runner_ui(
                         },
                         flex_direction: FlexDirection::Row,
                         align_items: Some(AlignItems::Center),
-                        justify_content: Some(ui_layout::JustifyContent::SpaceBetween),
+                        justify_content: Some(JustifyContent::SpaceBetween),
                         ..Default::default()
                     },
                 )
@@ -1036,22 +1048,10 @@ fn build_blade_runner_ui(
                 tabbar,
                 tab_content,
             ],
-            Style {
-                size: Size {
-                    width: length(content_w),
-                    height: auto(),
-                },
-                flex_direction: FlexDirection::Column,
-                gap: Size {
-                    width: length(0.0),
-                    height: length(8.0),
-                },
-                ..Default::default()
-            },
+            window_content(8.0),
         )
         .unwrap();
 
-    let win_w = (width - WINDOW_MARGIN * 2.0).max(100.0);
     let win_h = (height - WINDOW_MARGIN * 2.0).max(100.0);
     let win_style = Style {
         position: ui_layout::Position::Absolute,
@@ -1081,7 +1081,7 @@ fn build_blade_runner_ui(
 }
 
 // ============================================================================
-// Spotlight Command Palette & Drawers Overlay
+// Spotlight Command Palette Overlay
 // ============================================================================
 
 fn build_command_palette_ui(
@@ -1177,6 +1177,108 @@ fn build_command_palette_ui(
 }
 
 // ============================================================================
+// Notifications Drawer Overlay
+// ============================================================================
+
+fn build_notifications_drawer_ui(
+    tree: &mut WidgetTree,
+    state: &BladeRunnerState,
+    width: f32,
+    _height: f32,
+) -> NodeId {
+    let drawer_w = 340.0;
+    let drawer_h = 420.0;
+
+    let drawer_title = tree
+        .label("Incident Notifications", leaf(drawer_w - 60.0, 22.0))
+        .unwrap();
+    let close_btn = tree
+        .button(
+            WidgetId::new("close_drawer_btn"),
+            "✕",
+            true,
+            leaf(24.0, 22.0),
+        )
+        .unwrap();
+    let header_row = tree
+        .container(
+            &[drawer_title, close_btn],
+            Style {
+                size: Size {
+                    width: length(drawer_w - 28.0),
+                    height: length(24.0),
+                },
+                flex_direction: FlexDirection::Row,
+                align_items: Some(AlignItems::Center),
+                justify_content: Some(JustifyContent::SpaceBetween),
+                ..Default::default()
+            },
+        )
+        .unwrap();
+
+    let div = tree.divider(false, leaf(drawer_w - 28.0, 1.0)).unwrap();
+
+    let mut notif_items = Vec::new();
+    for (title, msg, kind, time) in &state.notifications_history {
+        let t_lbl = tree.label(format!("{} [{}]", title, time), leaf(drawer_w - 28.0, 16.0)).unwrap();
+        let m_lbl = tree.label_muted(msg.as_str(), leaf(drawer_w - 28.0, 14.0)).unwrap();
+        let b_kind = match kind {
+            ToastKind::Success => ListItemBadge::Success,
+            ToastKind::Warning => ListItemBadge::Warning,
+            ToastKind::Info => ListItemBadge::None,
+            ToastKind::Error => ListItemBadge::Active("ERROR".to_string()),
+        };
+        let badge = tree.badge(match kind {
+            ToastKind::Success => "RESOLVED",
+            ToastKind::Warning => "ALERT",
+            ToastKind::Info => "TELEMETRY",
+            ToastKind::Error => "CRITICAL",
+        }, b_kind, leaf(80.0, 20.0)).unwrap();
+
+        let n_card = tree.container(&[t_lbl, m_lbl, badge], column(4.0)).unwrap();
+        notif_items.push(n_card);
+    }
+
+    let items_col = tree.container(&notif_items, column(8.0)).unwrap();
+
+    let drawer = tree
+        .card(
+            &[header_row, div, items_col],
+            None,
+            None,
+            Some(8.0),
+            Style {
+                size: Size {
+                    width: length(drawer_w),
+                    height: length(drawer_h),
+                },
+                flex_direction: FlexDirection::Column,
+                gap: Size {
+                    width: length(0.0),
+                    height: length(8.0),
+                },
+                padding: Rect {
+                    left: length(14.0),
+                    right: length(14.0),
+                    top: length(12.0),
+                    bottom: length(14.0),
+                },
+                position: ui_layout::Position::Absolute,
+                inset: Rect {
+                    left: length(width - drawer_w - 24.0),
+                    top: length(56.0),
+                    right: auto(),
+                    bottom: auto(),
+                },
+                ..Default::default()
+            },
+        )
+        .unwrap();
+
+    tree.container(&[drawer], leaf(width, _height)).unwrap()
+}
+
+// ============================================================================
 // Winit Application Handler
 // ============================================================================
 
@@ -1219,6 +1321,17 @@ impl App {
             UiEvent::TableRowSelected { row_index, .. } => {
                 self.state.selected_incident = Some(row_index);
             }
+            UiEvent::TableHeaderClicked { column_index, .. } => {
+                if self.state.table_sort_col == column_index {
+                    self.state.table_sort_asc = !self.state.table_sort_asc;
+                } else {
+                    self.state.table_sort_col = column_index;
+                    self.state.table_sort_asc = true;
+                }
+            }
+            UiEvent::PageSelected { page, .. } => {
+                self.state.table_page = page;
+            }
             UiEvent::ToggleSwitched { widget_id, active, .. } => {
                 if widget_id == "toggle_sentinel_deckard" {
                     if let Some(a) = self.state.agents.iter_mut().find(|a| a.id == "sentinel_deckard") {
@@ -1243,6 +1356,8 @@ impl App {
                     self.state.show_command_palette = !self.state.show_command_palette;
                 } else if widget_id == "bell_notifications_btn" {
                     self.state.show_notifications_drawer = !self.state.show_notifications_drawer;
+                } else if widget_id == "close_drawer_btn" {
+                    self.state.show_notifications_drawer = false;
                 } else if widget_id == "btn_quarantine_selected" {
                     if let Some(sel) = self.state.selected_incident {
                         if let Some(inc) = self.state.incidents.get_mut(sel) {
@@ -1313,6 +1428,47 @@ impl App {
             }
             _ => {}
         }
+    }
+
+    fn handle_press(&mut self) {
+        if let (Some(o_tree), Some(o_root)) = (&self.overlay_tree, self.overlay_root) {
+            if let Ok(Some(key)) = o_tree.interaction_key_at(o_root, self.cursor_pos) {
+                self.pressed = Some(key);
+                return;
+            }
+        }
+
+        let Some(root) = self.root else { return };
+        self.pressed = self.tree.interaction_key_at(root, self.cursor_pos).unwrap_or(None);
+
+        if self.tree.is_window_title_bar(root, self.cursor_pos).unwrap_or(false) {
+            if let Some(w) = &self.window {
+                let _ = w.drag_window();
+            }
+        }
+    }
+
+    fn handle_release(&mut self) {
+        if let (Some(o_tree), Some(o_root)) = (&self.overlay_tree, self.overlay_root) {
+            let released_on = o_tree.interaction_key_at(o_root, self.cursor_pos).unwrap_or(None);
+            if self.pressed.is_some() && self.pressed == released_on {
+                if let Ok(Some(ev)) = o_tree.dispatch_click(o_root, self.cursor_pos) {
+                    self.handle_ui_event(ev);
+                    self.pressed = None;
+                    return;
+                }
+            }
+        }
+
+        if let Some(root) = self.root {
+            let released_on = self.tree.interaction_key_at(root, self.cursor_pos).unwrap_or(None);
+            if self.pressed.is_some() && self.pressed == released_on {
+                if let Ok(Some(ev)) = self.tree.dispatch_click(root, self.cursor_pos) {
+                    self.handle_ui_event(ev);
+                }
+            }
+        }
+        self.pressed = None;
     }
 
     fn redraw(&mut self) {
@@ -1408,16 +1564,63 @@ impl App {
             })
             .collect();
 
-        let background = wgpu::Color {
-            r: 0.05,
-            g: 0.07,
-            b: 0.12,
-            a: 1.0,
-        };
+        let background = wgpu::Color::TRANSPARENT;
 
         if self.state.show_command_palette {
             let mut overlay_tree = WidgetTree::new();
             let overlay_root = build_command_palette_ui(&mut overlay_tree, &self.state, w, h);
+            if overlay_tree.compute(overlay_root, available).is_ok() {
+                let pop_hovered = overlay_tree.interaction_key_at(overlay_root, self.cursor_pos).unwrap_or(None);
+                let pop_interaction = InteractionState {
+                    hovered: pop_hovered.as_ref(),
+                    pressed: self.pressed.as_ref(),
+                    measure: Some(&measure),
+                };
+                if let Ok(pop_frame) = overlay_tree.build_frame(overlay_root, &current_theme, pop_interaction) {
+                    let pop_text_runs: Vec<_> = pop_frame
+                        .texts
+                        .iter()
+                        .map(|spec| {
+                            let align = match spec.align {
+                                ui_widgets::TextAlign::Left => glyphon::cosmic_text::Align::Left,
+                                ui_widgets::TextAlign::Center => glyphon::cosmic_text::Align::Center,
+                                ui_widgets::TextAlign::Right => glyphon::cosmic_text::Align::Right,
+                            };
+                            let weight = match spec.weight {
+                                ui_widgets::FontWeight::Normal => glyphon::Weight::NORMAL,
+                                ui_widgets::FontWeight::Bold => glyphon::Weight::BOLD,
+                            };
+                            renderer.make_text_run(
+                                &spec.text,
+                                spec.bounds,
+                                spec.font_size,
+                                spec.color,
+                                align,
+                                family,
+                                weight,
+                                spec.clip,
+                            )
+                        })
+                        .collect();
+
+                    let pop_layer = RenderLayer {
+                        instances: &pop_frame.instances,
+                        texts: &pop_text_runs,
+                    };
+
+                    let _ = renderer.render_layers(
+                        background,
+                        &[base_layer, pop_layer],
+                        &media,
+                        &self.resources,
+                    );
+                }
+            }
+            self.overlay_tree = Some(overlay_tree);
+            self.overlay_root = Some(overlay_root);
+        } else if self.state.show_notifications_drawer {
+            let mut overlay_tree = WidgetTree::new();
+            let overlay_root = build_notifications_drawer_ui(&mut overlay_tree, &self.state, w, h);
             if overlay_tree.compute(overlay_root, available).is_ok() {
                 let pop_hovered = overlay_tree.interaction_key_at(overlay_root, self.cursor_pos).unwrap_or(None);
                 let pop_interaction = InteractionState {
@@ -1490,6 +1693,8 @@ impl ApplicationHandler for App {
         }
         let attrs = WindowAttributes::default()
             .with_title("Blade Runner // Sentinel Cyber-Ops Workstation")
+            .with_decorations(false)
+            .with_transparent(true)
             .with_inner_size(winit::dpi::PhysicalSize::new(
                 WINDOW_WIDTH as u32,
                 WINDOW_HEIGHT as u32,
@@ -1519,27 +1724,17 @@ impl ApplicationHandler for App {
                 button: MouseButton::Left,
                 ..
             } => {
-                if let (Some(o_tree), Some(o_root)) = (&self.overlay_tree, self.overlay_root) {
-                    if let Ok(Some(ev)) = o_tree.dispatch_click(o_root, self.cursor_pos) {
-                        self.handle_ui_event(ev);
-                        if let Some(w) = &self.window {
-                            w.request_redraw();
-                        }
-                        return;
-                    }
+                self.handle_press();
+                if let Some(w) = &self.window {
+                    w.request_redraw();
                 }
-                if let Some(root) = self.root {
-                    // Check window titlebar dragging
-                    if self.tree.is_window_title_bar(root, self.cursor_pos).unwrap_or(false) {
-                        if let Some(w) = &self.window {
-                            let _ = w.drag_window();
-                        }
-                        return;
-                    }
-                    if let Ok(Some(ev)) = self.tree.dispatch_click(root, self.cursor_pos) {
-                        self.handle_ui_event(ev);
-                    }
-                }
+            }
+            WindowEvent::MouseInput {
+                state: ElementState::Released,
+                button: MouseButton::Left,
+                ..
+            } => {
+                self.handle_release();
                 if let Some(w) = &self.window {
                     w.request_redraw();
                 }
@@ -1639,10 +1834,10 @@ mod tests {
     fn test_layout_generation() {
         let mut tree = WidgetTree::new();
         let state = BladeRunnerState::new();
-        let root = build_blade_runner_ui(&mut tree, &state, 1440.0, 900.0);
+        let root = build_blade_runner_ui(&mut tree, &state, 1380.0, 880.0);
         let available = Size {
-            width: AvailableSpace::Definite(1440.0),
-            height: AvailableSpace::Definite(900.0),
+            width: AvailableSpace::Definite(1380.0),
+            height: AvailableSpace::Definite(880.0),
         };
         let layout_res = tree.compute(root, available);
         assert!(layout_res.is_ok());
