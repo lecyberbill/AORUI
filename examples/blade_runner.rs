@@ -20,7 +20,6 @@ use winit::window::{Window, WindowAttributes, WindowId};
 
 const WINDOW_WIDTH: f32 = 1380.0;
 const WINDOW_HEIGHT: f32 = 880.0;
-const WINDOW_MARGIN: f32 = 12.0;
 
 // ============================================================================
 // Layout Helpers
@@ -525,8 +524,7 @@ fn build_blade_runner_ui(
     width: f32,
     height: f32,
 ) -> NodeId {
-    let win_w = (width - WINDOW_MARGIN * 2.0).max(500.0);
-    let content_w = (win_w - 40.0).max(460.0);
+    let content_w = (width - 40.0).max(460.0);
     let half_col_w = ((content_w - 16.0) * 0.5).max(200.0);
 
     // 0. Top Cyber Titlebar (App Name & Window Trio Controls: Minimize, Maximize, Close)
@@ -1091,48 +1089,36 @@ fn build_blade_runner_ui(
         }
     };
 
-    // 3. Assemble Primary Content Window
-    let main_content = tree
-        .container(
-            &[
-                titlebar,
-                title_divider,
-                top_header,
-                top_divider,
-                tabbar,
-                tab_content,
-            ],
-            window_content(8.0),
-        )
-        .unwrap();
-
-    let win_h = (height - WINDOW_MARGIN * 2.0).max(100.0);
-    let win_style = Style {
-        position: ui_layout::Position::Absolute,
-        inset: Rect {
-            top: length(WINDOW_MARGIN),
-            left: length(WINDOW_MARGIN),
-            right: auto(),
-            bottom: auto(),
+    // 3. Assemble Root Application Workspace (Full bleed, seamless window canvas)
+    tree.container(
+        &[
+            titlebar,
+            title_divider,
+            top_header,
+            top_divider,
+            tabbar,
+            tab_content,
+        ],
+        Style {
+            size: Size {
+                width: length(width),
+                height: length(height),
+            },
+            flex_direction: FlexDirection::Column,
+            gap: Size {
+                width: length(0.0),
+                height: length(8.0),
+            },
+            padding: Rect {
+                left: length(20.0),
+                right: length(20.0),
+                top: length(10.0),
+                bottom: length(16.0),
+            },
+            ..Default::default()
         },
-        size: Size {
-            width: length(win_w),
-            height: length(win_h),
-        },
-        ..Default::default()
-    };
-
-    let workstation_card = tree
-        .card(
-            &[main_content],
-            None,
-            None,
-            Some(8.0),
-            win_style,
-        )
-        .unwrap();
-
-    tree.container(&[workstation_card], leaf(width, height)).unwrap()
+    )
+    .unwrap()
 }
 
 // ============================================================================
@@ -1644,7 +1630,12 @@ impl App {
             })
             .collect();
 
-        let background = wgpu::Color::TRANSPARENT;
+        let background = wgpu::Color {
+            r: 0.02,
+            g: 0.04,
+            b: 0.07,
+            a: 1.0,
+        };
 
         if self.state.show_command_palette {
             let mut overlay_tree = WidgetTree::new();
