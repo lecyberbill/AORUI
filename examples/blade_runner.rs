@@ -99,8 +99,8 @@ fn window_content(gap: f32) -> Style {
         padding: Rect {
             left: length(20.0),
             right: length(20.0),
-            top: length(48.0), // Below custom cyber window titlebar
-            bottom: length(18.0),
+            top: length(12.0),
+            bottom: length(16.0),
         },
         ..Default::default()
     }
@@ -528,6 +528,58 @@ fn build_blade_runner_ui(
     let win_w = (width - WINDOW_MARGIN * 2.0).max(500.0);
     let content_w = (win_w - 40.0).max(460.0);
     let half_col_w = ((content_w - 16.0) * 0.5).max(200.0);
+
+    // 0. Top Cyber Titlebar (App Name & Window Trio Controls: Minimize, Maximize, Close)
+    let app_title_lbl = tree
+        .label("❖ BLADE RUNNER // SENTINEL CYBER-OPS WORKSTATION", leaf(440.0, 24.0))
+        .unwrap();
+
+    let btn_min = tree
+        .button(
+            WidgetId::new("btn_win_minimize"),
+            "─",
+            true,
+            leaf(28.0, 22.0),
+        )
+        .unwrap();
+
+    let btn_max = tree
+        .button(
+            WidgetId::new("btn_win_maximize"),
+            "□",
+            true,
+            leaf(28.0, 22.0),
+        )
+        .unwrap();
+
+    let btn_close = tree
+        .button(
+            WidgetId::new("btn_win_close"),
+            "✕",
+            true,
+            leaf(28.0, 22.0),
+        )
+        .unwrap();
+
+    let win_controls = tree.container(&[btn_min, btn_max, btn_close], row(4.0)).unwrap();
+
+    let titlebar = tree
+        .container(
+            &[app_title_lbl, win_controls],
+            Style {
+                size: Size {
+                    width: length(content_w),
+                    height: length(24.0),
+                },
+                flex_direction: FlexDirection::Row,
+                align_items: Some(AlignItems::Center),
+                justify_content: Some(JustifyContent::SpaceBetween),
+                ..Default::default()
+            },
+        )
+        .unwrap();
+
+    let title_divider = tree.divider(false, leaf(content_w, 1.0)).unwrap();
 
     // 1. Top Cyber-Ops Command Bar (Logo, DEFCON indicator, Quick Search, Bell, User Profile)
     let defcon_badge = tree
@@ -1043,6 +1095,8 @@ fn build_blade_runner_ui(
     let main_content = tree
         .container(
             &[
+                titlebar,
+                title_divider,
                 top_header,
                 top_divider,
                 tabbar,
@@ -1068,16 +1122,17 @@ fn build_blade_runner_ui(
         ..Default::default()
     };
 
-    let window_card = tree
-        .window(
-            WidgetId::new("blade_runner_window"),
-            "BLADE RUNNER // SENTINEL CYBER-OPS WORKSTATION",
+    let workstation_card = tree
+        .card(
             &[main_content],
+            None,
+            None,
+            Some(8.0),
             win_style,
         )
         .unwrap();
 
-    tree.container(&[window_card], leaf(width, height)).unwrap()
+    tree.container(&[workstation_card], leaf(width, height)).unwrap()
 }
 
 // ============================================================================
@@ -1352,7 +1407,18 @@ impl App {
                 }
             }
             UiEvent::ButtonClicked { widget_id } => {
-                if widget_id == "quick_cmd_btn" {
+                if widget_id == "btn_win_minimize" {
+                    if let Some(w) = &self.window {
+                        w.set_minimized(true);
+                    }
+                } else if widget_id == "btn_win_maximize" {
+                    if let Some(w) = &self.window {
+                        let is_max = w.is_maximized();
+                        w.set_maximized(!is_max);
+                    }
+                } else if widget_id == "btn_win_close" {
+                    self.state.close_requested = true;
+                } else if widget_id == "quick_cmd_btn" {
                     self.state.show_command_palette = !self.state.show_command_palette;
                 } else if widget_id == "bell_notifications_btn" {
                     self.state.show_notifications_drawer = !self.state.show_notifications_drawer;
@@ -1441,7 +1507,7 @@ impl App {
         let Some(root) = self.root else { return };
         self.pressed = self.tree.interaction_key_at(root, self.cursor_pos).unwrap_or(None);
 
-        if self.tree.is_window_title_bar(root, self.cursor_pos).unwrap_or(false) {
+        if self.cursor_pos.1 <= 44.0 && self.pressed.is_none() {
             if let Some(w) = &self.window {
                 let _ = w.drag_window();
             }
@@ -1475,11 +1541,25 @@ impl App {
         let Some(window) = &self.window else { return };
         let Some(renderer) = &mut self.renderer else { return };
 
+        let elapsed = self.state.start_time.elapsed().as_secs_f32();
+        self.state.radar_sweep_angle = (elapsed * 80.0) % 360.0;
+
+        // Live smooth FFT audio spectrum animation
+        for (i, val) in self.state.audio_spectrum.iter_mut().enumerate() {
+            let f = i as f32 / 32.0;
+            let wave = (elapsed * 3.0 + f * 12.0).sin().abs();
+            *val = (f * std::f32::consts::PI * 2.5).sin().abs() * 0.4 + wave * 0.45 + 0.15;
+        }
+
+        // Live GPU telemetry waveform
+        for (i, val) in self.state.gpu_telemetry_series.iter_mut().enumerate() {
+            let t = elapsed * 2.0 + i as f32 * 0.5;
+            *val = 32.0 + (t * 0.6).sin() * 18.0 + (t * 1.2).cos() * 8.0;
+        }
+
         let size = window.inner_size();
         let w = size.width as f32;
         let h = size.height as f32;
-
-        self.state.radar_sweep_angle = (self.state.radar_sweep_angle + 1.5) % 360.0;
 
         let available = Size {
             width: AvailableSpace::Definite(w),
@@ -1786,6 +1866,12 @@ impl ApplicationHandler for App {
                 self.redraw();
             }
             _ => {}
+        }
+    }
+
+    fn about_to_wait(&mut self, _event_loop: &ActiveEventLoop) {
+        if let Some(w) = &self.window {
+            w.request_redraw();
         }
     }
 }
