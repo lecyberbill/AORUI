@@ -88,22 +88,7 @@ fn card_style(w: f32) -> Style {
     }
 }
 
-fn window_content(gap: f32) -> Style {
-    Style {
-        flex_direction: FlexDirection::Column,
-        gap: Size {
-            width: length(0.0),
-            height: length(gap),
-        },
-        padding: Rect {
-            left: length(20.0),
-            right: length(20.0),
-            top: length(12.0),
-            bottom: length(16.0),
-        },
-        ..Default::default()
-    }
-}
+
 
 // ============================================================================
 // Data Models & State
@@ -1780,10 +1765,12 @@ impl ApplicationHandler for App {
         // Remove white micro-grid dots
         bg_params.grid_dot_size = 0.0;
         bg_params.grid_opacity = 0.0;
-        // Darken base and bottom-right glow for a sleek, deep black cyber atmosphere
-        bg_params.base_color = [0.012, 0.016, 0.024, 1.0];
-        bg_params.grad1_color = [0.02, 0.03, 0.06, 0.08];
-        bg_params.grad2_color = [0.008, 0.022, 0.045, 0.06];
+        // Deep oceanic midnight base
+        bg_params.base_color = [0.005, 0.008, 0.016, 1.0];
+        // Rich indigo/periwinkle aurora top-right
+        bg_params.grad1_color = [0.096, 0.106, 0.718, 0.20];
+        // Dark, rich sapphire blue bottom-right (deep and subtle, not washed out)
+        bg_params.grad2_color = [0.005, 0.035, 0.140, 0.16];
         renderer.set_background_params(bg_params);
 
         self.window = Some(window);
