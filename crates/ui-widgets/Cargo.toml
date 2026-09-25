@@ -9,3 +9,8 @@ description = "Modele declaratif de widgets (bouton, texte, input, liste, checkb
 ui-core.workspace = true
 ui-layout.workspace = true
 taffy.workspace = true
+serde = { workspace = true, features = ["derive"] }
+toml = "0.8"
+notify = "8"
+anyhow = "1.0"
+tracing = "0.1"

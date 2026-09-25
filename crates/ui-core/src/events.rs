@@ -172,6 +172,46 @@ pub enum UiEvent {
         widget_id: String,
         progress: f32,
     },
+    KnobChanged {
+        widget_id: String,
+        value: f32,
+    },
+    NodeMoved {
+        graph_id: String,
+        node_id: String,
+        x: f32,
+        y: f32,
+    },
+    NodeSelected {
+        graph_id: String,
+        node_id: Option<String>,
+    },
+    NodeConnected {
+        graph_id: String,
+        from_node: String,
+        from_socket: usize,
+        to_node: String,
+        to_socket: usize,
+    },
+    NodeConnectionDeleted {
+        graph_id: String,
+        connection_index: usize,
+    },
+    ChartInspected {
+        widget_id: String,
+        series_index: usize,
+        point_index: usize,
+        x: f32,
+        y: f32,
+    },
+    TagAdded {
+        widget_id: String,
+        tag: String,
+    },
+    TagRemoved {
+        widget_id: String,
+        index: usize,
+    },
     CustomPaintPointerDown {
         widget_id: String,
         local_pos: [f32; 2],
@@ -181,6 +221,47 @@ pub enum UiEvent {
         widget_id: String,
         local_pos: [f32; 2],
         delta: [f32; 2],
+    },
+    // --- File Drag & Drop interactions ---
+    FileHovered {
+        widget_id: Option<String>,
+        path: std::path::PathBuf,
+        position: [f32; 2],
+    },
+    FileHoverCancelled,
+    FileDropped {
+        widget_id: Option<String>,
+        path: std::path::PathBuf,
+        position: [f32; 2],
+    },
+
+    // --- Modern Desktop / Workstation Interactions ---
+    AvatarClicked {
+        widget_id: String,
+    },
+    CommandExecuted {
+        command_id: String,
+    },
+    NotificationCleared {
+        notification_id: Option<String>,
+    },
+    StepClicked {
+        stepper_id: String,
+        step_index: usize,
+    },
+    ChipClicked {
+        widget_id: String,
+    },
+    ChipDismissed {
+        widget_id: String,
+    },
+    RatingChanged {
+        widget_id: String,
+        rating: u8,
+    },
+    TimelineItemClicked {
+        timeline_id: String,
+        item_index: usize,
     },
 
     // --- Agent runtime commands (preserved for agent-runtime) ---

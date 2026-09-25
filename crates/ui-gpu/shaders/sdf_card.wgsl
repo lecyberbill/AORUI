@@ -46,7 +46,7 @@ struct VertexOutput {
 
 // Marge en pixels ajoutee autour du rect pour laisser respirer le halo neon
 // sans le clipper au bord du quad instancie.
-const GLOW_PADDING_PER_UNIT: f32 = 18.0;
+const GLOW_PADDING_PER_UNIT: f32 = 8.0;
 
 @vertex
 fn vs_main(@builtin(vertex_index) vertex_index: u32, instance: InstanceInput) -> VertexOutput {
@@ -118,12 +118,12 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
     // Gradient vertical et brillance de surface (lumiere zenithale douce activee si glow_intensity > 0).
     // norm_y varie de 0.0 (haut du quad) a 1.0 (bas du quad).
     let norm_y = clamp((in.local_pos.y / in.half_size.y) * 0.5 + 0.5, 0.0, 1.0);
-    let surface_gradient = ((1.0 - norm_y) * 0.10 - norm_y * 0.04) * in.glow_intensity;
+    let surface_gradient = ((1.0 - norm_y) * 0.08 - norm_y * 0.03) * in.glow_intensity;
     let surface_rgb = clamp(in.bg_color.rgb + vec3<f32>(surface_gradient), vec3<f32>(0.0), vec3<f32>(1.0));
 
     // Reflet speculaire fin sur le biseau superieur
     let top_rim = smoothstep(0.08, 0.0, norm_y) * smoothstep(-in.half_size.y, -in.border_width, in.local_pos.y);
-    let specular = vec3<f32>(1.0, 1.0, 1.0) * top_rim * 0.12 * in.glow_intensity;
+    let specular = vec3<f32>(1.0, 1.0, 1.0) * top_rim * 0.10 * in.glow_intensity;
 
     let glass_rgb = mix(bg_sample, surface_rgb, in.bg_color.a) + specular;
 
@@ -133,23 +133,23 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
     // Bordure nette avec arete superieure plus lumineuse (biseau eclairé).
     let border_raw = fill_alpha * smoothstep(-in.border_width - 0.75, -in.border_width + 0.75, dist);
     let border_alpha = select(0.0, border_raw, in.border_width > 0.0);
-    let top_border_highlight = (1.0 - norm_y) * 0.35 * in.glow_intensity;
-    let base_border_color = mix(in.bg_color.rgb, in.glow_color.rgb, 0.85);
+    let top_border_highlight = (1.0 - norm_y) * 0.25 * in.glow_intensity;
+    let base_border_color = in.glow_color.rgb;
     let border_color = clamp(base_border_color + vec3<f32>(top_border_highlight), vec3<f32>(0.0), vec3<f32>(1.0));
 
-    // Lueur d'ambiance interne pour les elements actifs
+    // Lueur d'ambiance interne pour les elements actifs (tres subtile et serree)
     let inner_dist = max(-dist, 0.0);
-    let inner_glow = exp(-0.55 * inner_dist) * in.glow_intensity * 0.10;
+    let inner_glow = exp(-0.85 * inner_dist) * in.glow_intensity * 0.05;
     let inner_rgb = in.glow_color.rgb * inner_glow;
 
     var color = mix(glass_rgb, border_color, border_alpha) + inner_rgb;
     var alpha = clamp(fill_alpha * in.bg_color.a + border_alpha * in.glow_color.a, 0.0, 1.0);
 
-    // Halo neon : decroissance exponentielle continue et resserree
+    // Halo neon : decroissance exponentielle resserree et discrete
     let outside_dist = max(dist, 0.0);
-    let glow_falloff = 0.35;
-    let glow_raw = exp(-glow_falloff * outside_dist) * in.glow_intensity;
-    let edge_fade = 1.0 - smoothstep(in.glow_padding * 0.7, in.glow_padding, outside_dist);
+    let glow_falloff = 0.65;
+    let glow_raw = exp(-glow_falloff * outside_dist) * (in.glow_intensity * 0.75);
+    let edge_fade = 1.0 - smoothstep(in.glow_padding * 0.6, in.glow_padding, outside_dist);
     let glow = glow_raw * edge_fade;
     color = color + in.glow_color.rgb * glow * (1.0 - fill_alpha);
     alpha = max(alpha, glow * in.glow_color.a);

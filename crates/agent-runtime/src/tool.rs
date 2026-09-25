@@ -39,4 +39,18 @@ impl ToolRegistry {
     pub fn get(&self, name: &str) -> Option<Arc<dyn Tool>> {
         self.tools.get(name).cloned()
     }
+
+    pub fn iter(&self) -> impl Iterator<Item = (&String, &Arc<dyn Tool>)> {
+        self.tools.iter()
+    }
+
+    pub fn list_tools(&self) -> Vec<serde_json::Value> {
+        self.tools.values().map(|t| {
+            serde_json::json!({
+                "name": t.name(),
+                "description": format!("AORUI deterministic UI control tool: {}", t.name()),
+                "inputSchema": t.schema()
+            })
+        }).collect()
+    }
 }

@@ -1,0 +1,486 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="fr"><head><meta charset="utf-8"/><meta content="width=device-width, initial-scale=1.0" name="viewport"/><meta content="web_standard" name="shell-type"/><link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet"/><link href="https://fonts.googleapis.com" rel="preconnect"/><link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&amp;family=JetBrains+Mono:wght@500&amp;family=Plus+Jakarta+Sans:wght@600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/><style>@layer base{html,body{margin:0;padding:0;}body{overscroll-behavior:none;}main>:first-child{margin-top:0!important;}main>:last-child{margin-bottom:0!important;}}::-webkit-scrollbar{display:none;}</style><script src="https://cdn.tailwindcss.com"></script><script id="tailwind-config">tailwind.config={darkMode:"class",theme:{extend:{"colors":{"error-container":"#93000a","on-surface":"#dfe2f1","on-secondary-fixed":"#001e2c","surface-tint":"#c0c1ff","on-secondary":"#00354a","on-primary-fixed-variant":"#2f2ebe","secondary-fixed-dim":"#7bd0ff","tertiary-fixed":"#6ffbbe","outline-variant":"#464554","on-tertiary-container":"#000703","tertiary-container":"#00885d","tertiary-fixed-dim":"#4edea3","on-primary":"#1000a9","inverse-surface":"#dfe2f1","primary-container":"#8083ff","surface-container-lowest":"#0a0e18","surface-container-high":"#262a35","primary":"#c0c1ff","on-tertiary-fixed":"#002113","tertiary":"#4edea3","on-secondary-container":"#00374d","on-secondary-fixed-variant":"#004c69","background":"#0f131d","on-primary-container":"#0d0096","primary-fixed-dim":"#c0c1ff","on-tertiary":"#003824","primary-fixed":"#e1e0ff","surface-bright":"#353944","on-surface-variant":"#c7c4d7","on-error":"#690005","error":"#ffb4ab","inverse-on-surface":"#2c303b","surface":"#0f131d","on-primary-fixed":"#07006c","outline":"#908fa0","surface-variant":"#313540","surface-container-low":"#171b26","surface-dim":"#0f131d","on-error-container":"#ffdad6","inverse-primary":"#494bd6","on-background":"#dfe2f1","secondary":"#7bd0ff","surface-container":"#1c1f2a","secondary-container":"#00a6e0","secondary-fixed":"#c4e7ff","on-tertiary-fixed-variant":"#005236","surface-container-highest":"#313540"},"borderRadius":{"DEFAULT":"0.25rem","lg":"0.5rem","xl":"0.75rem","full":"9999px"},"spacing":{"margin-mobile":"0.75rem","space-xs":"0.25rem","space-md":"0.75rem","space-sm":"0.5rem","gutter-sm":"0.5rem","space-lg":"1.25rem","margin":"1.5rem","gutter":"1rem","space-xl":"2rem"},"fontFamily":{"display-lg-mobile":["Plus Jakarta Sans"],"headline-sm":["Plus Jakarta Sans"],"label-md":["Inter"],"headline-md":["Plus Jakarta Sans"],"body-md":["Inter"],"display-lg":["Plus Jakarta Sans"],"body-lg":["Inter"],"label-sm":["Inter"],"headline-lg":["Plus Jakarta Sans"],"body-sm":["Inter"],"mono-lg":["JetBrains Mono"],"mono-sm":["JetBrains Mono"]},"fontSize":{"display-lg-mobile":["32px",{"lineHeight":"40px","letterSpacing":"-0.02em","fontWeight":"700"}],"headline-sm":["15px",{"lineHeight":"22px","letterSpacing":"-0.01em","fontWeight":"600"}],"label-md":["11px",{"lineHeight":"16px","letterSpacing":"0.04em","fontWeight":"600"}],"headline-md":["18px",{"lineHeight":"26px","letterSpacing":"-0.015em","fontWeight":"600"}],"body-md":["13px",{"lineHeight":"20px","fontWeight":"400"}],"display-lg":["48px",{"lineHeight":"56px","letterSpacing":"-0.03em","fontWeight":"700"}],"body-lg":["15px",{"lineHeight":"24px","fontWeight":"400"}],"label-sm":["10px",{"lineHeight":"14px","letterSpacing":"0.06em","fontWeight":"600"}],"headline-lg":["24px",{"lineHeight":"32px","letterSpacing":"-0.02em","fontWeight":"600"}],"body-sm":["12px",{"lineHeight":"18px","fontWeight":"400"}],"mono-lg":["13px",{"lineHeight":"18px","letterSpacing":"-0.01em","fontWeight":"500"}],"mono-sm":["11px",{"lineHeight":"16px","letterSpacing":"0em","fontWeight":"500"}]}}}};</script></head><body class="bg-background font-body-md text-body-md text-on-surface min-h-screen relative overflow-x-hidden selection:bg-primary-container selection:text-on-primary-container"><div class="fixed inset-0 pointer-events-none -z-10 bg-[radial-gradient(ellipse_80%_80%_at_50%_-20%,rgba(99,102,241,0.18),rgba(255,255,255,0)),radial-gradient(ellipse_60%_50%_at_80%_90%,rgba(56,189,248,0.12),rgba(255,255,255,0))] bg-surface-container-lowest"></div><div class="fixed inset-0 pointer-events-none -z-10 bg-[radial-gradient(#464554_1px,transparent_1px)] [background-size:24px_24px] opacity-20"></div><header class="fixed top-0 left-0 w-full h-10 z-50 bg-surface-container-lowest/80 backdrop-blur-xl shadow-[0_1px_8px_rgba(0,0,0,0.4)]"><div class="w-full h-10 px-margin flex items-center justify-between"><div class="flex items-center gap-space-lg"><div class="flex items-center gap-space-sm"><img alt="Stratus Cloud OS Logo" class="h-8 w-auto object-contain" src="https://lh3.googleusercontent.com/aida-public/AB6AXuA5crZUHAdIoPS_8WLqgoQBFUo-piGgbXHqxUTicXMVbSsZQELlb_j4NHCjUPkLvRw5rtAQDewTTljX87F02g_ayN-wRyoqlxejY1fCtHk35DPCfE8l2PrCmv1VGFbugWCULRusbVSl0hXNIP6S-6v1PXZxphGFH3RX90YBPf7tl6DwzOmevTHHbNGo2Yivba_My7YJot8kFumK5aTDDOr6VbOmR92k5k1R3Cx4Gp_76mBfV5eYU0voHw"/><span class="font-headline-sm text-headline-sm text-on-surface tracking-tight hidden sm:inline">Stratus OS</span></div><nav class="hidden xl:flex items-center gap-space-md" data-active-classes="text-primary font-semibold"><a class="text-on-surface-variant hover:text-on-surface font-body-sm text-body-sm transition-colors" data-path="espace-de-travail" href="#">Fichier</a><a class="text-on-surface-variant hover:text-on-surface font-body-sm text-body-sm transition-colors" data-path="fichiers-cloud" href="#">Affichage</a><a aria-current="page" class="transition-colors text-primary font-semibold" data-path="moniteur-systeme" href="#">Espaces Cloud</a><a class="text-on-surface-variant hover:text-on-surface font-body-sm text-body-sm transition-colors" data-path="terminal-shell" href="#">Outils</a><a class="text-on-surface-variant hover:text-on-surface font-body-sm text-body-sm transition-colors" data-path="parametres-systeme" href="#">Aide</a></nav></div><div class="flex items-center gap-space-md"><div class="hidden lg:flex items-center gap-space-sm px-space-sm py-space-xs bg-surface-container-high/60 backdrop-blur-md rounded-full shadow-[0_1px_4px_rgba(0,0,0,0.2)]"><div class="flex items-center gap-space-xs px-space-xs"><span class="w-1.5 h-1.5 rounded-full bg-tertiary animate-pulse"></span><span class="font-mono-sm text-mono-sm text-on-surface-variant">99.98%</span></div><div class="flex items-center gap-space-xs px-space-xs"><span class="font-mono-sm text-mono-sm text-secondary">12ms</span><span class="font-mono-sm text-mono-sm text-on-surface-variant">FRA</span></div><div class="flex items-center gap-space-xs px-space-xs"><span class="font-mono-sm text-mono-sm text-on-surface-variant">RAM</span><span class="font-mono-sm text-mono-sm text-on-surface">4.8/32G</span></div><div class="flex items-center gap-space-xs px-space-xs"><span class="font-mono-sm text-mono-sm text-on-surface-variant">CPU</span><span class="font-mono-sm text-mono-sm text-primary">14%</span></div></div><div class="flex items-center gap-space-sm"><button class="p-space-xs rounded-full bg-surface-container/70 text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high transition-colors" type="button"><span class="material-symbols-outlined text-[16px] leading-none block">tune</span></button><div class="flex items-center gap-space-xs text-on-surface font-mono-sm text-mono-sm"><span class="hidden md:inline text-on-surface-variant">Ven 24 Oct</span><span>14:32</span></div><img alt="Profile" class="w-8 h-8 rounded-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBh1C09UZDbriCvMYERrXJyCOWWQyo5iSp6h0kUQU1K7lMxo9k0p8FxHIeKVFhPkrC1s4EpDc-am87wP8a5dvTKv8KynWYKXt0NAxaJL4ae5ijlp9Gdwp2cnghtRDap1FLEQZWySlE1_Zwub8IjTf2Z4W2gDvtv12ZGzo3gZOnM8BmW7yrfpapgy3eL0yswdzCXIEulHaE5cthVRs2Esy-zdf6NMv3StkfK8nHmCGVVIyBvZvqOulFPMw"/></div></div></div></header><main class="w-full pt-10 min-h-screen relative pb-space-xl"><div class="flex flex-col w-full">
+<div class="w-full max-w-[1600px] mx-auto px-margin-mobile sm:px-margin space-y-space-lg pt-space-md">
+<!-- Header Context Band -->
+<div class="flex flex-col lg:flex-row lg:items-center justify-between gap-space-md">
+<div class="space-y-space-xs">
+<div class="flex items-center gap-space-xs text-on-surface-variant font-mono-sm text-mono-sm">
+<span class="inline-block w-2 h-2 rounded-full bg-tertiary animate-ping"></span>
+<span class="text-tertiary uppercase tracking-wider font-semibold">Télémétrie Active</span>
+<span class="text-outline">/</span>
+<span>Cluster-EU-West-04</span>
+<span class="text-outline">/</span>
+<span class="text-on-surface">Node-Alpha-92</span>
+</div>
+<h1 class="font-headline-lg text-headline-lg text-on-surface tracking-tight">Moniteur de Performance Système &amp; Cloud</h1>
+</div>
+<div class="flex flex-wrap items-center gap-space-sm font-mono-sm text-mono-sm">
+<div class="flex items-center bg-surface-container-high/80 backdrop-blur-md rounded-lg p-1 text-on-surface-variant shadow-sm">
+<button class="px-space-sm py-1 rounded bg-primary-container text-on-primary-container font-medium shadow-sm transition-colors" type="button">Direct (1s)</button>
+<button class="px-space-sm py-1 hover:text-on-surface transition-colors" type="button">15m</button>
+<button class="px-space-sm py-1 hover:text-on-surface transition-colors" type="button">1h</button>
+<button class="px-space-sm py-1 hover:text-on-surface transition-colors" type="button">24h</button>
+</div>
+<button class="flex items-center gap-space-xs px-space-md py-1.5 rounded-lg bg-surface-container hover:bg-surface-container-high text-on-surface transition-all shadow-sm" type="button">
+<span class="material-symbols-outlined text-[16px] text-secondary">tune</span>
+<span class="font-label-md text-label-md">Seuils d'Alerte</span>
+</button>
+<button class="flex items-center gap-space-xs px-space-md py-1.5 rounded-lg bg-primary hover:bg-primary-fixed-dim text-on-primary transition-all shadow-md" type="button">
+<span class="material-symbols-outlined text-[16px]">file_download</span>
+<span class="font-label-md text-label-md">Rapport Snapshot</span>
+</button>
+</div>
+</div>
+<!-- 4 Key KPI Telemetry Cards -->
+<div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-space-md">
+<!-- KPI 1: vCPU -->
+<div class="bg-surface-container-low/90 backdrop-blur-xl rounded-xl p-space-md shadow-md flex flex-col justify-between relative overflow-hidden group hover:bg-surface-container-low transition-all">
+<div class="absolute -right-6 -top-6 w-24 h-24 bg-primary/10 rounded-full blur-2xl group-hover:bg-primary/20 transition-all pointer-events-none"></div>
+<div>
+<div class="flex items-center justify-between">
+<span class="font-label-md text-label-md uppercase tracking-wider text-on-surface-variant flex items-center gap-1.5">
+<span class="material-symbols-outlined text-[16px] text-primary">memory</span>
+              Charge vCPU
+            </span>
+<span class="font-mono-sm text-mono-sm text-tertiary bg-tertiary-container/30 px-2 py-0.5 rounded-full">Nominal</span>
+</div>
+<div class="mt-space-sm flex items-baseline gap-space-sm">
+<span class="font-display-lg-mobile text-display-lg-mobile text-on-surface font-bold tracking-tight">28.4%</span>
+<span class="font-mono-sm text-mono-sm text-on-surface-variant">@ 3.8 GHz</span>
+</div>
+<div class="text-on-surface-variant font-mono-sm text-mono-sm mt-0.5">32 Cores virtuels • AMD EPYC Cloud</div>
+</div>
+<div class="mt-space-md pt-space-xs">
+<svg class="w-full h-10 overflow-visible" fill="none" viewbox="0 0 120 30">
+<path class="text-primary" d="M0 24 Q 20 20, 35 15 T 70 18 T 95 8 L 120 12" stroke="currentColor" stroke-linecap="round" stroke-width="2"></path>
+<path class="text-primary/15" d="M0 24 Q 20 20, 35 15 T 70 18 T 95 8 L 120 12 L 120 30 L 0 30 Z" fill="currentColor"></path>
+</svg>
+<div class="flex justify-between items-center mt-1 text-on-surface-variant font-mono-sm text-mono-sm">
+<span>Min 14.1%</span>
+<span class="text-primary font-medium">Pic 42.0%</span>
+</div>
+</div>
+</div>
+<!-- KPI 2: RAM -->
+<div class="bg-surface-container-low/90 backdrop-blur-xl rounded-xl p-space-md shadow-md flex flex-col justify-between relative overflow-hidden group hover:bg-surface-container-low transition-all">
+<div class="absolute -right-6 -top-6 w-24 h-24 bg-secondary/10 rounded-full blur-2xl group-hover:bg-secondary/20 transition-all pointer-events-none"></div>
+<div>
+<div class="flex items-center justify-between">
+<span class="font-label-md text-label-md uppercase tracking-wider text-on-surface-variant flex items-center gap-1.5">
+<span class="material-symbols-outlined text-[16px] text-secondary">developer_board</span>
+              Mémoire Vive (RAM)
+            </span>
+<span class="font-mono-sm text-mono-sm text-secondary bg-surface-container-high px-2 py-0.5 rounded-full">28.4% utilisé</span>
+</div>
+<div class="mt-space-sm flex items-baseline gap-space-sm">
+<span class="font-display-lg-mobile text-display-lg-mobile text-on-surface font-bold tracking-tight">18.2</span>
+<span class="font-headline-sm text-headline-sm text-on-surface-variant">/ 64 GB</span>
+</div>
+<div class="text-on-surface-variant font-mono-sm text-mono-sm mt-0.5">DDR5 ECC • Peak: 22.4 GB</div>
+</div>
+<div class="mt-space-md pt-space-xs space-y-1.5">
+<div class="w-full bg-surface-container-highest rounded-full h-2 overflow-hidden flex">
+<div class="bg-secondary h-full rounded-full transition-all duration-700" style="width: 28.4%"></div>
+</div>
+<div class="flex justify-between items-center text-on-surface-variant font-mono-sm text-mono-sm">
+<span>Disponible: 45.8 GB</span>
+<span class="text-secondary font-medium">Cache: 6.2 GB</span>
+</div>
+</div>
+</div>
+<!-- KPI 3: Network I/O -->
+<div class="bg-surface-container-low/90 backdrop-blur-xl rounded-xl p-space-md shadow-md flex flex-col justify-between relative overflow-hidden group hover:bg-surface-container-low transition-all">
+<div class="absolute -right-6 -top-6 w-24 h-24 bg-tertiary/10 rounded-full blur-2xl group-hover:bg-tertiary/20 transition-all pointer-events-none"></div>
+<div>
+<div class="flex items-center justify-between">
+<span class="font-label-md text-label-md uppercase tracking-wider text-on-surface-variant flex items-center gap-1.5">
+<span class="material-symbols-outlined text-[16px] text-tertiary">swap_calls</span>
+              I/O Réseau Cloud
+            </span>
+<span class="font-mono-sm text-mono-sm text-tertiary bg-tertiary-container/30 px-2 py-0.5 rounded-full flex items-center gap-1">
+<span class="w-1.5 h-1.5 rounded-full bg-tertiary"></span> 8ms
+            </span>
+</div>
+<div class="mt-space-sm flex items-baseline gap-space-xs">
+<span class="font-display-lg-mobile text-display-lg-mobile text-on-surface font-bold tracking-tight">3.4</span>
+<span class="font-headline-sm text-headline-sm text-tertiary">Gbps In</span>
+<span class="text-outline mx-1">/</span>
+<span class="font-headline-md text-headline-md text-on-surface font-semibold">1.8</span>
+<span class="font-body-sm text-body-sm text-on-surface-variant">Out</span>
+</div>
+<div class="text-on-surface-variant font-mono-sm text-mono-sm mt-0.5">Dual 25 GbE vSwitch Fabric</div>
+</div>
+<div class="mt-space-md pt-space-xs">
+<svg class="w-full h-10 overflow-visible" fill="none" viewbox="0 0 120 30">
+<path class="text-tertiary" d="M0 20 L 25 18 L 45 10 L 65 22 L 90 7 L 120 15" stroke="currentColor" stroke-linecap="round" stroke-width="2"></path>
+<path class="text-tertiary/15" d="M0 20 L 25 18 L 45 10 L 65 22 L 90 7 L 120 15 L 120 30 L 0 30 Z" fill="currentColor"></path>
+</svg>
+<div class="flex justify-between items-center mt-1 text-on-surface-variant font-mono-sm text-mono-sm">
+<span>Paquets: 410k pps</span>
+<span class="text-tertiary font-medium">Pertes: 0.00%</span>
+</div>
+</div>
+</div>
+<!-- KPI 4: Storage NVMe -->
+<div class="bg-surface-container-low/90 backdrop-blur-xl rounded-xl p-space-md shadow-md flex flex-col justify-between relative overflow-hidden group hover:bg-surface-container-low transition-all">
+<div class="absolute -right-6 -top-6 w-24 h-24 bg-primary-container/10 rounded-full blur-2xl group-hover:bg-primary-container/20 transition-all pointer-events-none"></div>
+<div>
+<div class="flex items-center justify-between">
+<span class="font-label-md text-label-md uppercase tracking-wider text-on-surface-variant flex items-center gap-1.5">
+<span class="material-symbols-outlined text-[16px] text-primary-fixed-dim">storage</span>
+              Stockage NVMe Débit
+            </span>
+<span class="font-mono-sm text-mono-sm text-primary bg-primary-container/20 px-2 py-0.5 rounded-full">Tier-0 SAN</span>
+</div>
+<div class="mt-space-sm flex items-baseline gap-space-xs">
+<span class="font-display-lg-mobile text-display-lg-mobile text-on-surface font-bold tracking-tight">2,450</span>
+<span class="font-headline-sm text-headline-sm text-primary">Mo/s</span>
+</div>
+<div class="text-on-surface-variant font-mono-sm text-mono-sm mt-0.5">Écriture: 1,120 Mo/s • IOPS: 184,200</div>
+</div>
+<div class="mt-space-md pt-space-xs">
+<svg class="w-full h-10 overflow-visible" fill="none" viewbox="0 0 120 30">
+<path class="text-primary-fixed-dim" d="M0 25 L 30 19 L 55 12 L 80 14 L 100 6 L 120 9" stroke="currentColor" stroke-linecap="round" stroke-width="2"></path>
+<path class="text-primary-fixed-dim/15" d="M0 25 L 30 19 L 55 12 L 80 14 L 100 6 L 120 9 L 120 30 L 0 30 Z" fill="currentColor"></path>
+</svg>
+<div class="flex justify-between items-center mt-1 text-on-surface-variant font-mono-sm text-mono-sm">
+<span>Latence R/W: 0.22ms</span>
+<span class="text-primary font-medium">Queue: 4</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Main Visual Section: Dual Performance Area Charts + Datacenter Geo Widget -->
+<div class="grid grid-cols-1 xl:grid-cols-3 gap-space-md">
+<!-- Interactive Performance Visualizer (2 Cols) -->
+<div class="xl:col-span-2 bg-surface-container-low/90 backdrop-blur-xl rounded-xl p-space-md shadow-xl flex flex-col justify-between">
+<div class="flex flex-col sm:flex-row sm:items-center justify-between pb-space-md gap-space-sm">
+<div>
+<div class="flex items-center gap-space-xs">
+<span class="font-headline-md text-headline-md text-on-surface font-semibold">Télémétrie Temporelle Croisée</span>
+<span class="w-2 h-2 rounded-full bg-secondary animate-pulse"></span>
+</div>
+<p class="font-body-sm text-body-sm text-on-surface-variant">Surveillance combinée bande passante réseau et cycle CPU hôte</p>
+</div>
+<div class="flex items-center gap-space-md font-mono-sm text-mono-sm">
+<div class="flex items-center gap-1.5">
+<span class="w-3 h-3 rounded-sm bg-secondary"></span>
+<span class="text-on-surface">Réseau Ingress/Egress</span>
+</div>
+<div class="flex items-center gap-1.5">
+<span class="w-3 h-3 rounded-sm bg-primary-container"></span>
+<span class="text-on-surface">Calcul vCPU</span>
+</div>
+</div>
+</div>
+<!-- SVG Scrubber Chart -->
+<div class="relative w-full h-64 sm:h-72 my-space-xs group">
+<!-- Background Grid Lines -->
+<div class="absolute inset-0 flex flex-col justify-between pointer-events-none opacity-20">
+<div class="w-full h-px bg-outline"></div>
+<div class="w-full h-px bg-outline"></div>
+<div class="w-full h-px bg-outline"></div>
+<div class="w-full h-px bg-outline"></div>
+</div>
+<svg class="w-full h-full overflow-visible" preserveaspectratio="none" viewbox="0 0 600 240">
+<defs>
+<lineargradient id="cyanGrad" x1="0" x2="0" y1="0" y2="1">
+<stop offset="0%" stop-color="#7bd0ff" stop-opacity="0.45"></stop>
+<stop offset="100%" stop-color="#7bd0ff" stop-opacity="0.0"></stop>
+</lineargradient>
+<lineargradient id="indigoGrad" x1="0" x2="0" y1="0" y2="1">
+<stop offset="0%" stop-color="#8083ff" stop-opacity="0.4"></stop>
+<stop offset="100%" stop-color="#8083ff" stop-opacity="0.0"></stop>
+</lineargradient>
+</defs>
+<!-- Network Ingress/Egress Area -->
+<path d="M 0 170 Q 60 140, 120 160 T 240 100 T 360 120 T 480 60 T 600 80 L 600 240 L 0 240 Z" fill="url(#cyanGrad)"></path>
+<path d="M 0 170 Q 60 140, 120 160 T 240 100 T 360 120 T 480 60 T 600 80" fill="none" stroke="#7bd0ff" stroke-width="2.5"></path>
+<!-- CPU Area -->
+<path d="M 0 200 Q 80 180, 160 190 T 300 140 T 420 160 T 520 110 T 600 130 L 600 240 L 0 240 Z" fill="url(#indigoGrad)"></path>
+<path d="M 0 200 Q 80 180, 160 190 T 300 140 T 420 160 T 520 110 T 600 130" fill="none" stroke="#8083ff" stroke-dasharray="4 2" stroke-width="2"></path>
+<!-- Interactive Cursor Guideline at peak (480px) -->
+<line stroke="#dfe2f1" stroke-dasharray="2 2" stroke-opacity="0.4" stroke-width="1.5" x1="480" x2="480" y1="0" y2="240"></line>
+<circle cx="480" cy="60" fill="#7bd0ff" r="5" stroke="#0a0e18" stroke-width="2"></circle>
+<circle cx="480" cy="120" fill="#8083ff" r="4" stroke="#0a0e18" stroke-width="2"></circle>
+</svg>
+<!-- Interactive Tooltip Overlay (Scrubber Callout) -->
+<div class="absolute top-4 left-[72%] -translate-x-1/2 bg-surface-container-high/95 backdrop-blur-2xl rounded-lg p-space-sm shadow-2xl pointer-events-none transition-transform duration-150">
+<div class="font-mono-sm text-mono-sm text-outline pb-0.5">Index T-04:22:18</div>
+<div class="flex items-center justify-between gap-space-md text-on-surface font-mono-sm text-mono-sm">
+<span class="text-secondary font-medium">Bande passante:</span>
+<span>4.62 Gbps</span>
+</div>
+<div class="flex items-center justify-between gap-space-md text-on-surface font-mono-sm text-mono-sm">
+<span class="text-primary font-medium">Charge vCPU:</span>
+<span>38.7%</span>
+</div>
+</div>
+</div>
+<!-- Timeline X-Axis markers -->
+<div class="flex justify-between pt-space-xs text-on-surface-variant font-mono-sm text-mono-sm">
+<span>14:15:00</span>
+<span>14:20:00</span>
+<span>14:25:00</span>
+<span class="text-on-surface font-semibold">14:30:00</span>
+<span class="text-secondary">Maintenant (Live)</span>
+</div>
+</div>
+<!-- Side Widget: Datacenter Geo Topology Map -->
+<div class="bg-surface-container-low/90 backdrop-blur-xl rounded-xl p-space-md shadow-xl flex flex-col justify-between">
+<div>
+<div class="flex items-center justify-between pb-space-sm">
+<div>
+<h2 class="font-headline-md text-headline-md text-on-surface font-semibold">Topologie Globale</h2>
+<p class="font-body-sm text-body-sm text-on-surface-variant">Disponibilité maillée inter-régions</p>
+</div>
+<span class="px-2 py-0.5 bg-tertiary-container/30 text-tertiary font-mono-sm text-mono-sm rounded-full">4 / 4 Opérationnels</span>
+</div>
+<!-- Static World Map with Locations -->
+<div class="relative w-full h-48 rounded-lg overflow-hidden bg-surface-container-lowest my-space-sm">
+<div class="w-full h-full bg-cover bg-center opacity-40" data-location="Frankfurt, Germany" style=""></div>
+<!-- Nodes overlay -->
+<div class="absolute inset-0 p-space-sm flex flex-col justify-between pointer-events-none">
+<div class="flex justify-between items-start">
+<div class="flex items-center gap-1.5 bg-surface-container-high/80 backdrop-blur-md px-2 py-1 rounded">
+<span class="w-2 h-2 rounded-full bg-tertiary animate-ping"></span>
+<span class="font-mono-sm text-mono-sm text-on-surface font-medium">Frankfurt (FRA-1)</span>
+</div>
+<div class="flex items-center gap-1.5 bg-surface-container-high/80 backdrop-blur-md px-2 py-1 rounded">
+<span class="w-2 h-2 rounded-full bg-tertiary animate-pulse"></span>
+<span class="font-mono-sm text-mono-sm text-on-surface font-medium">Paris (CDG-2)</span>
+</div>
+</div>
+<div class="flex justify-between items-end">
+<div class="flex items-center gap-1.5 bg-surface-container-high/80 backdrop-blur-md px-2 py-1 rounded">
+<span class="w-2 h-2 rounded-full bg-tertiary animate-pulse"></span>
+<span class="font-mono-sm text-mono-sm text-on-surface font-medium">N. Virginia (US-E1)</span>
+</div>
+<div class="flex items-center gap-1.5 bg-surface-container-high/80 backdrop-blur-md px-2 py-1 rounded">
+<span class="w-2 h-2 rounded-full bg-tertiary animate-ping"></span>
+<span class="font-mono-sm text-mono-sm text-on-surface font-medium">Tokyo (HND-1)</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Latency Matrix List -->
+<div class="space-y-space-xs pt-space-xs font-mono-sm text-mono-sm">
+<div class="flex items-center justify-between py-1 px-2 rounded bg-surface-container/60">
+<span class="text-on-surface">FRA ↔ CDG (Intra-EU)</span>
+<span class="text-tertiary font-medium">4.2 ms</span>
+</div>
+<div class="flex items-center justify-between py-1 px-2 rounded bg-surface-container/60">
+<span class="text-on-surface">FRA ↔ US-E1 (Transatlantique)</span>
+<span class="text-secondary font-medium">68.4 ms</span>
+</div>
+<div class="flex items-center justify-between py-1 px-2 rounded bg-surface-container/60">
+<span class="text-on-surface">CDG ↔ Tokyo (Transpacifique)</span>
+<span class="text-on-surface-variant font-medium">182.1 ms</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Bottom Section: Cloud Workload & Process Inspector Table -->
+<div class="bg-surface-container-low/90 backdrop-blur-xl rounded-xl p-space-md shadow-xl overflow-hidden mb-space-lg">
+<div class="flex flex-col sm:flex-row sm:items-center justify-between pb-space-md gap-space-sm">
+<div class="flex items-center gap-space-sm">
+<span class="material-symbols-outlined text-primary text-[24px]">terminal</span>
+<div>
+<h2 class="font-headline-md text-headline-md text-on-surface font-semibold">Processus &amp; Conteneurs Actifs</h2>
+<p class="font-body-sm text-body-sm text-on-surface-variant">Orchestrateur MicroVM Firecracker v2.9</p>
+</div>
+</div>
+<div class="flex items-center gap-space-sm">
+<div class="relative">
+<span class="material-symbols-outlined absolute left-2.5 top-1/2 -translate-y-1/2 text-outline text-[16px]">search</span>
+<input class="bg-surface-container-lowest/80 text-on-surface font-mono-sm text-mono-sm pl-8 pr-3 py-1.5 rounded-lg focus:outline-none placeholder:text-outline w-56 sm:w-64 transition-all" placeholder="Filtrer un conteneur / PID..." type="text"/>
+</div>
+<button class="p-1.5 rounded-lg bg-surface-container hover:bg-surface-container-high text-on-surface-variant hover:text-on-surface transition-colors" title="Rafraîchir" type="button">
+<span class="material-symbols-outlined text-[18px] leading-none block">refresh</span>
+</button>
+</div>
+</div>
+<!-- Process Table -->
+<div class="overflow-x-auto -mx-space-md px-space-md">
+<table class="w-full text-left font-mono-sm text-mono-sm">
+<thead>
+<tr class="text-outline uppercase text-[10px] tracking-wider bg-surface-container-lowest/50">
+<th class="py-2.5 px-3 rounded-l-lg">Processus / Namespace</th>
+<th class="py-2.5 px-3">PID</th>
+<th class="py-2.5 px-3">Utilisateur</th>
+<th class="py-2.5 px-3">Charge vCPU</th>
+<th class="py-2.5 px-3">Mémoire (RAM)</th>
+<th class="py-2.5 px-3">I/O Réseau</th>
+<th class="py-2.5 px-3 text-right rounded-r-lg">Actions</th>
+</tr>
+</thead>
+<tbody class="divide-y divide-transparent">
+<!-- Process Row 1 -->
+<tr class="hover:bg-surface-container/60 transition-colors group">
+<td class="py-3 px-3">
+<div class="flex items-center gap-2">
+<span class="w-2 h-2 rounded-full bg-tertiary"></span>
+<div class="flex flex-col font-sans">
+<span class="font-headline-sm text-headline-sm text-on-surface font-semibold">stratus-kernel</span>
+<span class="font-mono-sm text-mono-sm text-on-surface-variant">Core Host • Virtual Hypervisor</span>
+</div>
+</div>
+</td>
+<td class="py-3 px-3 text-on-surface-variant">1</td>
+<td class="py-3 px-3 text-on-surface">root</td>
+<td class="py-3 px-3">
+<div class="flex items-center gap-2">
+<div class="w-16 bg-surface-container-highest rounded-full h-1.5 overflow-hidden">
+<div class="bg-primary h-full" style="width: 12%"></div>
+</div>
+<span class="text-primary font-medium">3.8%</span>
+</div>
+</td>
+<td class="py-3 px-3 text-on-surface">420 MB</td>
+<td class="py-3 px-3 text-on-surface-variant">18.4 KB/s</td>
+<td class="py-3 px-3 text-right">
+<div class="inline-flex items-center gap-1 font-sans">
+<button class="px-2 py-1 bg-surface-container hover:bg-surface-container-high rounded text-on-surface text-body-sm transition-colors" type="button">Logs</button>
+<button class="px-2 py-1 bg-surface-container hover:bg-surface-container-high rounded text-on-surface text-body-sm transition-colors" type="button">Redémarrer</button>
+</div>
+</td>
+</tr>
+<!-- Process Row 2 -->
+<tr class="hover:bg-surface-container/60 transition-colors group">
+<td class="py-3 px-3">
+<div class="flex items-center gap-2">
+<span class="w-2 h-2 rounded-full bg-tertiary"></span>
+<div class="flex flex-col font-sans">
+<span class="font-headline-sm text-headline-sm text-on-surface font-semibold">ai-inference-engine</span>
+<span class="font-mono-sm text-mono-sm text-on-surface-variant">CUDA/TensorRT • Llama-3-70B Pipeline</span>
+</div>
+</div>
+</td>
+<td class="py-3 px-3 text-on-surface-variant">4102</td>
+<td class="py-3 px-3 text-on-surface">ai-runtime</td>
+<td class="py-3 px-3">
+<div class="flex items-center gap-2">
+<div class="w-16 bg-surface-container-highest rounded-full h-1.5 overflow-hidden">
+<div class="bg-secondary h-full" style="width: 64%"></div>
+</div>
+<span class="text-secondary font-medium">18.4%</span>
+</div>
+</td>
+<td class="py-3 px-3 text-on-surface font-medium">12.4 GB</td>
+<td class="py-3 px-3 text-secondary font-medium">1.2 Gbps</td>
+<td class="py-3 px-3 text-right">
+<div class="inline-flex items-center gap-1 font-sans">
+<button class="px-2 py-1 bg-surface-container hover:bg-surface-container-high rounded text-on-surface text-body-sm transition-colors" type="button">Logs</button>
+<button class="px-2 py-1 bg-surface-container hover:bg-surface-container-high rounded text-on-surface text-body-sm transition-colors" type="button">Redémarrer</button>
+<button class="px-2 py-1 bg-error-container/40 hover:bg-error-container text-error hover:text-on-error rounded text-body-sm transition-colors" type="button">Terminer</button>
+</div>
+</td>
+</tr>
+<!-- Process Row 3 -->
+<tr class="hover:bg-surface-container/60 transition-colors group">
+<td class="py-3 px-3">
+<div class="flex items-center gap-2">
+<span class="w-2 h-2 rounded-full bg-tertiary"></span>
+<div class="flex flex-col font-sans">
+<span class="font-headline-sm text-headline-sm text-on-surface font-semibold">postgres-primary</span>
+<span class="font-mono-sm text-mono-sm text-on-surface-variant">Cluster Relational DB • Port 5432</span>
+</div>
+</div>
+</td>
+<td class="py-3 px-3 text-on-surface-variant">2889</td>
+<td class="py-3 px-3 text-on-surface">postgres</td>
+<td class="py-3 px-3">
+<div class="flex items-center gap-2">
+<div class="w-16 bg-surface-container-highest rounded-full h-1.5 overflow-hidden">
+<div class="bg-primary h-full" style="width: 24%"></div>
+</div>
+<span class="text-primary font-medium">4.1%</span>
+</div>
+</td>
+<td class="py-3 px-3 text-on-surface">3.8 GB</td>
+<td class="py-3 px-3 text-on-surface-variant">420 Mbps</td>
+<td class="py-3 px-3 text-right">
+<div class="inline-flex items-center gap-1 font-sans">
+<button class="px-2 py-1 bg-surface-container hover:bg-surface-container-high rounded text-on-surface text-body-sm transition-colors" type="button">Logs</button>
+<button class="px-2 py-1 bg-surface-container hover:bg-surface-container-high rounded text-on-surface text-body-sm transition-colors" type="button">Redémarrer</button>
+<button class="px-2 py-1 bg-error-container/40 hover:bg-error-container text-error hover:text-on-error rounded text-body-sm transition-colors" type="button">Terminer</button>
+</div>
+</td>
+</tr>
+<!-- Process Row 4 -->
+<tr class="hover:bg-surface-container/60 transition-colors group">
+<td class="py-3 px-3">
+<div class="flex items-center gap-2">
+<span class="w-2 h-2 rounded-full bg-tertiary"></span>
+<div class="flex flex-col font-sans">
+<span class="font-headline-sm text-headline-sm text-on-surface font-semibold">edge-gateway-proxy</span>
+<span class="font-mono-sm text-mono-sm text-on-surface-variant">Envoy Mesh • TLS Termination</span>
+</div>
+</div>
+</td>
+<td class="py-3 px-3 text-on-surface-variant">1904</td>
+<td class="py-3 px-3 text-on-surface">envoy-user</td>
+<td class="py-3 px-3">
+<div class="flex items-center gap-2">
+<div class="w-16 bg-surface-container-highest rounded-full h-1.5 overflow-hidden">
+<div class="bg-tertiary h-full" style="width: 14%"></div>
+</div>
+<span class="text-tertiary font-medium">2.1%</span>
+</div>
+</td>
+<td class="py-3 px-3 text-on-surface">1.6 GB</td>
+<td class="py-3 px-3 text-tertiary font-medium">1.8 Gbps</td>
+<td class="py-3 px-3 text-right">
+<div class="inline-flex items-center gap-1 font-sans">
+<button class="px-2 py-1 bg-surface-container hover:bg-surface-container-high rounded text-on-surface text-body-sm transition-colors" type="button">Logs</button>
+<button class="px-2 py-1 bg-surface-container hover:bg-surface-container-high rounded text-on-surface text-body-sm transition-colors" type="button">Redémarrer</button>
+<button class="px-2 py-1 bg-error-container/40 hover:bg-error-container text-error hover:text-on-error rounded text-body-sm transition-colors" type="button">Terminer</button>
+</div>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+<!-- Table Footer Status Summary -->
+<div class="mt-space-md pt-space-xs flex flex-col sm:flex-row items-center justify-between text-on-surface-variant font-mono-sm text-mono-sm gap-space-xs">
+<div class="flex items-center gap-space-md">
+<span>Total: 84 processus actifs</span>
+<span>•</span>
+<span class="text-tertiary">Zombies: 0</span>
+<span>•</span>
+<span>Threads alloués: 640</span>
+</div>
+<div class="flex items-center gap-2">
+<span>Charge moyenne (Load Avg):</span>
+<span class="text-on-surface font-semibold">1.12, 1.05, 0.98</span>
+</div>
+</div>
+</div>
+</div>
+<script>
+    // Micro-interaction for process table buttons
+    document.querySelectorAll('table button').forEach(btn => {
+      btn.addEventListener('click', function(e) {
+        const action = this.textContent.trim();
+        const procName = this.closest('tr').querySelector('.font-headline-sm').textContent.trim();
+        if (action === 'Terminer') {
+          if (confirm(`Confirmer la terminaison du conteneur ${procName} (SIGTERM)?`)) {
+            this.closest('tr').style.opacity = '0.3';
+            setTimeout(() => {
+              this.closest('tr').style.opacity = '1';
+            }, 1200);
+          }
+        } else if (action === 'Redémarrer') {
+          this.textContent = '...';
+          setTimeout(() => {
+            this.textContent = 'Redémarré';
+            setTimeout(() => { this.textContent = 'Redémarrer'; }, 1500);
+          }, 600);
+        }
+      });
+    });
+  </script>
+</div></main><aside class="fixed bottom-space-md left-1/2 -translate-x-1/2 z-50"><div class="flex items-center gap-space-sm px-space-md py-space-xs bg-surface-container-low/75 backdrop-blur-2xl rounded-full shadow-[0_16px_48px_-4px_rgba(0,0,0,0.7)]"><a class="p-space-xs rounded-xl bg-surface-container-high/40 hover:bg-surface-container-high text-on-surface-variant hover:text-on-surface transition-all flex flex-col items-center group" data-path="espace-de-travail" href="#"><span class="material-symbols-outlined text-[20px]">grid_view</span></a><a class="p-space-xs rounded-xl bg-surface-container-high/40 hover:bg-surface-container-high text-on-surface-variant hover:text-on-surface transition-all flex flex-col items-center group" data-path="fichiers-cloud" href="#"><span class="material-symbols-outlined text-[20px]">folder</span><span class="w-1 h-1 rounded-full bg-secondary mt-0.5"></span></a><a class="p-space-xs rounded-xl bg-surface-container-high/40 hover:bg-surface-container-high text-on-surface-variant hover:text-on-surface transition-all flex flex-col items-center group" data-path="terminal-shell" href="#"><span class="material-symbols-outlined text-[20px]">terminal</span><span class="w-1 h-1 rounded-full bg-tertiary mt-0.5"></span></a><a class="p-space-xs rounded-xl bg-surface-container-high/40 hover:bg-surface-container-high text-on-surface-variant hover:text-on-surface transition-all flex flex-col items-center group" data-path="studio-ia" href="#"><span class="material-symbols-outlined text-[20px]">neurology</span></a><a class="p-space-xs rounded-xl bg-surface-container-high/40 hover:bg-surface-container-high text-on-surface-variant hover:text-on-surface transition-all flex flex-col items-center group" data-path="moniteur-systeme" href="#"><span class="material-symbols-outlined text-[20px]">query_stats</span></a><a class="p-space-xs rounded-xl bg-surface-container-high/40 hover:bg-surface-container-high text-on-surface-variant hover:text-on-surface transition-all flex flex-col items-center group" data-path="parametres-systeme" href="#"><span class="material-symbols-outlined text-[20px]">settings</span></a><button class="p-space-xs rounded-xl bg-surface-container-high/40 hover:bg-surface-container-high text-on-surface-variant hover:text-error transition-all" type="button"><span class="material-symbols-outlined text-[20px]">delete</span></button></div></aside><footer class="w-full py-space-sm text-center bg-transparent"><span class="font-mono-sm text-mono-sm text-outline">Stratus Cloud OS • Kernel v4.12-aether • Encrypted Cluster Session</span></footer></body></html>

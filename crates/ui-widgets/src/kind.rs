@@ -21,6 +21,32 @@ pub enum ToastKind {
     Error,
 }
 
+/// Visual presentation variant for buttons and interactive controls.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum ButtonVariant {
+    /// Default solid cyber-glass button with distinct background and border
+    #[default]
+    Default,
+    /// Glowing cyan/green primary call-to-action button (e.g. Play, Mode Débutant, Active Tab)
+    Primary,
+    /// Subtle translucent tool/menu button with subtle border
+    Ghost,
+    /// Danger / destructive action button (e.g. Stop, Delete)
+    Danger,
+    /// Accent secondary / purple cyber button (e.g. Mode Avancé, Shaders)
+    Secondary,
+}
+
+/// Placement direction for floating tooltips.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum TooltipPlacement {
+    #[default]
+    Top,
+    Bottom,
+    Left,
+    Right,
+}
+
 /// Orientation for resizable split views.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum SplitOrientation {
@@ -119,6 +145,7 @@ pub enum WidgetKind {
         id: WidgetId,
         label: String,
         enabled: bool,
+        variant: ButtonVariant,
     },
     IconButton {
         id: WidgetId,
@@ -259,6 +286,8 @@ pub enum WidgetKind {
     },
     Tooltip {
         text: String,
+        shortcut: Option<String>,
+        placement: TooltipPlacement,
     },
 
     Splitter {
@@ -391,6 +420,334 @@ pub enum WidgetKind {
         id: WidgetId,
         commands: Vec<crate::paint::PaintCommand>,
     },
+    /// Rotary potentiometer knob for precision continuous parameter tuning.
+    Knob {
+        id: WidgetId,
+        value: f32,
+        min: f32,
+        max: f32,
+        step: f32,
+        label: Option<String>,
+        unit: Option<String>,
+    },
+    /// High-performance GPU multi-series data chart (Area / Line / Sparkline).
+    TimeSeriesChart {
+        id: WidgetId,
+        title: Option<String>,
+        series: Vec<ChartSeries>,
+        x_min: f32,
+        x_max: f32,
+        y_min: f32,
+        y_max: f32,
+        show_grid: bool,
+        show_legend: bool,
+        inspected_point: Option<(usize, usize)>,
+    },
+    /// Interactive visual Node Graph canvas with vector Bézier connections, typed sockets, and movable nodes.
+    NodeGraph {
+        id: WidgetId,
+        nodes: Vec<GraphNodeSpec>,
+        connections: Vec<GraphConnectionSpec>,
+        pan: [f32; 2],
+        zoom: f32,
+        connecting_from: Option<(String, usize)>,
+    },
+    /// Multi-tag input chip selector with removal buttons.
+    TagInput {
+        id: WidgetId,
+        tags: Vec<String>,
+        placeholder: String,
+        active_tag: Option<usize>,
+    },
+    /// Syntax-highlighted code editor with line numbering and syntax tokens.
+    CodeEditor {
+        id: WidgetId,
+        text: String,
+        language: String,
+        line_numbers: bool,
+        focused: bool,
+        cursor: usize,
+        selection: Option<(usize, usize)>,
+    },
+    /// High-performance GPU Bar Chart / Histogram.
+    BarChart {
+        id: WidgetId,
+        title: Option<String>,
+        bars: Vec<BarItem>,
+        max_value: Option<f32>,
+        horizontal: bool,
+    },
+    /// Circular radial progress meter / gauge indicator.
+    RadialMeter {
+        id: WidgetId,
+        label: Option<String>,
+        value: f32,
+        min: f32,
+        max: f32,
+        unit: Option<String>,
+        color: Option<[f32; 4]>,
+    },
+    /// Generic Drag & Drop target area with dashed neon border, hover glow, and file details.
+    DropZone {
+        id: WidgetId,
+        label: String,
+        hint: Option<String>,
+        accepted_extensions: Vec<String>,
+        hovered: bool,
+        dropped_file: Option<(String, u64)>,
+    },
+    /// Circular User Avatar with image or initials monogram, neon ring, and presence status.
+    Avatar {
+        id: WidgetId,
+        resource_id: Option<String>,
+        initials: Option<String>,
+        status: AvatarStatus,
+        size: f32,
+        ring_color: Option<[f32; 4]>,
+        glow: bool,
+    },
+    /// Linear step sequence progress indicator.
+    Stepper {
+        id: WidgetId,
+        steps: Vec<StepItem>,
+        current_step: usize,
+    },
+    /// Beveled cyber keyboard key badge.
+    Kbd {
+        text: String,
+    },
+    /// Interactive filter/tag chip with optional icon, dismiss button, and selection state.
+    Chip {
+        id: WidgetId,
+        label: String,
+        icon: Option<IconKind>,
+        color_pip: Option<[f32; 4]>,
+        selected: bool,
+        dismissible: bool,
+        variant: ChipVariant,
+    },
+    /// Shimmering loading placeholder skeleton.
+    Skeleton {
+        radius: Option<f32>,
+        shimmer: bool,
+    },
+    /// Multi-segment proportional progress bar.
+    MultiProgressBar {
+        id: WidgetId,
+        segments: Vec<ProgressSegment>,
+        show_labels: bool,
+    },
+    /// Star / Heart / Diamond rating widget.
+    Rating {
+        id: WidgetId,
+        value: u8,
+        max: u8,
+        glyph: RatingGlyph,
+        readonly: bool,
+    },
+    /// Vertical chronological event timeline.
+    Timeline {
+        id: WidgetId,
+        items: Vec<TimelineItem>,
+    },
+    Card {
+        bg: Option<[f32; 4]>,
+        border: Option<[f32; 4]>,
+        radius: Option<f32>,
+    },
+    Panel {
+        bg: Option<[f32; 4]>,
+        border: Option<[f32; 4]>,
+    },
+}
+
+/// State of an individual step in a Stepper.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum StepState {
+    #[default]
+    Pending,
+    Active,
+    Completed,
+    Error,
+}
+
+/// Single step descriptor for a Stepper workflow.
+#[derive(Debug, Clone, PartialEq)]
+pub struct StepItem {
+    pub label: String,
+    pub description: Option<String>,
+    pub state: StepState,
+}
+
+/// Visual style variant for a Chip.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum ChipVariant {
+    #[default]
+    Default,
+    Primary,
+    Outline,
+    Success,
+    Warning,
+    Danger,
+}
+
+/// Single segment in a MultiProgressBar.
+#[derive(Debug, Clone, PartialEq)]
+pub struct ProgressSegment {
+    pub label: String,
+    pub value: f32,
+    pub color: [f32; 4],
+}
+
+/// Visual shape glyph for a Rating widget.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum RatingGlyph {
+    #[default]
+    Star,
+    Heart,
+    Diamond,
+}
+
+impl RatingGlyph {
+    pub fn glyph(&self, filled: bool) -> &'static str {
+        match self {
+            RatingGlyph::Star => if filled { "★" } else { "☆" },
+            RatingGlyph::Heart => if filled { "♥" } else { "♡" },
+            RatingGlyph::Diamond => if filled { "◆" } else { "◇" },
+        }
+    }
+}
+
+/// Status / severity for a Timeline event node.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum TimelineStatus {
+    #[default]
+    Default,
+    Success,
+    Warning,
+    Danger,
+    Active,
+}
+
+impl TimelineStatus {
+    pub fn color(&self) -> [f32; 4] {
+        match self {
+            TimelineStatus::Default => [0.0, 0.85, 1.0, 1.0], // Cyan
+            TimelineStatus::Success => [0.15, 0.92, 0.45, 1.0], // Emerald
+            TimelineStatus::Warning => [1.0, 0.78, 0.12, 1.0], // Amber
+            TimelineStatus::Danger => [1.0, 0.28, 0.32, 1.0], // Ruby
+            TimelineStatus::Active => [0.75, 0.35, 0.95, 1.0], // Neon Violet
+        }
+    }
+}
+
+/// Single event item in a vertical Timeline.
+#[derive(Debug, Clone, PartialEq)]
+pub struct TimelineItem {
+    pub time: String,
+    pub title: String,
+    pub description: Option<String>,
+    pub status: TimelineStatus,
+}
+
+/// Presence and activity status indicator for user avatars.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum AvatarStatus {
+    #[default]
+    None,
+    Online,
+    Away,
+    Busy,
+    Offline,
+}
+
+impl AvatarStatus {
+    pub fn color(&self) -> Option<[f32; 4]> {
+        match self {
+            AvatarStatus::None => None,
+            AvatarStatus::Online => Some([0.15, 0.92, 0.45, 1.0]), // Vibrant neon green
+            AvatarStatus::Away => Some([1.0, 0.78, 0.12, 1.0]),   // Amber gold
+            AvatarStatus::Busy => Some([1.0, 0.25, 0.30, 1.0]),   // Ruby red
+            AvatarStatus::Offline => Some([0.50, 0.55, 0.65, 1.0]), // Slate gray
+        }
+    }
+
+    pub fn indicator_color(&self) -> Option<[f32; 4]> {
+        self.color()
+    }
+}
+
+/// Single bar entry for the GPU BarChart.
+#[derive(Debug, Clone, PartialEq)]
+pub struct BarItem {
+    pub label: String,
+    pub value: f32,
+    pub color: [f32; 4],
+}
+
+/// Type classification for node graph sockets, governing color coding and compatibility.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum SocketType {
+    Signal,
+    Data,
+    Texture,
+    Flow,
+    Custom(String),
+}
+
+impl SocketType {
+    pub fn default_color(&self) -> [f32; 4] {
+        match self {
+            SocketType::Signal => [0.0, 0.85, 1.0, 1.0],     // Cyan
+            SocketType::Data => [0.2, 0.8, 0.4, 1.0],       // Green
+            SocketType::Texture => [0.95, 0.6, 0.1, 1.0],    // Amber
+            SocketType::Flow => [0.65, 0.35, 0.95, 1.0],    // Violet
+            SocketType::Custom(_) => [0.8, 0.8, 0.9, 1.0],  // Light Slate
+        }
+    }
+}
+
+/// Socket descriptor for inputs or outputs on a node graph element.
+#[derive(Debug, Clone, PartialEq)]
+pub struct GraphSocket {
+    pub name: String,
+    pub socket_type: SocketType,
+    pub color: Option<[f32; 4]>,
+    pub is_output: bool,
+}
+
+/// Full specification of an interactive node placed on a node graph.
+#[derive(Debug, Clone, PartialEq)]
+pub struct GraphNodeSpec {
+    pub id: String,
+    pub title: String,
+    pub subtitle: Option<String>,
+    pub pos: [f32; 2],
+    pub size: [f32; 2],
+    pub inputs: Vec<GraphSocket>,
+    pub outputs: Vec<GraphSocket>,
+    pub header_color: Option<[f32; 4]>,
+    pub selected: bool,
+}
+
+/// Connection link between two sockets on a node graph.
+#[derive(Debug, Clone, PartialEq)]
+pub struct GraphConnectionSpec {
+    pub from_node: String,
+    pub from_socket: usize,
+    pub to_node: String,
+    pub to_socket: usize,
+    pub color: Option<[f32; 4]>,
+    pub flow_active: bool,
+}
+
+/// Data series for the GPU TimeSeriesChart.
+#[derive(Debug, Clone, PartialEq)]
+pub struct ChartSeries {
+    pub name: String,
+    pub color: [f32; 4],
+    pub points: Vec<[f32; 2]>,
+    pub filled: bool,
 }
 
 /// Stable identity of an interactive widget across frames, used
@@ -444,6 +801,20 @@ impl WidgetKind {
                 | WidgetKind::ResizeGrip { .. }
                 | WidgetKind::VideoPlayer { .. }
                 | WidgetKind::Media { .. }
+                | WidgetKind::CustomPaint { .. }
+                | WidgetKind::Knob { .. }
+                | WidgetKind::TimeSeriesChart { .. }
+                | WidgetKind::NodeGraph { .. }
+                | WidgetKind::TagInput { .. }
+                | WidgetKind::CodeEditor { .. }
+                | WidgetKind::BarChart { .. }
+                | WidgetKind::RadialMeter { .. }
+                | WidgetKind::DropZone { .. }
+                | WidgetKind::Avatar { .. }
+                | WidgetKind::Stepper { .. }
+                | WidgetKind::Chip { .. }
+                | WidgetKind::Rating { .. }
+                | WidgetKind::Timeline { .. }
         )
     }
 
@@ -469,7 +840,20 @@ impl WidgetKind {
             | WidgetKind::Toast { id, .. }
             | WidgetKind::VideoPlayer { id, .. }
             | WidgetKind::Media { id, .. }
-            | WidgetKind::CustomPaint { id, .. } => Some(InteractionKey {
+            | WidgetKind::CustomPaint { id, .. }
+            | WidgetKind::Knob { id, .. }
+            | WidgetKind::TimeSeriesChart { id, .. }
+            | WidgetKind::NodeGraph { id, .. }
+            | WidgetKind::TagInput { id, .. }
+            | WidgetKind::CodeEditor { id, .. }
+            | WidgetKind::BarChart { id, .. }
+            | WidgetKind::RadialMeter { id, .. }
+            | WidgetKind::DropZone { id, .. }
+            | WidgetKind::Avatar { id, .. }
+            | WidgetKind::Stepper { id, .. }
+            | WidgetKind::Chip { id, .. }
+            | WidgetKind::Rating { id, .. }
+            | WidgetKind::Timeline { id, .. } => Some(InteractionKey {
                 widget_id: id.clone(),
                 index: None,
             }),
@@ -530,7 +914,12 @@ impl WidgetKind {
             | WidgetKind::ScrollView { .. }
             | WidgetKind::Tooltip { .. }
             | WidgetKind::NumberInput { enabled: false, .. }
-            | WidgetKind::AudioVisualizer { .. } => None,
+            | WidgetKind::Card { .. }
+            | WidgetKind::Panel { .. }
+            | WidgetKind::AudioVisualizer { .. }
+            | WidgetKind::Kbd { .. }
+            | WidgetKind::Skeleton { .. }
+            | WidgetKind::MultiProgressBar { .. } => None,
         }
     }
 }

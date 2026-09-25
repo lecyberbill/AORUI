@@ -9,6 +9,22 @@ publish = false
 name = "widget_gallery"
 path = "widget_gallery.rs"
 
+[[bin]]
+name = "declarative_app"
+path = "declarative_app.rs"
+
+[[bin]]
+name = "form_designer"
+path = "form_designer.rs"
+
+[[bin]]
+name = "agent_control_center"
+path = "agent_control_center.rs"
+
+[[bin]]
+name = "aether_workstation"
+path = "aether_workstation.rs"
+
 [dependencies]
 ui-core.workspace = true
 ui-gpu.workspace = true
@@ -22,3 +38,4 @@ glyphon.workspace = true
 agent-runtime.workspace = true
 tokio.workspace = true
 crossbeam-channel.workspace = true
+serde_json.workspace = true

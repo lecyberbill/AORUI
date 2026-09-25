@@ -5,15 +5,19 @@
 //! and mandatory timeout limits (`tokio::time::timeout`), handled by [`Agent`].
 
 mod agent;
+mod bridge;
 mod error;
 mod fsm;
+pub mod mcp;
 mod planner;
 mod schema;
 mod tool;
 
 pub use agent::{Agent, AgentConfig};
+pub use bridge::{AgentBridge, AgentHub, BridgeConfig, BridgeStatus};
 pub use error::AgentError;
 pub use fsm::AgentState;
+pub use mcp::{McpHandler, McpRequest, McpResponse};
 pub use planner::{PlanDecision, Planner};
 pub use tool::{BoxFuture, Tool, ToolError, ToolRegistry};
 

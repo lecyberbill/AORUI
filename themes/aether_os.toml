@@ -1,0 +1,22 @@
+# AORUI AetherOS Theme (Deep Midnight Navy Atmospheric Glassmorphism)
+glass_bg = "#111624f2"
+accent = "#c0c1ff"
+accent_secondary = "#7bd0ff"
+danger = "#ffb4ab"
+success = "#4edea3"
+warning = "#f59e0b"
+text_color = "#dfe2f1"
+text_muted = "#8d99b2"
+corner_radius = 10.0
+border_width = 1.0
+glow_intensity = 0.05
+glow_intensity_hover = 0.22
+
+[typography]
+family = "SansSerif"
+title_size = 14.0
+body_size = 12.0
+small_size = 11.0
+caption_size = 9.5
+heading_weight = "Bold"
+body_weight = "Normal"

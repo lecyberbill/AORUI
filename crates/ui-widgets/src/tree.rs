@@ -42,6 +42,26 @@ impl WidgetTree {
         self.layout.resolved_bounds(root)
     }
 
+    /// Tests which leaf node is under the point (x, y) in screen coordinates.
+    pub fn hit_test(&self, root: NodeId, x: f32, y: f32) -> Result<Option<NodeId>, LayoutError> {
+        self.layout.hit_test(root, (x, y))
+    }
+
+    /// Returns the WidgetId associated with a NodeId if the widget carries one.
+    pub fn widget_id(&self, node_id: NodeId) -> Option<WidgetId> {
+        match self.layout.payload(node_id)? {
+            WidgetKind::Button { id, .. } => Some(id.clone()),
+            WidgetKind::IconButton { id, .. } => Some(id.clone()),
+            WidgetKind::TextInput { id, .. } => Some(id.clone()),
+            WidgetKind::Slider { id, .. } => Some(id.clone()),
+            WidgetKind::Toggle { id, .. } => Some(id.clone()),
+            WidgetKind::Checkbox { id, .. } => Some(id.clone()),
+            WidgetKind::Dropdown { id, .. } => Some(id.clone()),
+            WidgetKind::Toast { id, .. } => Some(id.clone()),
+            _ => None,
+        }
+    }
+
     pub fn label(&mut self, text: impl Into<String>, style: Style) -> Result<NodeId, LayoutError> {
         self.layout.insert_leaf(
             style,
@@ -79,6 +99,27 @@ impl WidgetTree {
                 id: id.into(),
                 label: label.into(),
                 enabled,
+                variant: crate::kind::ButtonVariant::Default,
+            },
+        )
+    }
+
+    /// Button with specific visual variant (Primary, Secondary, Ghost, Danger, Default).
+    pub fn button_variant(
+        &mut self,
+        id: impl Into<WidgetId>,
+        label: impl Into<String>,
+        variant: crate::kind::ButtonVariant,
+        enabled: bool,
+        style: Style,
+    ) -> Result<NodeId, LayoutError> {
+        self.layout.insert_leaf(
+            style,
+            WidgetKind::Button {
+                id: id.into(),
+                label: label.into(),
+                enabled,
+                variant,
             },
         )
     }
@@ -942,6 +983,31 @@ impl WidgetTree {
             .insert_container(style, children, WidgetKind::Container)
     }
 
+    /// Dark surface card container with customizable background tint, micro-border, and corner radius.
+    pub fn card(
+        &mut self,
+        children: &[NodeId],
+        bg: Option<[f32; 4]>,
+        border: Option<[f32; 4]>,
+        radius: Option<f32>,
+        style: Style,
+    ) -> Result<NodeId, LayoutError> {
+        self.layout
+            .insert_container(style, children, WidgetKind::Card { bg, border, radius })
+    }
+
+    /// Docked workspace panel surface with subtle border.
+    pub fn panel(
+        &mut self,
+        children: &[NodeId],
+        bg: Option<[f32; 4]>,
+        border: Option<[f32; 4]>,
+        style: Style,
+    ) -> Result<NodeId, LayoutError> {
+        self.layout
+            .insert_container(style, children, WidgetKind::Panel { bg, border })
+    }
+
     /// High-level CSS Grid container helper with N equal-fraction columns and customizable row/col gaps.
     pub fn grid(
         &mut self,
@@ -1189,14 +1255,31 @@ impl WidgetTree {
         )
     }
 
-    /// Floating tooltip.
+    /// Floating tooltip with text, optional keyboard shortcut badge, and placement.
     pub fn tooltip(
+        &mut self,
+        text: impl Into<String>,
+        shortcut: Option<impl Into<String>>,
+        placement: crate::kind::TooltipPlacement,
+        style: Style,
+    ) -> Result<NodeId, LayoutError> {
+        self.layout.insert_leaf(
+            style,
+            WidgetKind::Tooltip {
+                text: text.into(),
+                shortcut: shortcut.map(Into::into),
+                placement,
+            },
+        )
+    }
+
+    /// Simple floating tooltip with text only.
+    pub fn tooltip_simple(
         &mut self,
         text: impl Into<String>,
         style: Style,
     ) -> Result<NodeId, LayoutError> {
-        self.layout
-            .insert_leaf(style, WidgetKind::Tooltip { text: text.into() })
+        self.tooltip(text, None::<String>, crate::kind::TooltipPlacement::Top, style)
     }
 
     /// Tab selection bar container.
@@ -1467,6 +1550,360 @@ impl WidgetTree {
             WidgetKind::CustomPaint {
                 id: id.into(),
                 commands: commands.into_iter().collect(),
+            },
+        )
+    }
+
+    /// Rotary potentiometer knob for precision continuous parameter tuning.
+    pub fn knob(
+        &mut self,
+        id: impl Into<WidgetId>,
+        value: f32,
+        min: f32,
+        max: f32,
+        step: f32,
+        label: Option<impl Into<String>>,
+        unit: Option<impl Into<String>>,
+        style: Style,
+    ) -> Result<NodeId, LayoutError> {
+        self.layout.insert_leaf(
+            style,
+            WidgetKind::Knob {
+                id: id.into(),
+                value,
+                min,
+                max,
+                step,
+                label: label.map(Into::into),
+                unit: unit.map(Into::into),
+            },
+        )
+    }
+
+    /// High-performance GPU multi-series data chart (Area / Line / Sparkline).
+    pub fn time_series_chart(
+        &mut self,
+        id: impl Into<WidgetId>,
+        title: Option<impl Into<String>>,
+        series: Vec<crate::kind::ChartSeries>,
+        x_range: (f32, f32),
+        y_range: (f32, f32),
+        show_grid: bool,
+        show_legend: bool,
+        inspected_point: Option<(usize, usize)>,
+        style: Style,
+    ) -> Result<NodeId, LayoutError> {
+        self.layout.insert_leaf(
+            style,
+            WidgetKind::TimeSeriesChart {
+                id: id.into(),
+                title: title.map(Into::into),
+                series,
+                x_min: x_range.0,
+                x_max: x_range.1,
+                y_min: y_range.0,
+                y_max: y_range.1,
+                show_grid,
+                show_legend,
+                inspected_point,
+            },
+        )
+    }
+
+    /// Interactive visual Node Graph canvas with vector Bézier connections, typed sockets, and movable nodes.
+    pub fn node_graph(
+        &mut self,
+        id: impl Into<WidgetId>,
+        nodes: Vec<crate::kind::GraphNodeSpec>,
+        connections: Vec<crate::kind::GraphConnectionSpec>,
+        pan: [f32; 2],
+        zoom: f32,
+        connecting_from: Option<(String, usize)>,
+        style: Style,
+    ) -> Result<NodeId, LayoutError> {
+        self.layout.insert_leaf(
+            style,
+            WidgetKind::NodeGraph {
+                id: id.into(),
+                nodes,
+                connections,
+                pan,
+                zoom,
+                connecting_from,
+            },
+        )
+    }
+
+    /// Multi-tag input chip selector with removal buttons.
+    pub fn tag_input(
+        &mut self,
+        id: impl Into<WidgetId>,
+        tags: &[impl AsRef<str>],
+        placeholder: impl Into<String>,
+        active_tag: Option<usize>,
+        style: Style,
+    ) -> Result<NodeId, LayoutError> {
+        self.layout.insert_leaf(
+            style,
+            WidgetKind::TagInput {
+                id: id.into(),
+                tags: tags.iter().map(|s| s.as_ref().to_string()).collect(),
+                placeholder: placeholder.into(),
+                active_tag,
+            },
+        )
+    }
+
+    /// Syntax-highlighted code editor with line numbers.
+    pub fn code_editor(
+        &mut self,
+        id: impl Into<WidgetId>,
+        text: impl Into<String>,
+        language: impl Into<String>,
+        line_numbers: bool,
+        focused: bool,
+        cursor: usize,
+        selection: Option<(usize, usize)>,
+        style: Style,
+    ) -> Result<NodeId, LayoutError> {
+        self.layout.insert_leaf(
+            style,
+            WidgetKind::CodeEditor {
+                id: id.into(),
+                text: text.into(),
+                language: language.into(),
+                line_numbers,
+                focused,
+                cursor,
+                selection,
+            },
+        )
+    }
+
+    /// High-performance GPU Bar Chart / Histogram.
+    pub fn bar_chart(
+        &mut self,
+        id: impl Into<WidgetId>,
+        title: Option<impl Into<String>>,
+        bars: Vec<crate::kind::BarItem>,
+        max_value: Option<f32>,
+        horizontal: bool,
+        style: Style,
+    ) -> Result<NodeId, LayoutError> {
+        self.layout.insert_leaf(
+            style,
+            WidgetKind::BarChart {
+                id: id.into(),
+                title: title.map(Into::into),
+                bars,
+                max_value,
+                horizontal,
+            },
+        )
+    }
+
+    /// Circular radial progress meter / gauge indicator.
+    pub fn radial_meter(
+        &mut self,
+        id: impl Into<WidgetId>,
+        label: Option<impl Into<String>>,
+        value: f32,
+        min: f32,
+        max: f32,
+        unit: Option<impl Into<String>>,
+        color: Option<[f32; 4]>,
+        style: Style,
+    ) -> Result<NodeId, LayoutError> {
+        self.layout.insert_leaf(
+            style,
+            WidgetKind::RadialMeter {
+                id: id.into(),
+                label: label.map(Into::into),
+                value,
+                min,
+                max,
+                unit: unit.map(Into::into),
+                color,
+            },
+        )
+    }
+
+    /// Generic Drag & Drop target area for file import and inspection.
+    pub fn drop_zone(
+        &mut self,
+        id: impl Into<WidgetId>,
+        label: impl Into<String>,
+        hint: Option<impl Into<String>>,
+        accepted_extensions: &[&str],
+        hovered: bool,
+        dropped_file: Option<(impl Into<String>, u64)>,
+        style: Style,
+    ) -> Result<NodeId, LayoutError> {
+        self.layout.insert_leaf(
+            style,
+            WidgetKind::DropZone {
+                id: id.into(),
+                label: label.into(),
+                hint: hint.map(Into::into),
+                accepted_extensions: accepted_extensions.iter().map(|s| s.to_string()).collect(),
+                hovered,
+                dropped_file: dropped_file.map(|(n, s)| (n.into(), s)),
+            },
+        )
+    }
+
+    /// Circular User Avatar with image or initials, neon ring, and presence status.
+    pub fn avatar(
+        &mut self,
+        id: impl Into<WidgetId>,
+        resource_id: Option<impl Into<String>>,
+        initials: Option<impl Into<String>>,
+        status: crate::kind::AvatarStatus,
+        size: f32,
+        ring_color: Option<[f32; 4]>,
+        glow: bool,
+        style: Style,
+    ) -> Result<NodeId, LayoutError> {
+        self.layout.insert_leaf(
+            style,
+            WidgetKind::Avatar {
+                id: id.into(),
+                resource_id: resource_id.map(Into::into),
+                initials: initials.map(Into::into),
+                status,
+                size,
+                ring_color,
+                glow,
+            },
+        )
+    }
+
+    /// Linear Step sequence indicator for multi-stage workflows.
+    pub fn stepper(
+        &mut self,
+        id: impl Into<WidgetId>,
+        steps: Vec<crate::kind::StepItem>,
+        current_step: usize,
+        style: Style,
+    ) -> Result<NodeId, LayoutError> {
+        self.layout.insert_leaf(
+            style,
+            WidgetKind::Stepper {
+                id: id.into(),
+                steps,
+                current_step,
+            },
+        )
+    }
+
+    /// Stylized keyboard key badge for shortcuts.
+    pub fn kbd(
+        &mut self,
+        text: impl Into<String>,
+        style: Style,
+    ) -> Result<NodeId, LayoutError> {
+        self.layout.insert_leaf(
+            style,
+            WidgetKind::Kbd {
+                text: text.into(),
+            },
+        )
+    }
+
+    /// Interactive filter/tag Chip with icon, color pip, selection state, and dismiss button.
+    pub fn chip(
+        &mut self,
+        id: impl Into<WidgetId>,
+        label: impl Into<String>,
+        icon: Option<crate::kind::IconKind>,
+        color_pip: Option<[f32; 4]>,
+        selected: bool,
+        dismissible: bool,
+        variant: crate::kind::ChipVariant,
+        style: Style,
+    ) -> Result<NodeId, LayoutError> {
+        self.layout.insert_leaf(
+            style,
+            WidgetKind::Chip {
+                id: id.into(),
+                label: label.into(),
+                icon,
+                color_pip,
+                selected,
+                dismissible,
+                variant,
+            },
+        )
+    }
+
+    /// Loading placeholder skeleton with subtle shimmer glow.
+    pub fn skeleton(
+        &mut self,
+        radius: Option<f32>,
+        shimmer: bool,
+        style: Style,
+    ) -> Result<NodeId, LayoutError> {
+        self.layout.insert_leaf(
+            style,
+            WidgetKind::Skeleton {
+                radius,
+                shimmer,
+            },
+        )
+    }
+
+    /// Multi-segment proportional progress bar (e.g. disk / memory / task breakdown).
+    pub fn multi_progress(
+        &mut self,
+        id: impl Into<WidgetId>,
+        segments: Vec<crate::kind::ProgressSegment>,
+        show_labels: bool,
+        style: Style,
+    ) -> Result<NodeId, LayoutError> {
+        self.layout.insert_leaf(
+            style,
+            WidgetKind::MultiProgressBar {
+                id: id.into(),
+                segments,
+                show_labels,
+            },
+        )
+    }
+
+    /// Interactive or read-only Star / Heart / Diamond Rating widget.
+    pub fn rating(
+        &mut self,
+        id: impl Into<WidgetId>,
+        value: u8,
+        max: u8,
+        glyph: crate::kind::RatingGlyph,
+        readonly: bool,
+        style: Style,
+    ) -> Result<NodeId, LayoutError> {
+        self.layout.insert_leaf(
+            style,
+            WidgetKind::Rating {
+                id: id.into(),
+                value,
+                max,
+                glyph,
+                readonly,
+            },
+        )
+    }
+
+    /// Vertical chronological event timeline.
+    pub fn timeline(
+        &mut self,
+        id: impl Into<WidgetId>,
+        items: Vec<crate::kind::TimelineItem>,
+        style: Style,
+    ) -> Result<NodeId, LayoutError> {
+        self.layout.insert_leaf(
+            style,
+            WidgetKind::Timeline {
+                id: id.into(),
+                items,
             },
         )
     }

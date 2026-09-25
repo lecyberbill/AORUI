@@ -13,6 +13,7 @@
 //! the UI remains human-first, optionally agent-controllable.
 
 mod color;
+pub mod declarative;
 mod effective;
 mod frame;
 mod id;
@@ -23,17 +24,25 @@ pub mod paint;
 pub mod text_measure;
 mod theme;
 mod tree;
+mod watcher;
 
 pub use color::{Color, ColorSpace};
+pub use declarative::{DeclarativeUiDoc, EventRouter, LayoutStyleSpec, WidgetNodeSpec, WindowMetaSpec};
 pub use effective::{EffectiveBounds, NO_CLIP};
 pub use frame::{Frame, InteractionState, TextAlign, TextSpec};
 pub use id::WidgetId;
-pub use kind::{IconKind, InteractionKey, ListItemBadge, SplitOrientation, ToastKind, WidgetKind};
+pub use kind::{
+    AvatarStatus, BarItem, ButtonVariant, ChartSeries, ChipVariant, GraphConnectionSpec, GraphNodeSpec,
+    GraphSocket, IconKind, InteractionKey, ListItemBadge, ProgressSegment, RatingGlyph, SocketType,
+    SplitOrientation, StepItem, StepState, TimelineItem, TimelineStatus, ToastKind, TooltipPlacement,
+    WidgetKind,
+};
 pub use media::{MediaFit, MediaKind, MediaSpec};
 pub use paint::{eval_cubic_bezier, PaintCommand, Painter};
 pub use text_measure::{DefaultTextMeasure, TextMeasure};
-pub use theme::{FontFamily, FontWeight, Theme, Typography};
+pub use theme::{color_serde, FontFamily, FontWeight, Theme, Typography};
 pub use tree::WidgetTree;
+pub use watcher::ThemeWatcher;
 
 #[cfg(test)]
 mod tests {
@@ -1516,6 +1525,370 @@ mod tests {
                 widget_id: "telemetry_canvas".into(),
                 local_pos: [50.0, 50.0],
                 normalized_pos: [0.25, 0.33333334],
+            })
+        );
+    }
+
+    #[test]
+    fn knob_rotary_render_and_event_dispatch() {
+        let mut tree = WidgetTree::new();
+        let knob = tree
+            .knob(
+                "master_gain",
+                75.0,
+                0.0,
+                100.0,
+                1.0,
+                Some("Master"),
+                Some("dB"),
+                leaf_style(80.0, 90.0),
+            )
+            .unwrap();
+        let root = tree.container(&[knob], leaf_style(100.0, 100.0)).unwrap();
+        tree.compute(root, Size::MAX_CONTENT).unwrap();
+
+        let theme = Theme::cyber_glass();
+        let frame = tree.build_frame(root, &theme, Default::default()).unwrap();
+        assert!(frame.instances.len() >= 3); // Outer dial + Inner cap + Indicator dot
+        assert!(frame.texts.iter().any(|t| t.text == "Master"));
+        assert!(frame.texts.iter().any(|t| t.text == "75.0 dB"));
+
+        let event = tree.dispatch_click(root, (40.0, 40.0)).unwrap();
+        assert!(matches!(event, Some(ui_core::UiEvent::KnobChanged { .. })));
+    }
+
+    #[test]
+    fn time_series_chart_multi_series_and_inspection() {
+        let mut tree = WidgetTree::new();
+        let series = vec![
+            ChartSeries {
+                name: "Primary Core".to_string(),
+                color: [0.0, 0.85, 1.0, 1.0],
+                points: vec![[0.0, 20.0], [5.0, 55.0], [10.0, 85.0]],
+                filled: true,
+            },
+        ];
+        let chart = tree
+            .time_series_chart(
+                "telemetry_chart",
+                Some("Throughput MB/s"),
+                series,
+                (0.0, 10.0),
+                (0.0, 100.0),
+                true,
+                true,
+                Some((0, 1)),
+                leaf_style(300.0, 150.0),
+            )
+            .unwrap();
+        let root = tree.container(&[chart], leaf_style(320.0, 160.0)).unwrap();
+        tree.compute(root, Size::MAX_CONTENT).unwrap();
+
+        let theme = Theme::cyber_glass();
+        let frame = tree.build_frame(root, &theme, Default::default()).unwrap();
+        assert!(frame.instances.len() > 5);
+        assert!(frame.texts.iter().any(|t| t.text == "Throughput MB/s"));
+
+        // Click near center
+        let event = tree.dispatch_click(root, (150.0, 80.0)).unwrap();
+        assert!(matches!(event, Some(ui_core::UiEvent::ChartInspected { .. })));
+    }
+
+    #[test]
+    fn node_graph_elements_and_selection() {
+        let mut tree = WidgetTree::new();
+        let nodes = vec![
+            GraphNodeSpec {
+                id: "node_alpha".to_string(),
+                title: "Noise Generator".to_string(),
+                subtitle: Some("Perlin 2D".to_string()),
+                pos: [20.0, 30.0],
+                size: [140.0, 80.0],
+                inputs: vec![],
+                outputs: vec![GraphSocket {
+                    name: "Noise Out".to_string(),
+                    socket_type: SocketType::Signal,
+                    color: None,
+                    is_output: true,
+                }],
+                header_color: None,
+                selected: true,
+            },
+            GraphNodeSpec {
+                id: "node_beta".to_string(),
+                title: "Pixel Shader".to_string(),
+                subtitle: None,
+                pos: [220.0, 30.0],
+                size: [140.0, 80.0],
+                inputs: vec![GraphSocket {
+                    name: "Albedo In".to_string(),
+                    socket_type: SocketType::Signal,
+                    color: None,
+                    is_output: false,
+                }],
+                outputs: vec![],
+                header_color: None,
+                selected: false,
+            },
+        ];
+        let connections = vec![
+            GraphConnectionSpec {
+                from_node: "node_alpha".to_string(),
+                from_socket: 0,
+                to_node: "node_beta".to_string(),
+                to_socket: 0,
+                color: None,
+                flow_active: true,
+            },
+        ];
+
+        let graph = tree
+            .node_graph(
+                "main_node_graph",
+                nodes,
+                connections,
+                [0.0, 0.0],
+                1.0,
+                None,
+                leaf_style(400.0, 300.0),
+            )
+            .unwrap();
+        let root = tree.container(&[graph], leaf_style(400.0, 300.0)).unwrap();
+        tree.compute(root, Size::MAX_CONTENT).unwrap();
+
+        let theme = Theme::cyber_glass();
+        let frame = tree.build_frame(root, &theme, Default::default()).unwrap();
+        assert!(frame.texts.iter().any(|t| t.text == "Noise Generator"));
+        assert!(frame.texts.iter().any(|t| t.text == "Pixel Shader"));
+
+        // Click on node_alpha bounds
+        let event = tree.dispatch_click(root, (50.0, 50.0)).unwrap();
+        assert_eq!(
+            event,
+            Some(ui_core::UiEvent::NodeSelected {
+                graph_id: "main_node_graph".to_string(),
+                node_id: Some("node_alpha".to_string()),
+            })
+        );
+    }
+
+    #[test]
+    fn tag_input_chips_and_removal() {
+        let mut tree = WidgetTree::new();
+        let tags = ["Rust", "WGPU", "SDF"];
+        let tag_widget = tree
+            .tag_input(
+                "skills_input",
+                &tags,
+                "Add tag...",
+                None,
+                leaf_style(250.0, 36.0),
+            )
+            .unwrap();
+        let root = tree.container(&[tag_widget], leaf_style(250.0, 36.0)).unwrap();
+        tree.compute(root, Size::MAX_CONTENT).unwrap();
+
+        let theme = Theme::cyber_glass();
+        let frame = tree.build_frame(root, &theme, Default::default()).unwrap();
+        assert!(frame.texts.iter().any(|t| t.text == "Rust ✕"));
+
+        // Click on first tag chip
+        let event = tree.dispatch_click(root, (20.0, 18.0)).unwrap();
+        assert_eq!(
+            event,
+            Some(ui_core::UiEvent::TagRemoved {
+                widget_id: "skills_input".to_string(),
+                index: 0,
+            })
+        );
+    }
+
+    #[test]
+    fn drop_zone_widget_and_hit_testing() {
+        let mut tree = WidgetTree::new();
+        let dz = tree
+            .drop_zone(
+                "main_drop_zone",
+                "Drop Assets Here",
+                Some("Supports PNG, RS"),
+                &["png", "rs"],
+                true,
+                Some(("sample.png", 45056)),
+                leaf_style(300.0, 80.0),
+            )
+            .unwrap();
+        let root = tree.container(&[dz], leaf_style(300.0, 80.0)).unwrap();
+        tree.compute(root, Size::MAX_CONTENT).unwrap();
+
+        let theme = Theme::cyber_glass();
+        let frame = tree.build_frame(root, &theme, Default::default()).unwrap();
+        assert!(frame.texts.iter().any(|t| t.text == "Drop Assets Here"));
+        assert!(frame.texts.iter().any(|t| t.text.contains("Imported: sample.png")));
+
+        // Hit testing drop target
+        let target = tree.hit_test_drop_target(root, (150.0, 40.0)).unwrap();
+        assert_eq!(target, Some(("main_drop_zone".to_string(), Some("DropZone".to_string()))));
+    }
+
+    #[test]
+    fn avatar_widget_and_status_indicators() {
+        let mut tree = WidgetTree::new();
+        let av1 = tree
+            .avatar(
+                "user_avatar",
+                None::<String>,
+                Some("CB"),
+                crate::kind::AvatarStatus::Online,
+                40.0,
+                Some([0.0, 0.85, 1.0, 1.0]),
+                true,
+                leaf_style(40.0, 40.0),
+            )
+            .unwrap();
+        let av2 = tree
+            .avatar(
+                "image_avatar",
+                Some("cyber_art"),
+                None::<String>,
+                crate::kind::AvatarStatus::Busy,
+                48.0,
+                None,
+                false,
+                leaf_style(48.0, 48.0),
+            )
+            .unwrap();
+
+        let root = tree.container(&[av1, av2], leaf_style(100.0, 50.0)).unwrap();
+        tree.compute(root, Size::MAX_CONTENT).unwrap();
+
+        let theme = Theme::cyber_glass();
+        let frame = tree.build_frame(root, &theme, Default::default()).unwrap();
+        assert!(frame.texts.iter().any(|t| t.text == "CB"));
+        assert!(frame.media.iter().any(|m| m.resource_id == "cyber_art"));
+
+        // Click on avatar
+        let event = tree.dispatch_click(root, (20.0, 20.0)).unwrap();
+        assert_eq!(
+            event,
+            Some(ui_core::UiEvent::AvatarClicked {
+                widget_id: "user_avatar".to_string(),
+            })
+        );
+    }
+
+    #[test]
+    fn tooltip_widget_and_shortcut_badge() {
+        let mut tree = WidgetTree::new();
+        let tt = tree
+            .tooltip(
+                "Command Palette",
+                Some("Ctrl+K"),
+                TooltipPlacement::Top,
+                leaf_style(160.0, 26.0),
+            )
+            .unwrap();
+        let root = tree.container(&[tt], leaf_style(200.0, 50.0)).unwrap();
+        tree.compute(root, Size::MAX_CONTENT).unwrap();
+
+        let theme = Theme::cyber_glass();
+        let frame = tree.build_frame(root, &theme, Default::default()).unwrap();
+        assert!(frame.texts.iter().any(|t| t.text == "Command Palette"));
+        assert!(frame.texts.iter().any(|t| t.text == "Ctrl+K"));
+    }
+
+    #[test]
+    fn stepper_and_timeline_widgets() {
+        let mut tree = WidgetTree::new();
+        let st = tree
+            .stepper(
+                "setup_stepper",
+                vec![
+                    StepItem {
+                        label: "Identity".to_string(),
+                        description: Some("Step 1".to_string()),
+                        state: StepState::Completed,
+                    },
+                    StepItem {
+                        label: "Security".to_string(),
+                        description: Some("Step 2".to_string()),
+                        state: StepState::Active,
+                    },
+                ],
+                1,
+                leaf_style(300.0, 60.0),
+            )
+            .unwrap();
+        let tl = tree
+            .timeline(
+                "deploy_timeline",
+                vec![
+                    TimelineItem {
+                        time: "10:00".to_string(),
+                        title: "Build".to_string(),
+                        description: Some("Success".to_string()),
+                        status: TimelineStatus::Success,
+                    },
+                ],
+                leaf_style(300.0, 80.0),
+            )
+            .unwrap();
+        let root = tree.container(&[st, tl], leaf_style(320.0, 150.0)).unwrap();
+        tree.compute(root, Size::MAX_CONTENT).unwrap();
+
+        let theme = Theme::cyber_glass();
+        let frame = tree.build_frame(root, &theme, Default::default()).unwrap();
+        assert!(frame.texts.iter().any(|t| t.text == "Identity"));
+        assert!(frame.texts.iter().any(|t| t.text == "Security"));
+        assert!(frame.texts.iter().any(|t| t.text.contains("Build")));
+    }
+
+    #[test]
+    fn chip_kbd_rating_and_multi_progress() {
+        let mut tree = WidgetTree::new();
+        let chip = tree
+            .chip(
+                "tag_rust",
+                "Rust Core",
+                None,
+                Some([0.0, 0.85, 1.0, 1.0]),
+                true,
+                true,
+                ChipVariant::Primary,
+                leaf_style(100.0, 24.0),
+            )
+            .unwrap();
+        let kbd = tree.kbd("Ctrl", leaf_style(40.0, 20.0)).unwrap();
+        let rating = tree.rating("star_rate", 4, 5, RatingGlyph::Star, false, leaf_style(100.0, 24.0)).unwrap();
+        let mp = tree.multi_progress(
+            "mem_breakdown",
+            vec![
+                ProgressSegment { label: "Rust".to_string(), value: 60.0, color: [0.0, 0.85, 1.0, 1.0] },
+                ProgressSegment { label: "WGPU".to_string(), value: 40.0, color: [0.75, 0.35, 0.95, 1.0] },
+            ],
+            true,
+            leaf_style(200.0, 32.0),
+        ).unwrap();
+        let skel = tree.skeleton(Some(8.0), true, leaf_style(200.0, 40.0)).unwrap();
+
+        let col_style = Style {
+            flex_direction: FlexDirection::Column,
+            ..leaf_style(300.0, 200.0)
+        };
+        let root = tree.container(&[chip, kbd, rating, mp, skel], col_style).unwrap();
+        tree.compute(root, Size::MAX_CONTENT).unwrap();
+
+        let theme = Theme::cyber_glass();
+        let frame = tree.build_frame(root, &theme, Default::default()).unwrap();
+        assert!(frame.texts.iter().any(|t| t.text == "Rust Core"));
+        assert!(frame.texts.iter().any(|t| t.text == "Ctrl"));
+        assert!(frame.texts.iter().any(|t| t.text == "★"));
+
+        // Click on chip dismiss button
+        let event = tree.dispatch_click(root, (90.0, 12.0)).unwrap();
+        assert_eq!(
+            event,
+            Some(ui_core::UiEvent::ChipDismissed {
+                widget_id: "tag_rust".to_string(),
             })
         );
     }

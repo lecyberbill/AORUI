@@ -1,0 +1,188 @@
+root = "artboard_root"
+
+[window]
+title = "AORUI Cyber App"
+width = 960.0
+height = 620.0
+
+[[nodes]]
+id = "artboard_root"
+type = "Panel"
+children = [
+    "menubar_top",
+    "card_stats_gpu",
+    "btn_action_primary",
+    "btn_action_secondary",
+    "txt_search",
+    "slider_volume",
+    "toggle_status",
+    "modal_dialog",
+]
+enabled = true
+radius = 12.0
+bg = "#3f5065fa"
+border = "#7699bfcc"
+
+[nodes.layout]
+position = "relative"
+width_percent = 100.0
+height_percent = 100.0
+
+[[nodes]]
+id = "menubar_top"
+type = "MenuBar"
+children = []
+enabled = true
+radius = 6.0
+items = [
+    "Fichier",
+    "Édition",
+    "Affichage",
+    "Outils",
+    "Aide",
+]
+active_index = 0
+bg = "#556981e6"
+border = "#81add7b3"
+
+[nodes.layout]
+position = "absolute"
+width = 912.0
+height = 36.0
+top = 20.0
+left = 24.0
+
+[[nodes]]
+id = "card_stats_gpu"
+type = "MetricCard"
+children = []
+text = "14.2 GFlops"
+enabled = true
+radius = 8.0
+title = "GPU Compute Engine"
+delta = "+8.4%"
+delta_positive = true
+bg = "#506581d9"
+border = "#89b3e1cc"
+
+[nodes.layout]
+position = "absolute"
+width = 260.0
+height = 96.0
+top = 72.0
+left = 24.0
+
+[[nodes]]
+id = "btn_action_primary"
+type = "Button"
+children = []
+label = "Lancer Shader 🚀"
+variant = "Primary"
+enabled = true
+radius = 8.0
+on_click = "app:on_launch_shader"
+
+[nodes.layout]
+position = "absolute"
+width = 190.0
+height = 42.0
+top = 72.0
+left = 304.0
+
+[[nodes]]
+id = "btn_action_secondary"
+type = "Button"
+children = []
+label = "Capture Frame"
+variant = "Secondary"
+enabled = true
+radius = 8.0
+on_click = "app:on_capture_frame"
+
+[nodes.layout]
+position = "absolute"
+width = 180.0
+height = 42.0
+top = 72.0
+left = 510.0
+
+[[nodes]]
+id = "txt_search"
+type = "TextInput"
+children = []
+text = "Filter nodes..."
+placeholder = "Rechercher un composant..."
+enabled = true
+radius = 6.0
+on_change = "app:on_filter_nodes"
+
+[nodes.layout]
+position = "absolute"
+width = 386.0
+height = 38.0
+top = 128.0
+left = 304.0
+
+[[nodes]]
+id = "slider_volume"
+type = "Slider"
+children = []
+enabled = true
+value = 75.0
+min = 0.0
+max = 100.0
+step = 1.0
+on_change = "app:on_slider_volume"
+
+[nodes.layout]
+position = "absolute"
+width = 260.0
+height = 28.0
+top = 184.0
+left = 24.0
+
+[[nodes]]
+id = "toggle_status"
+type = "Toggle"
+children = []
+enabled = true
+checked = true
+on_change = "app:on_toggle_status"
+
+[nodes.layout]
+position = "absolute"
+width = 52.0
+height = 28.0
+top = 184.0
+left = 304.0
+
+[[nodes]]
+id = "modal_dialog"
+type = "Window"
+children = ["lbl_modal_msg"]
+enabled = true
+radius = 10.0
+title = "Fenêtre Dialogue Modale"
+bg = "#596c89f2"
+border = "#95cbffe6"
+
+[nodes.layout]
+position = "absolute"
+direction = "column"
+width = 360.0
+height = 200.0
+gap = 10.0
+padding = 16.0
+top = 230.0
+left = 380.0
+
+[[nodes]]
+id = "lbl_modal_msg"
+type = "Label"
+children = []
+text = "Ceci est une popup modale interactive."
+enabled = true
+muted = false
+
+[nodes.layout]
+height = 24.0

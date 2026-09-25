@@ -36,6 +36,49 @@ impl Color {
         [self.r, self.g, self.b, self.a]
     }
 
+    /// Exact sRGB to Linear transfer function (IEC 61966-2-1).
+    pub fn srgb_to_linear(c: f32) -> f32 {
+        if c <= 0.04045 {
+            c / 12.92
+        } else {
+            ((c + 0.055) / 1.055).powf(2.4)
+        }
+    }
+
+    /// Exact Linear to sRGB transfer function (IEC 61966-2-1).
+    pub fn linear_to_srgb(c: f32) -> f32 {
+        if c <= 0.0031308 {
+            c * 12.92
+        } else {
+            1.055 * c.powf(1.0 / 2.4) - 0.055
+        }
+    }
+
+    /// Converts sRGB channels to linear color space for correct GPU shader lighting & blending.
+    pub fn to_linear(self) -> Self {
+        Self {
+            r: Self::srgb_to_linear(self.r.clamp(0.0, 1.0)),
+            g: Self::srgb_to_linear(self.g.clamp(0.0, 1.0)),
+            b: Self::srgb_to_linear(self.b.clamp(0.0, 1.0)),
+            a: self.a.clamp(0.0, 1.0),
+        }
+    }
+
+    /// Converts linear color space channels back to sRGB.
+    pub fn from_linear(self) -> Self {
+        Self {
+            r: Self::linear_to_srgb(self.r.clamp(0.0, 1.0)),
+            g: Self::linear_to_srgb(self.g.clamp(0.0, 1.0)),
+            b: Self::linear_to_srgb(self.b.clamp(0.0, 1.0)),
+            a: self.a.clamp(0.0, 1.0),
+        }
+    }
+
+    /// Converts sRGB channels to linear color space array `[r, g, b, a]`.
+    pub fn to_linear_array(self) -> [f32; 4] {
+        self.to_linear().to_array()
+    }
+
     // --- RGB (0..255) ---
     pub fn from_rgb_u8(r: u8, g: u8, b: u8, a: f32) -> Self {
         Self {

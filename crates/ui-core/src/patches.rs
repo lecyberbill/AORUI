@@ -45,6 +45,14 @@ pub enum UiPatch {
         title: String,
         content: String,
     },
+    DeclarativeUiLoaded {
+        format: String,
+        content: String,
+    },
+    CustomEvent {
+        tag: String,
+        payload: String,
+    },
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]

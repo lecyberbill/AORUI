@@ -102,6 +102,32 @@ impl GpuTexture {
         );
     }
 
+    /// Decodes image bytes (PNG, JPEG, WebP, BMP) and uploads to a new GPU RGBA texture.
+    pub fn from_image_bytes(
+        device: &wgpu::Device,
+        queue: &wgpu::Queue,
+        bytes: &[u8],
+        label: Option<&str>,
+    ) -> Result<Arc<Self>, String> {
+        let img = image::load_from_memory(bytes)
+            .map_err(|e| format!("Failed to decode image: {}", e))?
+            .to_rgba8();
+        let (w, h) = (img.width(), img.height());
+        Ok(Self::new_rgba(device, queue, w, h, &img, label))
+    }
+
+    /// Loads and decodes an image file from disk and uploads to a new GPU RGBA texture.
+    pub fn from_image_file(
+        device: &wgpu::Device,
+        queue: &wgpu::Queue,
+        path: impl AsRef<std::path::Path>,
+        label: Option<&str>,
+    ) -> Result<Arc<Self>, String> {
+        let bytes = std::fs::read(&path)
+            .map_err(|e| format!("Failed to read file {}: {}", path.as_ref().display(), e))?;
+        Self::from_image_bytes(device, queue, &bytes, label)
+    }
+
     /// Aspect ratio (width / height).
     pub fn aspect_ratio(&self) -> f32 {
         self.width as f32 / self.height.max(1) as f32

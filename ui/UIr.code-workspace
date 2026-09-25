@@ -1,0 +1,11 @@
+{
+	"folders": [
+		{
+			"path": ".."
+		},
+		{
+			"path": "../../../image_to_text/rust_moteur_3d"
+		}
+	],
+	"settings": {}
+}

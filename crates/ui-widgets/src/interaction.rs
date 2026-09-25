@@ -439,6 +439,204 @@ impl WidgetTree {
                     normalized_pos: [norm_x, norm_y],
                 })
             }
+            WidgetKind::Knob {
+                id,
+                min,
+                max,
+                step,
+                ..
+            } => {
+                let effective = self.effective_bounds(root)?;
+                let bounds = effective[&node].visual;
+                let cx = bounds[0] + bounds[2] * 0.5;
+                let cy = bounds[1] + bounds[3] * 0.45;
+                let dx = point.0 - cx;
+                let dy = point.1 - cy;
+                let angle = dy.atan2(dx); // [-pi, pi]
+                // Convert angle from dial domain (-135 to +135 deg, or -3pi/4 to +3pi/4)
+                let norm_angle = (angle + std::f32::consts::PI * 0.75).rem_euclid(std::f32::consts::PI * 2.0);
+                let total_sweep = std::f32::consts::PI * 1.5;
+                let ratio = (norm_angle / total_sweep).clamp(0.0, 1.0);
+                let mut val = *min + ratio * (*max - *min);
+                if *step > 0.0 {
+                    val = (val / *step).round() * *step;
+                }
+                let clamped_val = val.clamp(*min, *max);
+                Some(UiEvent::KnobChanged {
+                    widget_id: id.to_string(),
+                    value: clamped_val,
+                })
+            }
+            WidgetKind::TimeSeriesChart {
+                id,
+                series,
+                x_min,
+                x_max,
+                y_min: _,
+                y_max: _,
+                ..
+            } => {
+                let effective = self.effective_bounds(root)?;
+                let bounds = effective[&node].visual;
+                let pad_left = 36.0;
+                let pad_top = 28.0;
+                let plot_x = bounds[0] + pad_left;
+                let plot_y = bounds[1] + pad_top;
+                let plot_w = (bounds[2] - pad_left - 16.0).max(10.0);
+                let plot_h = (bounds[3] - pad_top - 24.0).max(10.0);
+
+                if point.0 >= plot_x && point.0 <= plot_x + plot_w && point.1 >= plot_y && point.1 <= plot_y + plot_h {
+                    let click_norm_x = (point.0 - plot_x) / plot_w;
+                    let target_x = *x_min + click_norm_x * (*x_max - *x_min);
+
+                    // Find closest point across series
+                    let mut closest_s = 0;
+                    let mut closest_p = 0;
+                    let mut min_dist = f32::MAX;
+
+                    for (s_idx, s) in series.iter().enumerate() {
+                        for (p_idx, pt) in s.points.iter().enumerate() {
+                            let dist = (pt[0] - target_x).abs();
+                            if dist < min_dist {
+                                min_dist = dist;
+                                closest_s = s_idx;
+                                closest_p = p_idx;
+                            }
+                        }
+                    }
+
+                    if !series.is_empty() && !series[closest_s].points.is_empty() {
+                        let pt = series[closest_s].points[closest_p];
+                        Some(UiEvent::ChartInspected {
+                            widget_id: id.to_string(),
+                            series_index: closest_s,
+                            point_index: closest_p,
+                            x: pt[0],
+                            y: pt[1],
+                        })
+                    } else {
+                        None
+                    }
+                } else {
+                    None
+                }
+            }
+            WidgetKind::NodeGraph {
+                id,
+                nodes,
+                pan,
+                ..
+            } => {
+                let effective = self.effective_bounds(root)?;
+                let bounds = effective[&node].visual;
+                let origin_x = bounds[0] + pan[0];
+                let origin_y = bounds[1] + pan[1];
+
+                // Hit-test nodes in reverse (topmost first)
+                let mut hit_node = None;
+                for n in nodes.iter().rev() {
+                    let nx = origin_x + n.pos[0];
+                    let ny = origin_y + n.pos[1];
+                    if point.0 >= nx && point.0 <= nx + n.size[0] && point.1 >= ny && point.1 <= ny + n.size[1] {
+                        hit_node = Some(n.id.clone());
+                        break;
+                    }
+                }
+
+                Some(UiEvent::NodeSelected {
+                    graph_id: id.to_string(),
+                    node_id: hit_node,
+                })
+            }
+            WidgetKind::TagInput {
+                id,
+                tags,
+                ..
+            } => {
+                let effective = self.effective_bounds(root)?;
+                let bounds = effective[&node].visual;
+                let mut cur_x = bounds[0] + 6.0;
+                let tag_h = (bounds[3] - 8.0).clamp(16.0, 24.0);
+                let tag_y = bounds[1] + (bounds[3] - tag_h) * 0.5;
+
+                for (idx, tag) in tags.iter().enumerate() {
+                    let tag_text_w = tag.len() as f32 * 7.0 + 20.0;
+                    if point.0 >= cur_x && point.0 <= cur_x + tag_text_w && point.1 >= tag_y && point.1 <= tag_y + tag_h {
+                        return Ok(Some(UiEvent::TagRemoved {
+                            widget_id: id.to_string(),
+                            index: idx,
+                        }));
+                    }
+                    cur_x += tag_text_w + 6.0;
+                }
+                Some(UiEvent::FocusChanged {
+                    widget_id: Some(id.to_string()),
+                })
+            }
+            WidgetKind::DropZone { id, .. } => Some(UiEvent::ButtonClicked {
+                widget_id: id.to_string(),
+            }),
+            WidgetKind::Avatar { id, .. } => Some(UiEvent::AvatarClicked {
+                widget_id: id.to_string(),
+            }),
+            WidgetKind::Stepper { id, steps, .. } => {
+                let effective = self.effective_bounds(root)?;
+                let bounds = effective[&node].visual;
+                let n = steps.len();
+                if n > 0 {
+                    let step_w = bounds[2] / n as f32;
+                    let clicked_step = (((point.0 - bounds[0]) / step_w) as usize).min(n - 1);
+                    Some(UiEvent::StepClicked {
+                        stepper_id: id.to_string(),
+                        step_index: clicked_step,
+                    })
+                } else {
+                    None
+                }
+            }
+            WidgetKind::Chip { id, dismissible, .. } => {
+                let effective = self.effective_bounds(root)?;
+                let bounds = effective[&node].visual;
+                if *dismissible && point.0 >= bounds[0] + bounds[2] - 22.0 {
+                    Some(UiEvent::ChipDismissed {
+                        widget_id: id.to_string(),
+                    })
+                } else {
+                    Some(UiEvent::ChipClicked {
+                        widget_id: id.to_string(),
+                    })
+                }
+            }
+            WidgetKind::Rating { id, max, readonly, .. } => {
+                if *readonly {
+                    None
+                } else {
+                    let effective = self.effective_bounds(root)?;
+                    let bounds = effective[&node].visual;
+                    let m = (*max).max(1) as usize;
+                    let item_w = bounds[2] / m as f32;
+                    let clicked_star = (((point.0 - bounds[0]) / item_w) as usize + 1).clamp(1, m);
+                    Some(UiEvent::RatingChanged {
+                        widget_id: id.to_string(),
+                        rating: clicked_star as u8,
+                    })
+                }
+            }
+            WidgetKind::Timeline { id, items } => {
+                let effective = self.effective_bounds(root)?;
+                let bounds = effective[&node].visual;
+                let n = items.len();
+                if n > 0 {
+                    let item_h = bounds[3] / n as f32;
+                    let clicked_item = (((point.1 - bounds[1]) / item_h) as usize).min(n - 1);
+                    Some(UiEvent::TimelineItemClicked {
+                        timeline_id: id.to_string(),
+                        item_index: clicked_item,
+                    })
+                } else {
+                    None
+                }
+            }
             _ => None,
         })
     }
@@ -595,6 +793,129 @@ impl WidgetTree {
                     };
                     let value = min + ratio * (max - min);
                     return Ok(Some(value));
+                }
+            }
+        }
+        Ok(None)
+    }
+
+    /// Computes the rotated value of a Knob during mouse click/drag.
+    pub fn knob_drag_value(
+        &self,
+        root: NodeId,
+        target_id: &str,
+        point: (f32, f32),
+    ) -> Result<Option<f32>, ui_layout::LayoutError> {
+        let effective = self.effective_bounds(root)?;
+        for (node, entry) in effective.iter() {
+            if let Some(WidgetKind::Knob {
+                id,
+                min,
+                max,
+                step,
+                ..
+            }) = self.layout().payload(*node)
+            {
+                if id.as_str() == target_id {
+                    let bounds = entry.visual;
+                    let cx = bounds[0] + bounds[2] * 0.5;
+                    let cy = bounds[1] + bounds[3] * 0.45;
+                    let dx = point.0 - cx;
+                    let dy = point.1 - cy;
+                    let angle = dy.atan2(dx);
+                    let norm_angle = (angle + std::f32::consts::PI * 0.75).rem_euclid(std::f32::consts::PI * 2.0);
+                    let total_sweep = std::f32::consts::PI * 1.5;
+                    let ratio = (norm_angle / total_sweep).clamp(0.0, 1.0);
+                    let mut val = *min + ratio * (*max - *min);
+                    if *step > 0.0 {
+                        val = (val / *step).round() * *step;
+                    }
+                    return Ok(Some(val.clamp(*min, *max)));
+                }
+            }
+        }
+        Ok(None)
+    }
+
+    /// Hit-tests a NodeGraph to find which node (if any) was clicked for dragging.
+    pub fn node_graph_hit_node(
+        &self,
+        root: NodeId,
+        target_graph_id: &str,
+        point: (f32, f32),
+    ) -> Result<Option<(String, [f32; 2])>, ui_layout::LayoutError> {
+        let effective = self.effective_bounds(root)?;
+        for (node, entry) in effective.iter() {
+            if let Some(WidgetKind::NodeGraph {
+                id,
+                nodes,
+                pan,
+                ..
+            }) = self.layout().payload(*node)
+            {
+                if id.as_str() == target_graph_id {
+                    let bounds = entry.visual;
+                    let origin_x = bounds[0] + pan[0];
+                    let origin_y = bounds[1] + pan[1];
+                    for n in nodes.iter().rev() {
+                        let nx = origin_x + n.pos[0];
+                        let ny = origin_y + n.pos[1];
+                        if point.0 >= nx && point.0 <= nx + n.size[0] && point.1 >= ny && point.1 <= ny + n.size[1] {
+                            let offset_in_node = [point.0 - nx, point.1 - ny];
+                            return Ok(Some((n.id.clone(), offset_in_node)));
+                        }
+                    }
+                }
+            }
+        }
+        Ok(None)
+    }
+
+    /// Hit-tests a NodeGraph to find if a socket pin (input or output) was clicked for cable wiring.
+    pub fn node_graph_hit_socket(
+        &self,
+        root: NodeId,
+        target_graph_id: &str,
+        point: (f32, f32),
+    ) -> Result<Option<(String, usize, bool)>, ui_layout::LayoutError> {
+        let effective = self.effective_bounds(root)?;
+        for (node, entry) in effective.iter() {
+            if let Some(WidgetKind::NodeGraph {
+                id,
+                nodes,
+                pan,
+                ..
+            }) = self.layout().payload(*node)
+            {
+                if id.as_str() == target_graph_id {
+                    let bounds = entry.visual;
+                    let origin_x = bounds[0] + pan[0];
+                    let origin_y = bounds[1] + pan[1];
+                    for n in nodes.iter().rev() {
+                        let nx = origin_x + n.pos[0];
+                        let ny = origin_y + n.pos[1];
+                        let nw = n.size[0];
+
+                        // Check output sockets (right side)
+                        for (i, _) in n.outputs.iter().enumerate() {
+                            let sy = ny + 32.0 + (i as f32 * 20.0) + 4.0;
+                            let pin_x = nx + nw;
+                            let dist_sq = (point.0 - pin_x).powi(2) + (point.1 - (sy + 4.0)).powi(2);
+                            if dist_sq <= 144.0 {
+                                return Ok(Some((n.id.clone(), i, true))); // true = is_output
+                            }
+                        }
+
+                        // Check input sockets (left side)
+                        for (i, _) in n.inputs.iter().enumerate() {
+                            let sy = ny + 32.0 + (i as f32 * 20.0) + 4.0;
+                            let pin_x = nx;
+                            let dist_sq = (point.0 - pin_x).powi(2) + (point.1 - (sy + 4.0)).powi(2);
+                            if dist_sq <= 144.0 {
+                                return Ok(Some((n.id.clone(), i, false))); // false = is_input
+                            }
+                        }
+                    }
                 }
             }
         }
@@ -956,5 +1277,33 @@ impl WidgetTree {
             self.collect_focusable(child, list)?;
         }
         Ok(())
+    }
+
+    /// Finds the widget ID and target classification for a dropped or hovered file at `point`.
+    pub fn hit_test_drop_target(
+        &self,
+        root: NodeId,
+        point: (f32, f32),
+    ) -> Result<Option<(String, Option<String>)>, ui_layout::LayoutError> {
+        let Some(node) = self.hit_test_effective(root, point)? else {
+            return Ok(None);
+        };
+        let Some(kind) = self.layout().payload(node) else {
+            return Ok(None);
+        };
+        match kind {
+            WidgetKind::DropZone { id, .. } => Ok(Some((id.to_string(), Some("DropZone".to_string())))),
+            WidgetKind::Media { id, .. } => Ok(Some((id.to_string(), Some("Media".to_string())))),
+            WidgetKind::CodeEditor { id, .. } => Ok(Some((id.to_string(), Some("CodeEditor".to_string())))),
+            WidgetKind::Button { id, .. } => Ok(Some((id.to_string(), Some("Button".to_string())))),
+            WidgetKind::Container => Ok(None),
+            _ => {
+                if let Some(key) = kind.interaction_key() {
+                    Ok(Some((key.widget_id.to_string(), None)))
+                } else {
+                    Ok(None)
+                }
+            }
+        }
     }
 }

@@ -5,6 +5,7 @@
 //! It consumes already constructed [`ui_core::GpuSdfInstance`]s
 //! (typically generated from bounds resolved by `ui-layout`).
 
+mod background_pipeline;
 mod blur_pipeline;
 mod context;
 pub mod image_pipeline;
@@ -17,6 +18,7 @@ mod text;
 pub mod texture;
 mod textures;
 
+pub use background_pipeline::{BackgroundParams, BackgroundPipeline};
 pub use context::GpuContext;
 pub use image_pipeline::ImagePipeline;
 pub use measure::CosmicTextMeasure;
@@ -64,5 +66,10 @@ mod tests {
     #[test]
     fn image_quad_shader_is_valid_wgsl() {
         validate_wgsl(include_str!("shaders/image_quad.wgsl"));
+    }
+
+    #[test]
+    fn background_gradient_shader_is_valid_wgsl() {
+        validate_wgsl(include_str!("../shaders/background_gradient.wgsl"));
     }
 }

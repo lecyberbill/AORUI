@@ -599,16 +599,306 @@ pub fn label(&mut self, text: impl Into<String>, style: Style) -> Result<NodeId,
 pub fn label_muted(&mut self, text: impl Into<String>, style: Style) -> Result<NodeId, LayoutError>
 ```
 
+#### `WidgetTree::knob`
+Rotary potentiometer dial for continuous tactile parameter tuning (gain, cutoff frequency, audio mix, DSP).
+```rust
+pub fn knob(
+    &mut self,
+    id: impl Into<WidgetId>,
+    value: f32,
+    min: f32,
+    max: f32,
+    step: f32,
+    label: Option<impl Into<String>>,
+    unit: Option<impl Into<String>>,
+    style: Style,
+) -> Result<NodeId, LayoutError>
+```
+- **Events**: `UiEvent::KnobChanged { widget_id: String, value: f32 }`
+- **Aesthetics**: Outer cyber-glass track, dark brushed metal inner dial cap, luminescent neon indicator dot, centered value display.
+
+#### `WidgetTree::time_series_chart`
+High-performance GPU multi-series dataviz chart supporting lines, spline evaluation, translucent area fills, and interactive point inspection.
+```rust
+pub fn time_series_chart(
+    &mut self,
+    id: impl Into<WidgetId>,
+    title: Option<impl Into<String>>,
+    series: Vec<ChartSeries>,
+    x_range: (f32, f32),
+    y_range: (f32, f32),
+    show_grid: bool,
+    show_legend: bool,
+    inspected_point: Option<(usize, usize)>,
+    style: Style,
+) -> Result<NodeId, LayoutError>
+```
+- **Events**: `UiEvent::ChartInspected { widget_id: String, series_index: usize, point_index: usize, x: f32, y: f32 }`
+- **Features**: Smooth multi-series rendering, adaptive grid lines, automatic Y-axis ticks, glowing inspection cursor.
+
+#### `WidgetTree::node_graph`
+Interactive visual Node Graph canvas with vector $C^1$ cubic Bézier cables, typed sockets, and movable nodes.
+```rust
+pub fn node_graph(
+    &mut self,
+    id: impl Into<WidgetId>,
+    nodes: Vec<GraphNodeSpec>,
+    connections: Vec<GraphConnectionSpec>,
+    pan: [f32; 2],
+    zoom: f32,
+    connecting_from: Option<(String, usize)>,
+    style: Style,
+) -> Result<NodeId, LayoutError>
+```
+- **Events**:
+  - `UiEvent::NodeSelected { graph_id: String, node_id: Option<String> }`
+  - `UiEvent::NodeMoved { graph_id: String, node_id: String, x: f32, y: f32 }`
+  - `UiEvent::NodeConnected { graph_id: String, from_node: String, from_socket: usize, to_node: String, to_socket: usize }`
+- **Features**: Ultra-crisp, non-bloated anti-aliased $C^1$ Bézier cables, neon-coded sockets (Signal, Data, Texture, Flow), translucent glass cards with distinct header colors.
+
+#### `WidgetTree::tag_input`
+Multi-tag selector displaying pill chips with close buttons ("✕") and dynamic filter creation.
+```rust
+pub fn tag_input(
+    &mut self,
+    id: impl Into<WidgetId>,
+    tags: &[impl AsRef<str>],
+    placeholder: impl Into<String>,
+    active_tag: Option<usize>,
+    style: Style,
+) -> Result<NodeId, LayoutError>
+```
+- **Events**:
+  - `UiEvent::TagRemoved { widget_id: String, index: usize }`
+  - `UiEvent::TagAdded { widget_id: String, tag: String }`
+
 ---
 
 ## Event Reference
 
 | `UiEvent` Variant | Triggering Widgets | Payload Fields |
+#### `WidgetTree::drop_zone`
+
+```rust
+pub fn drop_zone(
+    &mut self,
+    id: impl Into<WidgetId>,
+    label: impl Into<String>,
+    hint: Option<impl Into<String>>,
+    accepted_extensions: &[&str],
+    hovered: bool,
+    dropped_file: Option<(impl Into<String>, u64)>,
+    style: Style,
+) -> Result<NodeId, LayoutError>
+```
+
+Generic OS and internal Drag & Drop target area. Displays dynamic neon border on hover, center glyph, primary label, secondary hint / formatted file size, and accepted format badges (`[PNG] [JPG] [RS] [JSON]`).
+
+#### `WidgetTree::avatar`
+
+```rust
+pub fn avatar(
+    &mut self,
+    id: impl Into<WidgetId>,
+    resource_id: Option<impl Into<String>>,
+    initials: Option<impl Into<String>>,
+    status: AvatarStatus,
+    size: f32,
+    ring_color: Option<[f32; 4]>,
+    glow: bool,
+    style: Style,
+) -> Result<NodeId, LayoutError>
+```
+
+Circular user or system profile avatar (matching Windows / macOS user account styles). Features:
+- **Circular SDF Clipping**: Perfect circle geometry with zero square border artifacts.
+- **Image or Initials Monogram**: Renders decoded GPU texture with `MediaFit::Cover` when `resource_id` is supplied, or falls back to high-contrast bold monogram initials (e.g. `"CB"`).
+- **Cybernetic Neon Ring**: Customizable border color with subtle glow and tactile hover brightening.
+- **Presence Status Indicator**: Bottom-right status pip with a dark cutout bezel.
+  - `AvatarStatus::Online` (Neon emerald `#2CE873`)
+  - `AvatarStatus::Away` (Amber gold `#FFC71E`)
+  - `AvatarStatus::Busy` (Ruby danger `#FF404C`)
+  - `AvatarStatus::Offline` (Muted slate `#7F8C9E`)
+  - `AvatarStatus::None`
+
+#### `WidgetTree::tooltip`
+
+```rust
+pub fn tooltip(
+    &mut self,
+    text: impl Into<String>,
+    shortcut: Option<impl Into<String>>,
+    placement: TooltipPlacement,
+    style: Style,
+) -> Result<NodeId, LayoutError>
+```
+
+Interactive Cyber-Glass Tooltip bubble (Info-bulle). Features:
+- **Floating Hover Tooltips**: Automatically positioned next to the hovered control with background blur and neon accent border.
+- **Keyboard Shortcut Pill Badge**: Displays dedicated pill badges for keyboard shortcuts (e.g. `[Ctrl+K]`, `[Ctrl+N]`, `[B]`, `[E]`).
+- **Directional Placement**: `TooltipPlacement::Top`, `TooltipPlacement::Bottom`, `TooltipPlacement::Left`, `TooltipPlacement::Right`.
+- **Simplified API**: `WidgetTree::tooltip_simple(text, style)` for text-only tooltips.
+
+#### `WidgetTree::stepper`
+
+```rust
+pub fn stepper(
+    &mut self,
+    id: impl Into<WidgetId>,
+    steps: &[StepItem],
+    vertical: bool,
+    style: Style,
+) -> Result<NodeId, LayoutError>
+```
+
+Multi-step guided workflow wizard indicator (horizontal or vertical orientation). Features:
+- **Step States**: `StepState::Completed` (with `✓` checkmark), `StepState::Current` (neon ring & glowing dot), `StepState::Upcoming` (muted index), `StepState::Error` (danger indicator `✕`).
+- **Interactive Nodes**: Emits `UiEvent::StepClicked { widget_id, step_index }` when clicking a step node.
+- **Connecting Tracks**: Continuous glowing or muted connector rails between milestone step nodes.
+
+#### `WidgetTree::kbd` & `WidgetTree::kbd_combo`
+
+```rust
+pub fn kbd(&mut self, key: impl Into<String>, style: Style) -> Result<NodeId, LayoutError>
+pub fn kbd_combo(&mut self, keys: &[impl AsRef<str>], style: Style) -> Result<NodeId, LayoutError>
+```
+
+Tactile 3D beveled keyboard keycap and multi-key combo badges (e.g. `[Ctrl] + [Shift] + [P]`). Features:
+- **Physical Key Aesthetics**: Dual-layer bottom bevel shadow for a realistic tactile keystroke appearance.
+- **Modifiers & Glyph Support**: Supports special keys (`Ctrl`, `Cmd`, `Shift`, `Alt`, `Enter ↵`, `Tab ⇥`, `Esc`, `Space ␣`, `↑`, `↓`).
+
+#### `WidgetTree::chip`
+
+```rust
+pub fn chip(
+    &mut self,
+    id: impl Into<WidgetId>,
+    label: impl Into<String>,
+    icon: Option<IconKind>,
+    variant: ChipVariant,
+    selected: bool,
+    dismissible: bool,
+    style: Style,
+) -> Result<NodeId, LayoutError>
+```
+
+Versatile compact pill chip for tags, filters, selectable categories, or removable tokens. Features:
+- **Variants**: `ChipVariant::Default`, `ChipVariant::Primary`, `ChipVariant::Success`, `ChipVariant::Warning`, `ChipVariant::Danger`.
+- **Interactivity**: Emits `UiEvent::ChipClicked { widget_id, selected }` on body click, and `UiEvent::ChipDismissed { widget_id }` when clicking the dismiss cross button (`✕`).
+- **Icons & Badges**: Optional leading `IconKind` glyph rendering.
+
+#### `WidgetTree::skeleton`
+
+```rust
+pub fn skeleton(
+    &mut self,
+    shape: SkeletonShape,
+    shimmer_phase: f32, // [0.0 .. 1.0]
+    style: Style,
+) -> Result<NodeId, LayoutError>
+```
+
+Analytical placeholder loading shimmer effect for pending network data and asynchronous content. Features:
+- **Shapes**: `SkeletonShape::Circle` (ideal for avatar placeholders), `SkeletonShape::Text`, `SkeletonShape::Rectangle`.
+- **Procedural Shimmer**: Dynamic gradient sweep calculated from elapsed application time (`shimmer_phase`), ensuring silky 60+ FPS zero-allocation loading animations.
+
+#### `WidgetTree::multi_progress`
+
+```rust
+pub fn multi_progress(
+    &mut self,
+    segments: &[ProgressSegment],
+    style: Style,
+) -> Result<NodeId, LayoutError>
+```
+
+Segmented, multi-color proportional capacity and resource utilization bar (e.g., Disk usage: System, Media, Apps, Free). Features:
+- **Segment Specification**: Each `ProgressSegment` contains `value: f32` (relative weight), `color: [f32; 4]`, and an optional `label`.
+- **Proportional Subdivision**: Automatically normalizes segment widths and renders seamless rounded borders.
+
+#### `WidgetTree::rating`
+
+```rust
+pub fn rating(
+    &mut self,
+    id: impl Into<WidgetId>,
+    value: f32,
+    max: usize,
+    glyph: RatingGlyph,
+    interactive: bool,
+    style: Style,
+) -> Result<NodeId, LayoutError>
+```
+
+Interactive or read-only star/heart/diamond score rating indicator. Features:
+- **Glyph Styles**: `RatingGlyph::Star` (`★` / `☆`), `RatingGlyph::Heart` (`♥` / `♡`), `RatingGlyph::Diamond` (`◆` / `◇`).
+- **Precise Decimal Display**: Visualizes fractional and full scores with glowing neon fill.
+- **Interactive Scrubbing**: Clicking or dragging emits `UiEvent::RatingChanged { widget_id, value: f32 }`.
+
+#### `WidgetTree::timeline`
+
+```rust
+pub fn timeline(
+    &mut self,
+    id: impl Into<WidgetId>,
+    items: &[TimelineItem],
+    active_item: Option<usize>,
+    style: Style,
+) -> Result<NodeId, LayoutError>
+```
+
+Chronological event feed and history log component. Features:
+- **Status Dots**: `TimelineStatus::Completed` (`✓`), `TimelineStatus::Current` (glowing pulsed dot), `TimelineStatus::Pending` (`○`), `TimelineStatus::Failed` (`✕`).
+- **Timestamp & Details**: Renders title, formatted time label, optional description, and status tag pill.
+- **Interactivity**: Emits `UiEvent::TimelineItemClicked { timeline_id, item_index }`.
+
+---
+
+## 3. Workstation Overlays & Productivity Suites
+
+### Command Palette (Spotlight Launcher)
+- Activated via `Ctrl+K` or the header search shortcut.
+- Instant modal dialog with keyboard autofocus, fuzzy filtering, up/down arrow navigation, and `Enter` execution.
+- Emits `UiEvent::CommandExecuted { command_id }`.
+
+### Notification Center (Drawer Flyout)
+- Activated via `Ctrl+N` or clicking the header notification bell.
+- Right sliding flyout panel with timestamped history, severity badges (`[✓ OK]`, `[▲ WARN]`, `[✕ ERR]`, `[≡ INFO]`), and `"Clear All"`.
+- Emits `UiEvent::NotificationCleared { notification_id }`.
+
+### Toast Overflow Mitigation
+- Strict inner scissor clipping (`effective::intersect`) prevents multiline messages from overflowing card boundaries.
+- Dynamic responsive width scaling (320px–480px).
+- Smart filename middle truncation (`truncate_middle`) for safe rendering of long file paths.
+
+---
+
+## 4. Interaction Events Map
+
+| `UiEvent` Variant | Generated by | Payload |
 |---|---|---|
-| `ButtonClicked` | `Button`, `IconButton` | `widget_id: String` |
+| `StepClicked` | `Stepper` (step node) | `widget_id: String`, `step_index: usize` |
+| `ChipClicked` | `Chip` (body click / toggle) | `widget_id: String`, `selected: bool` |
+| `ChipDismissed` | `Chip` (close `✕` button) | `widget_id: String` |
+| `RatingChanged` | `Rating` (star/score selection) | `widget_id: String`, `value: f32` |
+| `TimelineItemClicked` | `Timeline` (history node) | `timeline_id: String`, `item_index: usize` |
+| `AvatarClicked` | `Avatar` (profile chip) | `widget_id: String` |
+| `CommandExecuted` | `CommandPalette` (spotlight) | `command_id: String` |
+| `NotificationCleared` | `NotificationCenter` (drawer) | `notification_id: Option<String>` |
+| `ButtonClicked` | `Button`, `IconButton`, `DropZone` (click to browse) | `widget_id: String` |
+| `FileHovered` | OS File Hover (`winit`) | `widget_id: Option<String>`, `path: PathBuf`, `position: [f32; 2]` |
+| `FileHoverCancelled` | OS File Hover Cancelled | None |
+| `FileDropped` | OS File Drop (`winit`) | `widget_id: Option<String>`, `path: PathBuf`, `position: [f32; 2]` |
 | `CheckboxToggled` | `Checkbox` | `widget_id: String`, `checked: bool` |
 | `ToggleSwitched` | `Toggle` | `widget_id: String`, `active: bool` |
 | `SliderChanged` | `Slider` | `widget_id: String`, `value: f32` |
+| `KnobChanged` | `Knob` | `widget_id: String`, `value: f32` |
+| `ChartInspected` | `TimeSeriesChart` | `widget_id: String`, `series_index: usize`, `point_index: usize`, `x: f32`, `y: f32` |
+| `NodeSelected` | `NodeGraph` | `graph_id: String`, `node_id: Option<String>` |
+| `NodeMoved` | `NodeGraph` | `graph_id: String`, `node_id: String`, `x: f32`, `y: f32` |
+| `NodeConnected` | `NodeGraph` | `graph_id: String`, `from_node: String`, `from_socket: usize`, `to_node: String`, `to_socket: usize` |
+| `TagRemoved` | `TagInput` | `widget_id: String`, `index: usize` |
+| `TagAdded` | `TagInput` | `widget_id: String`, `tag: String` |
 | `NumberChanged` | `NumberInput` | `widget_id: String`, `value: f64` |
 | `PasswordRevealed` | `PasswordInput` | `widget_id: String`, `revealed: bool` |
 | `RadioSelected` | `RadioButton` | `group_id: String`, `selected_id: String` |
@@ -627,7 +917,7 @@ pub fn label_muted(&mut self, text: impl Into<String>, style: Style) -> Result<N
 | `PaletteMoved` | `Palette` (header drag) | `palette_id: String`, `x: f32`, `y: f32` |
 | `PaletteResized` | `Palette` (resize grip) | `palette_id: String`, `width: f32`, `height: f32` |
 | `ScrollChanged` | `ScrollView` | `widget_id: String`, `offset: [f32; 2]` |
-| `FocusChanged` | `TextInput`, `TextArea`, `PasswordInput`, `NumberInput` | `widget_id: Option<String>` |
+| `FocusChanged` | `TextInput`, `TextArea`, `PasswordInput`, `NumberInput`, `TagInput` | `widget_id: Option<String>` |
 | `MenuToggled` | `MenuBarItem`, `Dropdown` | `menu_id: String`, `open: bool` |
 | `MenuItemClicked` | `MenuItem` | `menu_id: String`, `item_id: String` |
 | `SelectChanged` | `Dropdown`, `ColorPicker` (mode) | `widget_id: String`, `selected_id: String` |

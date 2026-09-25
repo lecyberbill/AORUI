@@ -1,16 +1,28 @@
 // [WFGY] Zone: RISK | λ: 0.3 | Fallbacks: 0 | Action: Full interactive widget gallery demo with MenuBar, Dropdown, Toast, and Modal overlays in AORUI
-use std::sync::Arc;
+use std::sync::{Arc, RwLock};
 
 use ui_core::UiEvent;
 use ui_gpu::GpuRenderer;
 use ui_layout::{length, AlignItems, AvailableSpace, FlexDirection, Rect, Size, Style};
 use ui_widgets::{
-    ColorSpace, InteractionKey, InteractionState, MediaFit, Theme, ToastKind, WidgetId, WidgetTree,
+    ColorSpace, InteractionKey, InteractionState, MediaFit, Theme, ThemeWatcher, ToastKind, WidgetId, WidgetTree,
 };
 use winit::application::ApplicationHandler;
 use winit::event::{ElementState, MouseButton, MouseScrollDelta, WindowEvent};
 use winit::event_loop::{ActiveEventLoop, ControlFlow, EventLoop};
 use winit::window::{ResizeDirection, Window, WindowAttributes, WindowId};
+
+/// Smart string middle truncation for safe, clean badge and toast display
+fn truncate_middle(text: &str, max_len: usize) -> String {
+    if text.len() <= max_len {
+        return text.to_string();
+    }
+    let half = (max_len.saturating_sub(3)) / 2;
+    if half < 3 {
+        return format!("{}...", &text[..max_len.saturating_sub(3).max(1)]);
+    }
+    format!("{}...{}", &text[..half], &text[text.len() - half..])
+}
 
 /// Generates a procedural cybernetic artwork image (512x512 RGBA8)
 fn generate_cyber_artwork(width: u32, height: u32) -> Vec<u8> {
@@ -240,6 +252,49 @@ fn popover_style(x: f32, y: f32, w: f32, h: f32) -> Style {
     }
 }
 
+fn card_style(w: f32) -> Style {
+    Style {
+        size: Size {
+            width: length(w),
+            height: ui_layout::auto(),
+        },
+        flex_direction: FlexDirection::Column,
+        gap: Size {
+            width: length(0.0),
+            height: length(8.0),
+        },
+        padding: Rect {
+            left: length(14.0),
+            right: length(14.0),
+            top: length(12.0),
+            bottom: length(14.0),
+        },
+        ..Default::default()
+    }
+}
+
+#[allow(dead_code)]
+fn card_style_h(w: f32, h: f32) -> Style {
+    Style {
+        size: Size {
+            width: length(w),
+            height: length(h),
+        },
+        flex_direction: FlexDirection::Column,
+        gap: Size {
+            width: length(0.0),
+            height: length(8.0),
+        },
+        padding: Rect {
+            left: length(14.0),
+            right: length(14.0),
+            top: length(12.0),
+            bottom: length(14.0),
+        },
+        ..Default::default()
+    }
+}
+
 fn toast_style(x: f32, y: f32, w: f32, h: f32) -> Style {
     Style {
         position: ui_layout::Position::Absolute,
@@ -269,8 +324,8 @@ const LIST_SCROLL_ID: &str = "demo_list_scroll";
 
 /// Window dimensions.
 const WINDOW_MARGIN: f32 = 14.0;
-const WINDOW_WIDTH: f32 = 608.0;
-const WINDOW_HEIGHT: f32 = 808.0;
+const WINDOW_WIDTH: f32 = 1040.0;
+const WINDOW_HEIGHT: f32 = 820.0;
 
 /// Interactive text editor buffer supporting cursor positioning, selection, and multi-line navigation.
 #[derive(Debug, Clone)]
@@ -635,11 +690,163 @@ struct DemoState {
     media_fit_mode: MediaFit,
     canvas_strokes: Vec<(Vec<[f32; 2]>, [f32; 4], f32)>,
     canvas_active_stroke: Vec<[f32; 2]>,
+    knob_gain: f32,
+    knob_freq: f32,
+    knob_mix: f32,
+    tags_list: Vec<String>,
+    chart_inspected: Option<(usize, usize)>,
+    node_graph_nodes: Vec<ui_widgets::GraphNodeSpec>,
+    node_graph_connections: Vec<ui_widgets::GraphConnectionSpec>,
+    selected_graph_node: Option<String>,
+    file_hovered: bool,
+    hovered_file: Option<std::path::PathBuf>,
+    dropped_file_info: Option<(String, u64)>,
+    show_command_palette: bool,
+    command_palette_search: TextEditorState,
+    command_palette_selected: usize,
+    show_notifications_drawer: bool,
+    notifications_history: Vec<(String, String, ToastKind, String)>,
+    user_avatar_status: ui_widgets::AvatarStatus,
+    workflow_step: usize,
+    selected_chips: std::collections::HashSet<String>,
+    dismissed_chips: std::collections::HashSet<String>,
+    user_rating: u8,
+    selected_timeline_item: Option<usize>,
 }
 
 impl DemoState {
+    fn push_toast(&mut self, title: impl Into<String>, msg: impl Into<String>, kind: ToastKind) {
+        let t = title.into();
+        let m = msg.into();
+        self.notifications_history.insert(0, (t.clone(), m.clone(), kind, "Just now".to_string()));
+        if self.notifications_history.len() > 20 {
+            self.notifications_history.truncate(20);
+        }
+        self.active_toast = Some((t, m, kind));
+    }
+
     fn apply(&mut self, event: UiEvent) {
         match event {
+            UiEvent::StepClicked { step_index, .. } => {
+                self.workflow_step = step_index;
+                self.push_toast(
+                    "Workflow Step Selected",
+                    format!("Switched to pipeline stage #{}", step_index + 1),
+                    ToastKind::Info,
+                );
+            }
+            UiEvent::ChipClicked { widget_id, .. } => {
+                if self.selected_chips.contains(&widget_id) {
+                    self.selected_chips.remove(&widget_id);
+                } else {
+                    self.selected_chips.insert(widget_id.clone());
+                }
+                let is_active = self.selected_chips.contains(&widget_id);
+                self.push_toast(
+                    "Filter Chip Toggled",
+                    format!("Tag '{widget_id}' {}", if is_active { "Enabled [Active]" } else { "Disabled" }),
+                    ToastKind::Info,
+                );
+            }
+            UiEvent::ChipDismissed { widget_id, .. } => {
+                self.dismissed_chips.insert(widget_id.clone());
+                self.push_toast(
+                    "Chip Dismissed",
+                    format!("Removed tag '{widget_id}' from active workspace"),
+                    ToastKind::Warning,
+                );
+            }
+            UiEvent::RatingChanged { rating, .. } => {
+                self.user_rating = rating;
+                self.push_toast(
+                    "Rating Feedback",
+                    format!("Assigned rating score: {}/5 Stars", rating),
+                    ToastKind::Success,
+                );
+            }
+            UiEvent::TimelineItemClicked { item_index, .. } => {
+                self.selected_timeline_item = Some(item_index);
+                self.push_toast(
+                    "Timeline Event Selected",
+                    format!("Inspecting audit record #{}", item_index + 1),
+                    ToastKind::Info,
+                );
+            }
+            UiEvent::AvatarClicked { widget_id } => {
+                if widget_id == "user_profile_avatar" {
+                    self.user_avatar_status = match self.user_avatar_status {
+                        ui_widgets::AvatarStatus::Online => ui_widgets::AvatarStatus::Away,
+                        ui_widgets::AvatarStatus::Away => ui_widgets::AvatarStatus::Busy,
+                        ui_widgets::AvatarStatus::Busy => ui_widgets::AvatarStatus::Offline,
+                        ui_widgets::AvatarStatus::Offline => ui_widgets::AvatarStatus::Online,
+                        ui_widgets::AvatarStatus::None => ui_widgets::AvatarStatus::Online,
+                    };
+                    self.push_toast(
+                        "Presence Updated",
+                        format!("Status set to {:?}", self.user_avatar_status),
+                        ToastKind::Info,
+                    );
+                }
+            }
+            UiEvent::CommandExecuted { command_id } => {
+                self.show_command_palette = false;
+                match command_id.as_str() {
+                    "cmd_tab_0" => self.active_tab = 0,
+                    "cmd_tab_1" => self.active_tab = 1,
+                    "cmd_tab_2" => self.active_tab = 2,
+                    "cmd_tab_3" => self.active_tab = 3,
+                    "cmd_tab_4" => self.active_tab = 4,
+                    "cmd_tab_5" => self.active_tab = 5,
+                    "cmd_tab_6" => self.active_tab = 6,
+                    "cmd_turbo" => {
+                        self.turbo_toggle = !self.turbo_toggle;
+                        self.push_toast(
+                            "Turbo Mode",
+                            format!("Turbo set to {}", self.turbo_toggle),
+                            ToastKind::Success,
+                        );
+                    }
+                    "cmd_scan" => {
+                        self.push_toast(
+                            "Heuristic Scan",
+                            "Security audit complete: All clusters operational",
+                            ToastKind::Success,
+                        );
+                    }
+                    "cmd_notifications" => {
+                        self.show_notifications_drawer = !self.show_notifications_drawer;
+                    }
+                    "cmd_status_online" => self.user_avatar_status = ui_widgets::AvatarStatus::Online,
+                    "cmd_status_busy" => self.user_avatar_status = ui_widgets::AvatarStatus::Busy,
+                    _ => {}
+                }
+            }
+            UiEvent::NotificationCleared { notification_id } => {
+                if let Some(id_str) = notification_id {
+                    if let Ok(idx) = id_str.parse::<usize>() {
+                        if idx < self.notifications_history.len() {
+                            self.notifications_history.remove(idx);
+                        }
+                    }
+                } else {
+                    self.notifications_history.clear();
+                }
+            }
+            UiEvent::FileHovered { path, .. } => {
+                self.file_hovered = true;
+                self.hovered_file = Some(path);
+            }
+            UiEvent::FileHoverCancelled => {
+                self.file_hovered = false;
+                self.hovered_file = None;
+            }
+            UiEvent::FileDropped { path, .. } => {
+                self.file_hovered = false;
+                self.hovered_file = None;
+                let fname = path.file_name().and_then(|n| n.to_str()).unwrap_or("file").to_string();
+                let fsize = std::fs::metadata(&path).map(|m| m.len()).unwrap_or(0);
+                self.dropped_file_info = Some((fname, fsize));
+            }
             UiEvent::CustomPaintPointerDown {
                 widget_id,
                 local_pos,
@@ -716,6 +923,44 @@ impl DemoState {
                     self.concurrency_spin = value;
                 } else if widget_id == "port_spin" {
                     self.port_spin = value;
+                }
+            }
+            UiEvent::KnobChanged { widget_id, value } => {
+                match widget_id.as_str() {
+                    "knob_gain" => self.knob_gain = value,
+                    "knob_freq" => self.knob_freq = value,
+                    "knob_mix" => self.knob_mix = value,
+                    _ => {}
+                }
+            }
+            UiEvent::ChartInspected {
+                series_index,
+                point_index,
+                x,
+                y,
+                ..
+            } => {
+                self.chart_inspected = Some((series_index, point_index));
+                self.active_toast = Some((
+                    "Data Point Inspected".to_string(),
+                    format!("Series #{} @ X={:.1}, Y={:.1}", series_index + 1, x, y),
+                    ToastKind::Info,
+                ));
+            }
+            UiEvent::NodeSelected { node_id, .. } => {
+                self.selected_graph_node = node_id.clone();
+                for n in &mut self.node_graph_nodes {
+                    n.selected = Some(&n.id) == node_id.as_ref();
+                }
+            }
+            UiEvent::TagRemoved { index, .. } => {
+                if index < self.tags_list.len() {
+                    let removed = self.tags_list.remove(index);
+                    self.active_toast = Some((
+                        "Tag Removed".to_string(),
+                        format!("Tag '{}' removed from active filters.", removed),
+                        ToastKind::Warning,
+                    ));
                 }
             }
             UiEvent::PasswordRevealed { revealed, .. } => {
@@ -866,10 +1111,12 @@ impl DemoState {
                 self.active_crumb = item_id.clone();
                 match item_id.as_str() {
                     "nav_general" => self.active_tab = 0,
-                    "nav_sec" => self.active_tab = 1,
-                    "nav_net" => self.active_tab = 2,
-                    "nav_studio" => self.active_tab = 3,
-                    "nav_media" => self.active_tab = 4,
+                    "nav_primitives" => self.active_tab = 1,
+                    "nav_sec" => self.active_tab = 2,
+                    "nav_net" => self.active_tab = 3,
+                    "nav_studio" => self.active_tab = 4,
+                    "nav_media" => self.active_tab = 5,
+                    "nav_nodes" => self.active_tab = 6,
                     _ => {}
                 }
             }
@@ -922,6 +1169,15 @@ impl DemoState {
                         "All vector strokes removed.".to_string(),
                         ToastKind::Info,
                     ));
+                } else if widget_id == "add_tag_btn" {
+                    let next_idx = self.tags_list.len() + 1;
+                    let tag_name = format!("DSP-Filter-{}", next_idx);
+                    self.tags_list.push(tag_name.clone());
+                    self.active_toast = Some((
+                        "Tag Added".to_string(),
+                        format!("Tag '{}' added.", tag_name),
+                        ToastKind::Success,
+                    ));
                 } else if widget_id == "lock_btn" {
                     self.active_toast = Some((
                         "Security Lock".to_string(),
@@ -934,12 +1190,27 @@ impl DemoState {
                         "Cluster telemetry synchronized.".to_string(),
                         ToastKind::Info,
                     ));
-                } else if widget_id == "shield_btn" {
-                    self.active_toast = Some((
-                        "Firewall Shield".to_string(),
-                        "Full shield mesh online.".to_string(),
-                        ToastKind::Success,
-                    ));
+                } else if widget_id == "quick_cmd_btn" {
+                    self.show_command_palette = !self.show_command_palette;
+                    if self.show_command_palette {
+                        self.focused_input = Some("command_palette_search".to_string());
+                        self.command_palette_search.text.clear();
+                        self.command_palette_search.cursor = 0;
+                        self.command_palette_selected = 0;
+                    }
+                } else if widget_id == "bell_notifications_btn" {
+                    self.show_notifications_drawer = !self.show_notifications_drawer;
+                } else if widget_id == "clear_notifications_btn" {
+                    self.notifications_history.clear();
+                } else if widget_id == "close_drawer_btn" {
+                    self.show_notifications_drawer = false;
+                } else if widget_id == "close_cmd_palette_btn" {
+                    self.show_command_palette = false;
+                } else if let Some(action_id) = widget_id.strip_prefix("cmd_action_") {
+                    self.show_command_palette = false;
+                    self.apply(UiEvent::CommandExecuted {
+                        command_id: action_id.to_string(),
+                    });
                 } else {
                     self.click_count += 1;
                     println!(
@@ -1097,42 +1368,30 @@ fn build_base_ui(
     width: f32,
     height: f32,
 ) -> ui_layout::NodeId {
-    let title = tree
-        .label("AORUI — An Other Rust UI Control Center", leaf(400.0, 20.0))
+    let content_w = (width - WINDOW_MARGIN * 2.0 - 48.0).max(500.0);
+    let half_col_w = ((content_w - 16.0) * 0.5).max(200.0);
+
+    // 1. Unified Top Workstation Header Bar (32px)
+    let logo_label = tree
+        .label("⬡ AORUI Studio", leaf(120.0, 24.0))
         .unwrap();
 
-    // Primary horizontal menu bar
     let menu_items = ["File", "Security", "View", "Help"];
     let menubar = tree
         .menubar(
             WidgetId::new("main_menubar"),
             &menu_items,
             state.active_menu,
-            leaf(76.0, 24.0),
-            Style {
-                size: Size {
-                    width: length(508.0),
-                    height: length(28.0),
-                },
-                flex_direction: FlexDirection::Row,
-                align_items: Some(AlignItems::Center),
-                gap: Size {
-                    width: length(4.0),
-                    height: length(0.0),
-                },
-                padding: Rect {
-                    left: length(4.0),
-                    right: length(4.0),
-                    top: length(2.0),
-                    bottom: length(2.0),
-                },
-                ..Default::default()
-            },
+            leaf(58.0, 24.0),
+            row(2.0),
         )
         .unwrap();
 
-    // Breadcrumb navigation path
-    let tab_names = ["General", "Security", "Network", "Studio", "Media"];
+    let left_header_group = tree
+        .container(&[logo_label, menubar], row(8.0))
+        .unwrap();
+
+    let tab_names = ["General", "UI Primitives", "Security", "Network", "Studio", "Media", "Nodes & Data"];
     let current_tab_name = tab_names.get(state.active_tab).unwrap_or(&"General");
     let crumbs = [
         ("nav_home", "Workspace"),
@@ -1140,90 +1399,104 @@ fn build_base_ui(
         ("nav_active", *current_tab_name),
     ];
     let breadcrumb_node = tree
-        .breadcrumb("main_breadcrumb", &crumbs, leaf(80.0, 18.0), row(2.0))
+        .breadcrumb("main_breadcrumb", &crumbs, leaf(72.0, 20.0), row(2.0))
         .unwrap();
 
-    let search_focused = state.focused_input.as_deref() == Some("global_search");
-    let search_input = tree
-        .text_input_with_cursor(
-            WidgetId::new("global_search"),
-            &state.search_editor.text,
-            "Search module, node, or metric... [Type to test]",
-            search_focused,
-            state.search_editor.cursor,
-            state.search_editor.selection,
-            leaf(508.0, 30.0),
+    let cmd_btn = tree
+        .button(
+            WidgetId::new("quick_cmd_btn"),
+            "⌕ Search  [Ctrl+K]",
+            true,
+            leaf(132.0, 24.0),
         )
         .unwrap();
 
-    let divider1 = tree.divider(false, leaf(508.0, 1.0)).unwrap();
+    let bell_btn = tree
+        .icon_button(
+            "bell_notifications_btn",
+            ui_widgets::IconKind::Alert,
+            true,
+            leaf(24.0, 24.0),
+        )
+        .unwrap();
 
-    let tabs = ["General", "Security", "Network", "Studio", "Media"];
+    let avatar_widget = tree
+        .avatar(
+            "user_profile_avatar",
+            Some("cyber_art"),
+            Some("CB"),
+            state.user_avatar_status,
+            24.0,
+            Some([0.0, 0.85, 1.0, 1.0]),
+            true,
+            leaf(24.0, 24.0),
+        )
+        .unwrap();
+
+    let user_lbl = tree
+        .label("CyberBill", leaf(58.0, 20.0))
+        .unwrap();
+
+    let right_header_group = tree
+        .container(&[cmd_btn, bell_btn, avatar_widget, user_lbl], row(8.0))
+        .unwrap();
+
+    let top_header = tree
+        .container(
+            &[left_header_group, breadcrumb_node, right_header_group],
+            Style {
+                size: Size {
+                    width: length(content_w),
+                    height: length(30.0),
+                },
+                flex_direction: FlexDirection::Row,
+                align_items: Some(AlignItems::Center),
+                justify_content: Some(ui_layout::JustifyContent::SpaceBetween),
+                ..Default::default()
+            },
+        )
+        .unwrap();
+
+    let top_divider = tree.divider(false, leaf(content_w, 1.0)).unwrap();
+
+    let tabs = ["General", "UI Primitives", "Security", "Network", "Studio", "Media", "Nodes & Data"];
     let tabbar = tree
         .tabbar(
             WidgetId::new("settings_tabs"),
             &tabs,
             state.active_tab,
-            leaf(96.0, 30.0),
+            leaf(110.0, 28.0),
             row(4.0),
         )
         .unwrap();
 
     let tab_content = match state.active_tab {
         0 => {
-            // --- Tab General: Controls, Dropdowns, Swatches & Modals ---
-            let button = tree
-                .button(
-                    WidgetId::new("hello_button"),
-                    "Quick Action",
-                    true,
-                    leaf(164.0, 30.0),
-                )
+            // --- Tab 0: General (2 Grounded Cyber-Glass Workstation Cards) ---
+            // Left Card: Color Studio & Chromatic Matrix
+            let left_card_title = tree
+                .label("Color Studio & Chromatic Matrix", leaf(half_col_w - 28.0, 18.0))
                 .unwrap();
-            let modal_btn = tree
-                .button(
-                    WidgetId::new("open_modal_btn"),
-                    "Open Modal",
-                    true,
-                    leaf(164.0, 30.0),
-                )
-                .unwrap();
-            let toast_btn = tree
-                .button(
-                    WidgetId::new("toast_btn"),
-                    "Trigger Toast",
-                    true,
-                    leaf(164.0, 30.0),
-                )
-                .unwrap();
-            let buttons_grid = tree
-                .grid(
-                    3,
-                    8.0,
-                    0.0,
-                    &[button, modal_btn, toast_btn],
-                    leaf(508.0, 30.0),
-                )
+            let left_card_sub = tree
+                .label_muted("Interactive 2D saturation/value canvas with RGB, CMYK, HSV & CIELAB matrix", leaf(half_col_w - 28.0, 14.0))
                 .unwrap();
 
-            // Interactive Pro 2D Color Peeker (2D Saturation/Value Canvas, Hue Slider, HEX & 4-Space Matrix)
             let color_peeker = tree
                 .color_picker(
                     WidgetId::new("main_peeker"),
                     state.selected_color,
                     state.color_space,
-                    leaf(508.0, 208.0),
+                    leaf(half_col_w - 28.0, 196.0),
                 )
                 .unwrap();
 
-            // Preset Swatches & Status Badge Row
-            let color_label = tree.label_muted("Presets:", leaf(54.0, 24.0)).unwrap();
+            let color_label = tree.label_muted("Presets:", leaf(50.0, 24.0)).unwrap();
             let c1 = tree
                 .color_swatch(
                     "cyan_swatch",
                     [0.0, 0.85, 1.0, 1.0],
                     Some("Cyan"),
-                    leaf(44.0, 32.0),
+                    leaf(42.0, 28.0),
                 )
                 .unwrap();
             let c2 = tree
@@ -1231,7 +1504,7 @@ fn build_base_ui(
                     "purple_swatch",
                     [0.55, 0.36, 0.96, 1.0],
                     Some("Violet"),
-                    leaf(44.0, 32.0),
+                    leaf(42.0, 28.0),
                 )
                 .unwrap();
             let c3 = tree
@@ -1239,7 +1512,7 @@ fn build_base_ui(
                     "green_swatch",
                     [0.06, 0.72, 0.51, 1.0],
                     Some("Emerald"),
-                    leaf(44.0, 32.0),
+                    leaf(42.0, 28.0),
                 )
                 .unwrap();
             let c4 = tree
@@ -1247,23 +1520,89 @@ fn build_base_ui(
                     "amber_swatch",
                     [0.96, 0.62, 0.04, 1.0],
                     Some("Amber"),
-                    leaf(44.0, 32.0),
+                    leaf(42.0, 28.0),
                 )
                 .unwrap();
-            let swatches = tree.container(&[c1, c2, c3, c4], row(6.0)).unwrap();
+            let swatches = tree.container(&[c1, c2, c3, c4], row(4.0)).unwrap();
             let badge_status = tree
                 .badge(
                     "ONLINE",
                     ui_widgets::ListItemBadge::Success,
-                    leaf(72.0, 24.0),
+                    leaf(68.0, 22.0),
                 )
                 .unwrap();
             let palette_row = tree
-                .container(&[color_label, swatches, badge_status], row(8.0))
+                .container(&[color_label, swatches, badge_status], row(6.0))
+                .unwrap();
+
+            let div_left = tree.divider(false, leaf(half_col_w - 28.0, 1.0)).unwrap();
+
+            let actions_label = tree
+                .label_muted("Quick Workspace Actions:", leaf(half_col_w - 28.0, 14.0))
+                .unwrap();
+
+            let button = tree
+                .button(
+                    WidgetId::new("hello_button"),
+                    "Quick Action",
+                    true,
+                    leaf((half_col_w - 44.0) / 3.0, 28.0),
+                )
+                .unwrap();
+            let modal_btn = tree
+                .button(
+                    WidgetId::new("open_modal_btn"),
+                    "Open Modal",
+                    true,
+                    leaf((half_col_w - 44.0) / 3.0, 28.0),
+                )
+                .unwrap();
+            let toast_btn = tree
+                .button(
+                    WidgetId::new("toast_btn"),
+                    "Trigger Toast",
+                    true,
+                    leaf((half_col_w - 44.0) / 3.0, 28.0),
+                )
+                .unwrap();
+            let buttons_grid = tree
+                .grid(
+                    3,
+                    6.0,
+                    0.0,
+                    &[button, modal_btn, toast_btn],
+                    leaf(half_col_w - 28.0, 28.0),
+                )
+                .unwrap();
+
+            let card_left = tree
+                .card(
+                    &[
+                        left_card_title,
+                        left_card_sub,
+                        color_peeker,
+                        palette_row,
+                        div_left,
+                        actions_label,
+                        buttons_grid,
+                    ],
+                    None,
+                    None,
+                    Some(8.0),
+                    card_style(half_col_w),
+                )
+                .unwrap();
+
+            // Right Card: Cluster Configuration & Telemetry Controls
+            let right_card_title = tree
+                .label("Cluster Configuration & Telemetry", leaf(half_col_w - 28.0, 18.0))
+                .unwrap();
+            let right_card_sub = tree
+                .label_muted("Hardware acceleration, credentials, worker count and audio DSP faders", leaf(half_col_w - 28.0, 14.0))
                 .unwrap();
 
             let env_label = tree
-                .label_muted("Target Cluster:", leaf(120.0, 28.0))
+                .label_muted("Target Cluster:", leaf(100.0, 26.0))
                 .unwrap();
             let env_dropdown = tree
                 .dropdown(
@@ -1271,14 +1610,13 @@ fn build_base_ui(
                     "Cluster",
                     &state.selected_env,
                     state.dropdown_open,
-                    leaf(378.0, 28.0),
+                    leaf(half_col_w - 138.0, 26.0),
                 )
                 .unwrap();
             let env_row = tree
-                .container(&[env_label, env_dropdown], row(10.0))
+                .container(&[env_label, env_dropdown], row(8.0))
                 .unwrap();
 
-            // Password Input with eye reveal toggle
             let pwd_focused = state.focused_input.as_deref() == Some("master_token_pwd");
             let pwd_input = tree
                 .password_input_with_cursor(
@@ -1288,13 +1626,12 @@ fn build_base_ui(
                     pwd_focused,
                     state.password_revealed,
                     state.password_editor.cursor,
-                    leaf(378.0, 28.0),
+                    leaf(half_col_w - 138.0, 26.0),
                 )
                 .unwrap();
-            let pwd_label = tree.label_muted("Auth Token:", leaf(120.0, 28.0)).unwrap();
-            let pwd_row = tree.container(&[pwd_label, pwd_input], row(10.0)).unwrap();
+            let pwd_label = tree.label_muted("Auth Token:", leaf(100.0, 26.0)).unwrap();
+            let pwd_row = tree.container(&[pwd_label, pwd_input], row(8.0)).unwrap();
 
-            // Numeric Spinners: Workers limit and Proxy port
             let spin1_focused = state.focused_input.as_deref() == Some("concurrency_spin");
             let spin1_input = tree
                 .number_input_state(
@@ -1306,14 +1643,14 @@ fn build_base_ui(
                     0,
                     spin1_focused,
                     state.spinners_enabled,
-                    leaf(138.0, 28.0),
+                    leaf((half_col_w - 200.0) * 0.5, 26.0),
                 )
                 .unwrap();
             let spin1_label = tree
-                .label_muted("Workers (1-64):", leaf(100.0, 28.0))
+                .label_muted("Workers (1-64):", leaf(90.0, 26.0))
                 .unwrap();
             let spin1_box = tree
-                .container(&[spin1_label, spin1_input], row(6.0))
+                .container(&[spin1_label, spin1_input], row(4.0))
                 .unwrap();
 
             let spin2_focused = state.focused_input.as_deref() == Some("port_spin");
@@ -1327,70 +1664,69 @@ fn build_base_ui(
                     0,
                     spin2_focused,
                     state.spinners_enabled,
-                    leaf(138.0, 28.0),
+                    leaf((half_col_w - 200.0) * 0.5, 26.0),
                 )
                 .unwrap();
-            let spin2_label = tree.label_muted("Port (1024+):", leaf(90.0, 28.0)).unwrap();
+            let spin2_label = tree.label_muted("Port (1024+):", leaf(80.0, 26.0)).unwrap();
             let spin2_box = tree
-                .container(&[spin2_label, spin2_input], row(6.0))
+                .container(&[spin2_label, spin2_input], row(4.0))
                 .unwrap();
 
             let spinners_grid = tree
-                .grid(2, 12.0, 0.0, &[spin1_box, spin2_box], leaf(508.0, 28.0))
+                .grid(2, 8.0, 0.0, &[spin1_box, spin2_box], leaf(half_col_w - 28.0, 26.0))
                 .unwrap();
 
             let spin_toggle = tree
                 .checkbox(
                     WidgetId::new("spinners_toggle"),
                     state.spinners_enabled,
-                    leaf(18.0, 18.0),
+                    leaf(16.0, 16.0),
                 )
                 .unwrap();
             let spin_toggle_lbl = tree
                 .label_muted(
                     if state.spinners_enabled {
-                        "Hybrid Input: Enabled (Type Digits or Up/Down Arrows / Steppers)"
+                        "Hybrid Input: Enabled (Type Digits or Up/Down Steppers)"
                     } else {
                         "Hybrid Input: Disabled (Locked)"
                     },
-                    leaf(480.0, 18.0),
+                    leaf(half_col_w - 56.0, 16.0),
                 )
                 .unwrap();
             let spin_toggle_row = tree
-                .container(&[spin_toggle, spin_toggle_lbl], row(8.0))
-                .unwrap();
-            let spinners_section = tree
-                .container(&[spinners_grid, spin_toggle_row], column(4.0))
+                .container(&[spin_toggle, spin_toggle_lbl], row(6.0))
                 .unwrap();
 
             let checkbox = tree
                 .checkbox(
                     WidgetId::new("accept_terms"),
                     state.accept_checked,
-                    leaf(18.0, 18.0),
+                    leaf(16.0, 16.0),
                 )
                 .unwrap();
             let checkbox_label = tree
-                .label("Enable continuous diagnostics telemetry", leaf(340.0, 18.0))
+                .label("Enable continuous diagnostics telemetry", leaf(300.0, 16.0))
                 .unwrap();
             let checkbox_row = tree
-                .container(&[checkbox, checkbox_label], row(10.0))
+                .container(&[checkbox, checkbox_label], row(8.0))
                 .unwrap();
 
             let toggle = tree
                 .toggle(
                     WidgetId::new("turbo_toggle"),
                     state.turbo_toggle,
-                    leaf(38.0, 20.0),
+                    leaf(36.0, 18.0),
                 )
                 .unwrap();
             let toggle_label = tree
-                .label("GPU Turbo Hardware Acceleration", leaf(280.0, 20.0))
+                .label("GPU Turbo Hardware Acceleration", leaf(260.0, 18.0))
                 .unwrap();
-            let toggle_row = tree.container(&[toggle, toggle_label], row(10.0)).unwrap();
+            let toggle_row = tree.container(&[toggle, toggle_label], row(8.0)).unwrap();
+
+            let div_right = tree.divider(false, leaf(half_col_w - 28.0, 1.0)).unwrap();
 
             let slider_label = tree
-                .label("Controls & Multi-Shape Progress (Horizontal, Vertical Faders, Donut Ring, Pie):", leaf(508.0, 16.0))
+                .label_muted("Multi-Shape Controls (Sliders, EQ Faders, Donut Ring, Pie):", leaf(half_col_w - 28.0, 14.0))
                 .unwrap();
             let slider = tree
                 .slider(
@@ -1398,25 +1734,24 @@ fn build_base_ui(
                     0.0,
                     100.0,
                     state.network_intensity,
-                    leaf(170.0, 16.0),
+                    leaf(120.0, 14.0),
                 )
                 .unwrap();
             let progress_h = tree
-                .progress_bar(state.network_intensity / 100.0, leaf(170.0, 6.0))
+                .progress_bar(state.network_intensity / 100.0, leaf(120.0, 5.0))
                 .unwrap();
-            let slider_h_box = tree.container(&[slider, progress_h], column(8.0)).unwrap();
+            let slider_h_box = tree.container(&[slider, progress_h], column(6.0)).unwrap();
 
-            // 3-Band Audio EQ Vertical Faders (Low / Mid / High)
             let f1 = tree
                 .slider_vertical(
                     WidgetId::new("fader_low"),
                     0.0,
                     100.0,
                     state.fader_low,
-                    leaf(20.0, 42.0),
+                    leaf(18.0, 36.0),
                 )
                 .unwrap();
-            let f1_lbl = tree.label_muted("Lo", leaf(20.0, 12.0)).unwrap();
+            let f1_lbl = tree.label_muted("Lo", leaf(18.0, 12.0)).unwrap();
             let f1_box = tree.container(&[f1, f1_lbl], column(2.0)).unwrap();
 
             let f2 = tree
@@ -1425,10 +1760,10 @@ fn build_base_ui(
                     0.0,
                     100.0,
                     state.fader_mid,
-                    leaf(20.0, 42.0),
+                    leaf(18.0, 36.0),
                 )
                 .unwrap();
-            let f2_lbl = tree.label_muted("Mid", leaf(20.0, 12.0)).unwrap();
+            let f2_lbl = tree.label_muted("Mid", leaf(18.0, 12.0)).unwrap();
             let f2_box = tree.container(&[f2, f2_lbl], column(2.0)).unwrap();
 
             let f3 = tree
@@ -1437,61 +1772,373 @@ fn build_base_ui(
                     0.0,
                     100.0,
                     state.fader_high,
-                    leaf(20.0, 42.0),
+                    leaf(18.0, 36.0),
                 )
                 .unwrap();
-            let f3_lbl = tree.label_muted("Hi", leaf(20.0, 12.0)).unwrap();
+            let f3_lbl = tree.label_muted("Hi", leaf(18.0, 12.0)).unwrap();
             let f3_box = tree.container(&[f3, f3_lbl], column(2.0)).unwrap();
-
             let faders_row = tree.container(&[f1_box, f2_box, f3_box], row(4.0)).unwrap();
 
-            // Progress Indicators: Vertical Bar, Ring Donut, Pie Disc
             let progress_v = tree
-                .progress_bar_vertical(state.fader_mid / 100.0, leaf(8.0, 46.0))
+                .progress_bar_vertical(state.fader_mid / 100.0, leaf(8.0, 40.0))
                 .unwrap();
             let ring_gauge = tree
                 .progress_ring(
                     state.network_intensity / 100.0,
                     None::<&str>,
-                    leaf(46.0, 46.0),
+                    leaf(40.0, 40.0),
                 )
                 .unwrap();
             let pie_disc = tree
                 .progress_pie(
                     state.brush_intensity / 100.0,
                     None::<&str>,
-                    leaf(46.0, 46.0),
+                    leaf(40.0, 40.0),
                 )
                 .unwrap();
 
             let control_row = tree
                 .container(
                     &[slider_h_box, faders_row, progress_v, ring_gauge, pie_disc],
-                    row(10.0),
+                    row(8.0),
                 )
                 .unwrap();
-            let slider_group = tree
-                .container(&[slider_label, control_row], column(4.0))
+
+            let card_right = tree
+                .card(
+                    &[
+                        right_card_title,
+                        right_card_sub,
+                        env_row,
+                        pwd_row,
+                        spinners_grid,
+                        spin_toggle_row,
+                        checkbox_row,
+                        toggle_row,
+                        div_right,
+                        slider_label,
+                        control_row,
+                    ],
+                    None,
+                    None,
+                    Some(8.0),
+                    card_style(half_col_w),
+                )
                 .unwrap();
 
-            tree.container(
-                &[
-                    buttons_grid,
-                    color_peeker,
-                    palette_row,
-                    env_row,
-                    pwd_row,
-                    spinners_section,
-                    checkbox_row,
-                    toggle_row,
-                    slider_group,
-                ],
-                column(4.0),
-            )
-            .unwrap()
+            tree.container(&[card_left, card_right], row(16.0)).unwrap()
         }
         1 => {
-            // --- Tab Security: Firewall, RadioGroup, Action Icons & Accordion ---
+            // --- Tab 1: UI Primitives (2 Grounded Cyber-Glass Workstation Cards) ---
+            // Left Card: Workflow & Interactive Primitives
+            let left_card_title = tree
+                .label("Workflow & Interactive Primitives", leaf(half_col_w - 28.0, 18.0))
+                .unwrap();
+            let left_card_sub = tree
+                .label_muted("Stepper milestones, filter chips, 3D keycaps, multi-progress & ratings", leaf(half_col_w - 28.0, 14.0))
+                .unwrap();
+
+            let step_items = vec![
+                ui_widgets::StepItem {
+                    label: "Init".to_string(),
+                    description: Some("Bootstrap".to_string()),
+                    state: if state.workflow_step > 0 {
+                        ui_widgets::StepState::Completed
+                    } else if state.workflow_step == 0 {
+                        ui_widgets::StepState::Active
+                    } else {
+                        ui_widgets::StepState::Pending
+                    },
+                },
+                ui_widgets::StepItem {
+                    label: "Config".to_string(),
+                    description: Some("Cluster Mesh".to_string()),
+                    state: if state.workflow_step > 1 {
+                        ui_widgets::StepState::Completed
+                    } else if state.workflow_step == 1 {
+                        ui_widgets::StepState::Active
+                    } else {
+                        ui_widgets::StepState::Pending
+                    },
+                },
+                ui_widgets::StepItem {
+                    label: "Deploy".to_string(),
+                    description: Some("WGPU Engine".to_string()),
+                    state: if state.workflow_step > 2 {
+                        ui_widgets::StepState::Completed
+                    } else if state.workflow_step == 2 {
+                        ui_widgets::StepState::Active
+                    } else {
+                        ui_widgets::StepState::Pending
+                    },
+                },
+                ui_widgets::StepItem {
+                    label: "Audit".to_string(),
+                    description: Some("Zero-Trust".to_string()),
+                    state: if state.workflow_step == 3 {
+                        ui_widgets::StepState::Error
+                    } else {
+                        ui_widgets::StepState::Pending
+                    },
+                },
+            ];
+            let stepper_node = tree
+                .stepper("pipeline_stepper", step_items, state.workflow_step, leaf(half_col_w - 28.0, 52.0))
+                .unwrap();
+
+            let div_p1 = tree.divider(false, leaf(half_col_w - 28.0, 1.0)).unwrap();
+
+            let chip_title = tree
+                .label_muted("Interactive Filter Chips (Selectable & Dismissible):", leaf(half_col_w - 28.0, 14.0))
+                .unwrap();
+            let mut chip_nodes = Vec::new();
+            if !state.dismissed_chips.contains("chip_gpu") {
+                chip_nodes.push(
+                    tree.chip(
+                        "chip_gpu",
+                        "WGPU Core",
+                        Some(ui_widgets::IconKind::Refresh),
+                        Some([0.0, 0.85, 1.0, 1.0]),
+                        state.selected_chips.contains("chip_gpu"),
+                        true,
+                        ui_widgets::ChipVariant::Primary,
+                        leaf(108.0, 26.0),
+                    )
+                    .unwrap(),
+                );
+            }
+            if !state.dismissed_chips.contains("chip_shader") {
+                chip_nodes.push(
+                    tree.chip(
+                        "chip_shader",
+                        "WGSL Shaders",
+                        Some(ui_widgets::IconKind::Settings),
+                        Some([0.55, 0.36, 0.96, 1.0]),
+                        state.selected_chips.contains("chip_shader"),
+                        true,
+                        ui_widgets::ChipVariant::Outline,
+                        leaf(116.0, 26.0),
+                    )
+                    .unwrap(),
+                );
+            }
+            if !state.dismissed_chips.contains("chip_shield") {
+                chip_nodes.push(
+                    tree.chip(
+                        "chip_shield",
+                        "Zero-Trust",
+                        Some(ui_widgets::IconKind::Shield),
+                        Some([0.06, 0.72, 0.51, 1.0]),
+                        state.selected_chips.contains("chip_shield"),
+                        true,
+                        ui_widgets::ChipVariant::Success,
+                        leaf(104.0, 26.0),
+                    )
+                    .unwrap(),
+                );
+            }
+            if !state.dismissed_chips.contains("chip_auth") {
+                chip_nodes.push(
+                    tree.chip(
+                        "chip_auth",
+                        "TLS 1.3",
+                        Some(ui_widgets::IconKind::Lock),
+                        Some([0.96, 0.62, 0.04, 1.0]),
+                        state.selected_chips.contains("chip_auth"),
+                        false,
+                        ui_widgets::ChipVariant::Default,
+                        leaf(84.0, 26.0),
+                    )
+                    .unwrap(),
+                );
+            }
+            let chips_row = tree.container(&chip_nodes, row(6.0)).unwrap();
+
+            let kbd_title = tree
+                .label_muted("Cybernetic Keyboard Badges (Kbd):", leaf(half_col_w - 28.0, 14.0))
+                .unwrap();
+            let k1 = tree.kbd("Ctrl", leaf(38.0, 22.0)).unwrap();
+            let k_plus1 = tree.label("+", leaf(10.0, 22.0)).unwrap();
+            let k2 = tree.kbd("K", leaf(24.0, 22.0)).unwrap();
+            let k_sep = tree.label("   ", leaf(12.0, 22.0)).unwrap();
+            let k3 = tree.kbd("Shift", leaf(44.0, 22.0)).unwrap();
+            let k_plus2 = tree.label("+", leaf(10.0, 22.0)).unwrap();
+            let k4 = tree.kbd("Esc", leaf(34.0, 22.0)).unwrap();
+            let k_sep2 = tree.label("   ", leaf(12.0, 22.0)).unwrap();
+            let k5 = tree.kbd("Enter ↵", leaf(56.0, 22.0)).unwrap();
+            let k6 = tree.kbd("Space ␣", leaf(62.0, 22.0)).unwrap();
+            let kbd_row = tree
+                .container(&[k1, k_plus1, k2, k_sep, k3, k_plus2, k4, k_sep2, k5, k6], row(4.0))
+                .unwrap();
+
+            let div_p2 = tree.divider(false, leaf(half_col_w - 28.0, 1.0)).unwrap();
+
+            let mp_title = tree
+                .label_muted("Multi-Progress Proportional Resource Split:", leaf(half_col_w - 28.0, 14.0))
+                .unwrap();
+            let segments = vec![
+                ui_widgets::ProgressSegment {
+                    label: "VRAM".to_string(),
+                    value: 45.0,
+                    color: [0.0, 0.85, 1.0, 1.0],
+                },
+                ui_widgets::ProgressSegment {
+                    label: "RAM".to_string(),
+                    value: 25.0,
+                    color: [0.55, 0.36, 0.96, 1.0],
+                },
+                ui_widgets::ProgressSegment {
+                    label: "Swap".to_string(),
+                    value: 15.0,
+                    color: [0.96, 0.62, 0.04, 1.0],
+                },
+                ui_widgets::ProgressSegment {
+                    label: "Free".to_string(),
+                    value: 15.0,
+                    color: [0.25, 0.30, 0.40, 0.7],
+                },
+            ];
+            let multi_p = tree
+                .multi_progress("memory_alloc_bar", segments, true, leaf(half_col_w - 28.0, 22.0))
+                .unwrap();
+
+            let rating_title = tree
+                .label_muted(
+                    format!("Interactive Rating Feedback ({}/5 Stars):", state.user_rating),
+                    leaf(220.0, 24.0),
+                )
+                .unwrap();
+            let rating_w = tree
+                .rating(
+                    "demo_star_rating",
+                    state.user_rating,
+                    5,
+                    ui_widgets::RatingGlyph::Star,
+                    false,
+                    leaf(120.0, 24.0),
+                )
+                .unwrap();
+            let rating_row = tree.container(&[rating_title, rating_w], row(8.0)).unwrap();
+
+            let card_left = tree
+                .card(
+                    &[
+                        left_card_title,
+                        left_card_sub,
+                        stepper_node,
+                        div_p1,
+                        chip_title,
+                        chips_row,
+                        kbd_title,
+                        kbd_row,
+                        div_p2,
+                        mp_title,
+                        multi_p,
+                        rating_row,
+                    ],
+                    None,
+                    None,
+                    Some(8.0),
+                    card_style(half_col_w),
+                )
+                .unwrap();
+
+            // Right Card: Chronological Timeline Feed & Skeleton Loading
+            let right_card_title = tree
+                .label("Audit Stream & Shimmer Placeholders", leaf(half_col_w - 28.0, 18.0))
+                .unwrap();
+            let right_card_sub = tree
+                .label_muted("Continuous event audit timeline and asynchronous data loading skeletons", leaf(half_col_w - 28.0, 14.0))
+                .unwrap();
+
+            let timeline_items = vec![
+                ui_widgets::TimelineItem {
+                    time: "09:41:22".to_string(),
+                    title: "Cluster Initialized".to_string(),
+                    description: Some("Bootstrapped 4 regional nodes across Paris, Tokyo, Frankfurt, Sydney".to_string()),
+                    status: ui_widgets::TimelineStatus::Success,
+                },
+                ui_widgets::TimelineItem {
+                    time: "09:42:05".to_string(),
+                    title: "WGPU Shader Compiled".to_string(),
+                    description: Some("Dual-Kawase bloom and glass SDF pipeline initialized with 0 warnings".to_string()),
+                    status: ui_widgets::TimelineStatus::Default,
+                },
+                ui_widgets::TimelineItem {
+                    time: "09:44:18".to_string(),
+                    title: "Heuristic Shield Triggered".to_string(),
+                    description: Some("Anomalous ingress packet neutralized at Edge Gateway #02".to_string()),
+                    status: ui_widgets::TimelineStatus::Warning,
+                },
+                ui_widgets::TimelineItem {
+                    time: "09:45:00".to_string(),
+                    title: "Zero-Trust Security Audit".to_string(),
+                    description: Some("Verifying SHA-256 integrity of active memory buffers and tokens".to_string()),
+                    status: ui_widgets::TimelineStatus::Active,
+                },
+            ];
+            let timeline_node = tree
+                .timeline(
+                    "audit_timeline",
+                    timeline_items,
+                    leaf(half_col_w - 28.0, 185.0),
+                )
+                .unwrap();
+
+            let div_p3 = tree.divider(false, leaf(half_col_w - 28.0, 1.0)).unwrap();
+
+            let skel_title = tree
+                .label_muted("Async Shimmer Placeholder (Skeleton):", leaf(half_col_w - 28.0, 14.0))
+                .unwrap();
+            let skel_avatar = tree
+                .skeleton(Some(16.0), true, leaf(32.0, 32.0))
+                .unwrap();
+            let skel_line1 = tree
+                .skeleton(Some(4.0), true, leaf(half_col_w - 80.0, 12.0))
+                .unwrap();
+            let skel_line2 = tree
+                .skeleton(Some(4.0), true, leaf(half_col_w - 140.0, 10.0))
+                .unwrap();
+            let skel_text_col = tree.container(&[skel_line1, skel_line2], column(4.0)).unwrap();
+            let skel_header = tree.container(&[skel_avatar, skel_text_col], row(8.0)).unwrap();
+            let skel_card = tree
+                .skeleton(
+                    Some(6.0),
+                    true,
+                    leaf(half_col_w - 28.0, 40.0),
+                )
+                .unwrap();
+            let skel_container = tree.container(&[skel_header, skel_card], column(6.0)).unwrap();
+
+            let card_right = tree
+                .card(
+                    &[
+                        right_card_title,
+                        right_card_sub,
+                        timeline_node,
+                        div_p3,
+                        skel_title,
+                        skel_container,
+                    ],
+                    None,
+                    None,
+                    Some(8.0),
+                    card_style(half_col_w),
+                )
+                .unwrap();
+
+            tree.container(&[card_left, card_right], row(16.0)).unwrap()
+        }
+        2 => {
+            // --- Tab 2: Security (2 Grounded Cyber-Glass Workstation Cards) ---
+            // Left Card: Zero-Trust & Heuristic Shield Controls
+            let left_card_title = tree
+                .label("Zero-Trust & Heuristic Shield", leaf(half_col_w - 28.0, 18.0))
+                .unwrap();
+            let left_card_sub = tree
+                .label_muted("Live firewall switch, policy selector matrix & cryptographic endpoints", leaf(half_col_w - 28.0, 14.0))
+                .unwrap();
+
             let toggle = tree
                 .toggle(
                     WidgetId::new("firewall_toggle"),
@@ -1500,12 +2147,14 @@ fn build_base_ui(
                 )
                 .unwrap();
             let toggle_label = tree
-                .label("Heuristic Shield & Core Firewall", leaf(280.0, 20.0))
+                .label("Heuristic Shield & Core Firewall", leaf(half_col_w - 90.0, 20.0))
                 .unwrap();
             let toggle_row = tree.container(&[toggle, toggle_label], row(10.0)).unwrap();
 
+            let div_s1 = tree.divider(false, leaf(half_col_w - 28.0, 1.0)).unwrap();
+
             let radio_title = tree
-                .label_muted("Cluster Security Enforcement Mode:", leaf(400.0, 16.0))
+                .label_muted("Cluster Security Enforcement Mode:", leaf(half_col_w - 28.0, 16.0))
                 .unwrap();
             let r1 = tree
                 .radio(
@@ -1513,7 +2162,7 @@ fn build_base_ui(
                     "sec_policy",
                     "Strict (Zero-Trust)",
                     state.security_policy == "strict",
-                    leaf(164.0, 22.0),
+                    leaf((half_col_w - 44.0) / 3.0, 22.0),
                 )
                 .unwrap();
             let r2 = tree
@@ -1522,7 +2171,7 @@ fn build_base_ui(
                     "sec_policy",
                     "Adaptive (AI)",
                     state.security_policy == "adaptive",
-                    leaf(164.0, 22.0),
+                    leaf((half_col_w - 44.0) / 3.0, 22.0),
                 )
                 .unwrap();
             let r3 = tree
@@ -1531,19 +2180,19 @@ fn build_base_ui(
                     "sec_policy",
                     "Audit Only",
                     state.security_policy == "audit",
-                    leaf(164.0, 22.0),
+                    leaf((half_col_w - 44.0) / 3.0, 22.0),
                 )
                 .unwrap();
             let radio_grid = tree
-                .grid(3, 8.0, 0.0, &[r1, r2, r3], leaf(508.0, 22.0))
-                .unwrap();
-            let radio_group = tree
-                .container(&[radio_title, radio_grid], column(4.0))
+                .grid(3, 8.0, 0.0, &[r1, r2, r3], leaf(half_col_w - 28.0, 22.0))
                 .unwrap();
 
-            let divider_sec = tree.divider(false, leaf(508.0, 1.0)).unwrap();
+            let div_s2 = tree.divider(false, leaf(half_col_w - 28.0, 1.0)).unwrap();
 
-            // Accordion section with icon action buttons
+            let actions_label = tree
+                .label_muted("Rapid Endpoint Controls & Diagnostics:", leaf(half_col_w - 28.0, 14.0))
+                .unwrap();
+
             let lock_btn = tree
                 .icon_button(
                     "lock_btn",
@@ -1572,6 +2221,34 @@ fn build_base_ui(
                 .container(&[lock_btn, refresh_btn, shield_btn], row(8.0))
                 .unwrap();
 
+            let card_left = tree
+                .card(
+                    &[
+                        left_card_title,
+                        left_card_sub,
+                        toggle_row,
+                        div_s1,
+                        radio_title,
+                        radio_grid,
+                        div_s2,
+                        actions_label,
+                        action_icons,
+                    ],
+                    None,
+                    None,
+                    Some(8.0),
+                    card_style(half_col_w),
+                )
+                .unwrap();
+
+            // Right Card: Active Ingress Rules & Containment Policies
+            let right_card_title = tree
+                .label("Active Containment & Ingress Rules", leaf(half_col_w - 28.0, 18.0))
+                .unwrap();
+            let right_card_sub = tree
+                .label_muted("Real-time network packet inspection matrix and containment logs", leaf(half_col_w - 28.0, 14.0))
+                .unwrap();
+
             let items = [
                 (
                     "TLS 1.3 Certificate valid",
@@ -1595,15 +2272,15 @@ fn build_base_ui(
                     WidgetId::new("sec_list"),
                     &items,
                     state.selected_item,
-                    leaf(488.0, 28.0),
+                    leaf(half_col_w - 28.0, 28.0),
                     column(4.0),
                 )
                 .unwrap();
 
-            let acc_content = tree.container(&[action_icons, list], column(6.0)).unwrap();
+            let acc_content = tree.container(&[list], column(6.0)).unwrap();
             let acc_style = Style {
                 size: Size {
-                    width: length(508.0),
+                    width: length(half_col_w - 28.0),
                     height: if state.accordion_open {
                         ui_layout::auto()
                     } else {
@@ -1633,31 +2310,61 @@ fn build_base_ui(
                 )
                 .unwrap();
 
-            tree.container(
-                &[toggle_row, radio_group, divider_sec, accordion],
-                column(8.0),
-            )
-            .unwrap()
+            let card_right = tree
+                .card(
+                    &[
+                        right_card_title,
+                        right_card_sub,
+                        accordion,
+                    ],
+                    None,
+                    None,
+                    Some(8.0),
+                    card_style(half_col_w),
+                )
+                .unwrap();
+
+            tree.container(&[card_left, card_right], row(16.0)).unwrap()
         }
-        2 => {
-            // --- Tab Network: Metrics, SegmentedControl, Data Table & Pagination ---
+        3 => {
+            // --- Tab 3: Network (Telemetry Metric Cards & Sortable TableView) ---
+            // Top Card: Cluster Metrics & Throughput
+            let metrics_title = tree
+                .label("Cluster Telemetry & Ingress Performance", leaf(content_w - 260.0, 18.0))
+                .unwrap();
             let seg_options = ["Real-Time", "24 Hours", "7 Days"];
             let segment_bar = tree
                 .segmented_control(
                     WidgetId::new("net_timeframe"),
                     &seg_options,
                     state.selected_segment,
-                    leaf(164.0, 26.0),
+                    leaf(220.0, 24.0),
                     row(4.0),
                 )
                 .unwrap();
+            let metrics_header = tree
+                .container(
+                    &[metrics_title, segment_bar],
+                    Style {
+                        size: Size {
+                            width: length(content_w - 28.0),
+                            height: length(26.0),
+                        },
+                        flex_direction: FlexDirection::Row,
+                        align_items: Some(AlignItems::Center),
+                        justify_content: Some(ui_layout::JustifyContent::SpaceBetween),
+                        ..Default::default()
+                    },
+                )
+                .unwrap();
 
+            let card_w = (content_w - 28.0 - 36.0) / 4.0;
             let card1 = tree
                 .metric_card(
                     "Inbound Bandwidth",
                     "1.24 Gbps",
                     Some(("+18%", true)),
-                    leaf(248.0, 56.0),
+                    leaf(card_w, 56.0),
                 )
                 .unwrap();
             let card2 = tree
@@ -1665,18 +2372,52 @@ fn build_base_ui(
                     "Average Latency",
                     "3.8 ms",
                     Some(("-12%", true)),
-                    leaf(248.0, 56.0),
+                    leaf(card_w, 56.0),
+                )
+                .unwrap();
+            let card3 = tree
+                .metric_card(
+                    "Packet Loss",
+                    "0.001%",
+                    Some(("-95%", true)),
+                    leaf(card_w, 56.0),
+                )
+                .unwrap();
+            let card4 = tree
+                .metric_card(
+                    "Active Sockets",
+                    "14,892",
+                    Some(("+4.2%", true)),
+                    leaf(card_w, 56.0),
                 )
                 .unwrap();
             let metrics_grid = tree
-                .grid(2, 12.0, 0.0, &[card1, card2], leaf(508.0, 56.0))
+                .grid(4, 12.0, 0.0, &[card1, card2, card3, card4], leaf(content_w - 28.0, 56.0))
                 .unwrap();
 
-            // Multi-column sortable data TableView
+            let top_card = tree
+                .card(
+                    &[metrics_header, metrics_grid],
+                    None,
+                    None,
+                    Some(8.0),
+                    card_style(content_w),
+                )
+                .unwrap();
+
+            // Bottom Card: Edge Gateway & Regional Node Status
+            let table_title = tree
+                .label("Regional Node Health & Traffic Routing", leaf(content_w - 28.0, 18.0))
+                .unwrap();
+            let table_sub = tree
+                .label_muted("Multi-column sortable telemetry table with active load distribution and latency metrics", leaf(content_w - 28.0, 14.0))
+                .unwrap();
+
+            let col_step = (content_w - 48.0) / 4.0;
             let cols = [
                 (
                     "Service / Node",
-                    180.0,
+                    col_step * 1.3,
                     if state.table_sort_col == 0 {
                         Some(state.table_sort_asc)
                     } else {
@@ -1685,7 +2426,7 @@ fn build_base_ui(
                 ),
                 (
                     "Status",
-                    100.0,
+                    col_step * 0.8,
                     if state.table_sort_col == 1 {
                         Some(state.table_sort_asc)
                     } else {
@@ -1694,7 +2435,7 @@ fn build_base_ui(
                 ),
                 (
                     "Latency",
-                    96.0,
+                    col_step * 0.8,
                     if state.table_sort_col == 2 {
                         Some(state.table_sort_asc)
                     } else {
@@ -1703,7 +2444,7 @@ fn build_base_ui(
                 ),
                 (
                     "Traffic",
-                    112.0,
+                    col_step * 1.1,
                     if state.table_sort_col == 3 {
                         Some(state.table_sort_asc)
                     } else {
@@ -1735,35 +2476,74 @@ fn build_base_ui(
                 ("24.0 ms", ui_widgets::ListItemBadge::None),
                 ("120 Mbps", ui_widgets::ListItemBadge::None),
             ];
-            let rows = [row1, row2, row3, row4];
-            let table_node = tree
+            let data_rows = [row1, row2, row3, row4];
+            let table = tree
                 .table(
-                    "net_table",
+                    "cluster_table",
                     &cols,
-                    &rows,
+                    &data_rows,
                     state.table_selected_row,
                     26.0,
-                    leaf(508.0, 140.0),
+                    leaf(content_w - 28.0, 136.0),
                 )
                 .unwrap();
 
-            let pag_node = tree
-                .pagination("net_pag", state.current_page, 4, leaf(32.0, 26.0), row(6.0))
+            let div_tbl = tree.divider(false, leaf(content_w - 28.0, 1.0)).unwrap();
+
+            let pagination = tree
+                .pagination("cluster_pages", state.current_page, 4, leaf(32.0, 24.0), row(6.0))
+                .unwrap();
+            let page_info = tree
+                .label_muted(format!("Page {} of 4 (42 Cluster Nodes)", state.current_page + 1), leaf(180.0, 24.0))
+                .unwrap();
+            let pagination_row = tree
+                .container(
+                    &[page_info, pagination],
+                    Style {
+                        size: Size {
+                            width: length(content_w - 28.0),
+                            height: length(24.0),
+                        },
+                        flex_direction: FlexDirection::Row,
+                        align_items: Some(AlignItems::Center),
+                        justify_content: Some(ui_layout::JustifyContent::SpaceBetween),
+                        ..Default::default()
+                    },
+                )
                 .unwrap();
 
-            tree.container(
-                &[segment_bar, metrics_grid, table_node, pag_node],
-                column(10.0),
-            )
-            .unwrap()
+            let bottom_card = tree
+                .card(
+                    &[
+                        table_title,
+                        table_sub,
+                        table,
+                        div_tbl,
+                        pagination_row,
+                    ],
+                    None,
+                    None,
+                    Some(8.0),
+                    card_style(content_w),
+                )
+                .unwrap();
+
+            tree.container(&[top_card, bottom_card], column(12.0)).unwrap()
         }
-        3 => {
-            // --- Tab Studio: Resizable SplitView & TreeView ---
+        4 => {
+            // --- Tab 4: Studio (Tree view, CustomPaint 2D Canvas & SplitView Card) ---
+            let studio_title = tree
+                .label("Vector Canvas & Workspace Architecture", leaf(content_w - 28.0, 18.0))
+                .unwrap();
+            let studio_sub = tree
+                .label_muted("Workspace module tree inspection and interactive 2D vector spline drawing pipeline", leaf(content_w - 28.0, 14.0))
+                .unwrap();
+
+            let mut tree_nodes: Vec<(&str, &str, usize, bool, bool, bool)> = Vec::new();
             let is_crates_open = state.expanded_nodes.contains("crates_dir");
             let is_widgets_open = state.expanded_nodes.contains("widgets_dir");
             let is_examples_open = state.expanded_nodes.contains("examples_dir");
 
-            let mut tree_nodes: Vec<(&str, &str, usize, bool, bool, bool)> = Vec::new();
             tree_nodes.push((
                 "crates_dir",
                 "crates/",
@@ -1859,10 +2639,11 @@ fn build_base_ui(
                 state.selected_tree_node.as_deref() == Some("cargo_toml"),
             ));
 
-            let left_w = (508.0 * state.split_ratio).clamp(120.0, 360.0);
-            let right_w = (508.0 - left_w - 6.0).max(120.0);
-            let canvas_w = (right_w - 20.0).max(100.0);
-            let canvas_h = 176.0;
+            let split_w = content_w - 28.0;
+            let left_w = (split_w * state.split_ratio).clamp(140.0, split_w - 200.0);
+            let right_w = (split_w - left_w - 6.0).max(200.0);
+            let canvas_w = (right_w - 20.0).max(160.0);
+            let canvas_h = 210.0;
 
             let tree_list = tree
                 .tree_view(
@@ -1991,7 +2772,7 @@ fn build_base_ui(
             let left_panel_style = Style {
                 size: Size {
                     width: length(left_w),
-                    height: length(224.0),
+                    height: length(256.0),
                 },
                 padding: Rect {
                     left: length(2.0),
@@ -2006,7 +2787,7 @@ fn build_base_ui(
             let right_panel_style = Style {
                 size: Size {
                     width: length(right_w),
-                    height: length(224.0),
+                    height: length(256.0),
                 },
                 padding: Rect {
                     left: length(16.0),
@@ -2027,21 +2808,40 @@ fn build_base_ui(
                     state.split_ratio,
                     left_panel,
                     right_panel,
-                    leaf(508.0, 224.0),
-                )
-                .unwrap();
-            let studio_hint = tree
-                .label_muted(
-                    "Click & drag to draw on Canvas | Use Tool Palette to switch Pencil/Eraser",
-                    leaf(508.0, 16.0),
+                    leaf(split_w, 256.0),
                 )
                 .unwrap();
 
-            tree.container(&[split, studio_hint], column(6.0)).unwrap()
+            let div_studio = tree.divider(false, leaf(split_w, 1.0)).unwrap();
+
+            let studio_hint = tree
+                .label_muted(
+                    "Click & drag to draw on Canvas | Use Tool Palette [Ctrl+P] to switch Pencil/Eraser",
+                    leaf(split_w, 16.0),
+                )
+                .unwrap();
+
+            let studio_card = tree
+                .card(
+                    &[
+                        studio_title,
+                        studio_sub,
+                        split,
+                        div_studio,
+                        studio_hint,
+                    ],
+                    None,
+                    None,
+                    Some(8.0),
+                    card_style(content_w),
+                )
+                .unwrap();
+
+            tree.container(&[studio_card], column(6.0)).unwrap()
         }
-        _ => {
-            // --- Tab Media: GPU Video Streaming, Audio Spectrum & Aspect Fitting Images ---
-            // 1. Dynamic Video Stream Player
+        5 => {
+            // --- Tab 5: Media (2 Grounded Cyber-Glass Workstation Cards) ---
+            // Left Card: GPU Video Stream & FFT Spectrum
             let vid_badge = tree
                 .badge(
                     if state.video_playing {
@@ -2058,7 +2858,7 @@ fn build_base_ui(
                 )
                 .unwrap();
             let vid_title = tree
-                .label("Dynamic Plasma Stream (WGPU Pipeline):", leaf(340.0, 22.0))
+                .label("Dynamic Plasma Stream:", leaf(half_col_w - 178.0, 22.0))
                 .unwrap();
             let vid_header = tree.container(&[vid_title, vid_badge], row(8.0)).unwrap();
 
@@ -2070,24 +2870,41 @@ fn build_base_ui(
                     state.video_progress,
                     90.0,
                     1.0,
-                    leaf(508.0, 150.0),
+                    leaf(half_col_w - 28.0, 160.0),
                 )
                 .unwrap();
 
-            // 2. Audio Spectrum Visualizer
+            let div_m1 = tree.divider(false, leaf(half_col_w - 28.0, 1.0)).unwrap();
+
             let audio_title = tree
                 .label(
                     "Audio Spectrum Visualizer (32 Band FFT Neon Glass):",
-                    leaf(508.0, 18.0),
+                    leaf(half_col_w - 28.0, 18.0),
                 )
                 .unwrap();
             let visualizer_widget = tree
-                .audio_visualizer("audio_bars", &state.audio_spectrum, 1.0, leaf(508.0, 44.0))
+                .audio_visualizer("audio_bars", &state.audio_spectrum, 1.0, leaf(half_col_w - 28.0, 48.0))
                 .unwrap();
 
-            // 3. Cyber Artwork Image with Aspect Fit Mode Selector
+            let card_left = tree
+                .card(
+                    &[
+                        vid_header,
+                        video_widget,
+                        div_m1,
+                        audio_title,
+                        visualizer_widget,
+                    ],
+                    None,
+                    None,
+                    Some(8.0),
+                    card_style(half_col_w),
+                )
+                .unwrap();
+
+            // Right Card: Static Artwork & OS Drag-and-Drop Ingest
             let fit_label = tree
-                .label("Static Artwork Aspect Fitting:", leaf(200.0, 26.0))
+                .label("Artwork Aspect Fitting:", leaf(160.0, 24.0))
                 .unwrap();
             let fit_options = ["Cover", "Contain", "Fill"];
             let fit_idx = match state.media_fit_mode {
@@ -2100,12 +2917,12 @@ fn build_base_ui(
                     WidgetId::new("media_fit_selector"),
                     &fit_options,
                     fit_idx,
-                    leaf(86.0, 24.0),
+                    leaf(half_col_w - 198.0, 24.0),
                     row(4.0),
                 )
                 .unwrap();
             let fit_header = tree
-                .container(&[fit_label, fit_selector], row(12.0))
+                .container(&[fit_label, fit_selector], row(8.0))
                 .unwrap();
 
             let image_widget = tree
@@ -2113,20 +2930,227 @@ fn build_base_ui(
                     "cyber_art",
                     "cyber_art",
                     state.media_fit_mode,
-                    leaf(508.0, 126.0),
+                    leaf(half_col_w - 28.0, 120.0),
+                )
+                .unwrap();
+
+            let div_m2 = tree.divider(false, leaf(half_col_w - 28.0, 1.0)).unwrap();
+
+            let drop_zone_widget = tree
+                .drop_zone(
+                    "media_drop_zone",
+                    if state.file_hovered {
+                        "Release Image or File to Import..."
+                    } else if state.dropped_file_info.is_some() {
+                        "File Loaded into Pipeline (Drop to Replace)"
+                    } else {
+                        "Drag & Drop Images / Files Directly onto Window"
+                    },
+                    Some("Accepts PNG, JPG, JPEG, WebP, BMP, RS, WGSL, JSON"),
+                    &["png", "jpg", "webp", "rs", "wgsl"],
+                    state.file_hovered,
+                    state.dropped_file_info.as_ref().map(|(n, s)| (n.as_str(), *s)),
+                    leaf(half_col_w - 28.0, 80.0),
+                )
+                .unwrap();
+
+            let card_right = tree
+                .card(
+                    &[
+                        fit_header,
+                        image_widget,
+                        div_m2,
+                        drop_zone_widget,
+                    ],
+                    None,
+                    None,
+                    Some(8.0),
+                    card_style(half_col_w),
+                )
+                .unwrap();
+
+            tree.container(&[card_left, card_right], row(16.0)).unwrap()
+        }
+        _ => {
+            // --- Tab 6: Nodes & Data (DSP Parameters, GPU Dataviz & Node Graph Cards) ---
+            // Top Card: DSP Parameter Matrix & Compute Telemetry
+            let top_card_title = tree
+                .label("DSP Parameter Matrix & Compute Telemetry", leaf(content_w - 28.0, 18.0))
+                .unwrap();
+            let top_card_sub = tree
+                .label_muted("Rotary faders, dynamic filter tags and realtime GPU compute load dataviz", leaf(content_w - 28.0, 14.0))
+                .unwrap();
+
+            let knob1 = tree
+                .knob(
+                    "knob_gain",
+                    state.knob_gain,
+                    0.0,
+                    100.0,
+                    0.5,
+                    Some("Gain"),
+                    Some("dB"),
+                    leaf(70.0, 72.0),
+                )
+                .unwrap();
+            let knob2 = tree
+                .knob(
+                    "knob_freq",
+                    state.knob_freq,
+                    20.0,
+                    20000.0,
+                    10.0,
+                    Some("Cutoff"),
+                    Some("Hz"),
+                    leaf(70.0, 72.0),
+                )
+                .unwrap();
+            let knob3 = tree
+                .knob(
+                    "knob_mix",
+                    state.knob_mix,
+                    0.0,
+                    100.0,
+                    1.0,
+                    Some("Mix"),
+                    Some("%"),
+                    leaf(70.0, 72.0),
+                )
+                .unwrap();
+
+            let tags_widget = tree
+                .tag_input(
+                    "gallery_tags",
+                    &state.tags_list,
+                    "Add filter tag...",
+                    None,
+                    leaf(content_w - 360.0, 32.0),
+                )
+                .unwrap();
+
+            let add_tag_btn = tree
+                .button(
+                    WidgetId::new("add_tag_btn"),
+                    "+ Tag",
+                    true,
+                    leaf(60.0, 30.0),
+                )
+                .unwrap();
+
+            let tags_group = tree.container(&[tags_widget, add_tag_btn], row(6.0)).unwrap();
+            let knobs_group = tree.container(&[knob1, knob2, knob3], row(8.0)).unwrap();
+            let top_row = tree.container(&[knobs_group, tags_group], row(16.0)).unwrap();
+
+            let div_n1 = tree.divider(false, leaf(content_w - 28.0, 1.0)).unwrap();
+
+            let series1_pts: Vec<[f32; 2]> = (0..20)
+                .map(|i| {
+                    let x = i as f32;
+                    let y = 35.0 + (x * 0.4).sin() * 25.0 + (x * 0.9).cos() * 12.0;
+                    [x, y.clamp(5.0, 95.0)]
+                })
+                .collect();
+            let series2_pts: Vec<[f32; 2]> = (0..20)
+                .map(|i| {
+                    let x = i as f32;
+                    let y = 60.0 + (x * 0.3 + 1.2).cos() * 20.0;
+                    [x, y.clamp(5.0, 95.0)]
+                })
+                .collect();
+
+            let chart_series = vec![
+                ui_widgets::ChartSeries {
+                    name: "GPU Compute Load".to_string(),
+                    color: [0.0, 0.85, 1.0, 1.0],
+                    points: series1_pts,
+                    filled: true,
+                },
+                ui_widgets::ChartSeries {
+                    name: "Frame Latency (ms)".to_string(),
+                    color: [0.75, 0.35, 0.95, 1.0],
+                    points: series2_pts,
+                    filled: false,
+                },
+            ];
+
+            let chart_widget = tree
+                .time_series_chart(
+                    "telemetry_chart",
+                    Some("Realtime GPU Compute & Frame Latency (Area / Spline Dataviz)"),
+                    chart_series,
+                    (0.0, 19.0),
+                    (0.0, 100.0),
+                    true,
+                    true,
+                    state.chart_inspected,
+                    leaf(content_w - 28.0, 100.0),
+                )
+                .unwrap();
+
+            let top_card = tree
+                .card(
+                    &[
+                        top_card_title,
+                        top_card_sub,
+                        top_row,
+                        div_n1,
+                        chart_widget,
+                    ],
+                    None,
+                    None,
+                    Some(8.0),
+                    card_style(content_w),
+                )
+                .unwrap();
+
+            // Bottom Card: Distributed Workflow Node Graph
+            let bottom_card_title = tree
+                .label("Execution Pipeline & Node Graph Topology", leaf(content_w - 28.0, 18.0))
+                .unwrap();
+            let bottom_card_sub = tree
+                .label_muted("Interactive node graph editor with live connection wires and pin routing", leaf(content_w - 28.0, 14.0))
+                .unwrap();
+
+            let node_graph_widget = tree
+                .node_graph(
+                    "gallery_node_graph",
+                    state.node_graph_nodes.clone(),
+                    state.node_graph_connections.clone(),
+                    [0.0, 0.0],
+                    1.0,
+                    None,
+                    leaf(content_w - 28.0, 140.0),
+                )
+                .unwrap();
+
+            let div_n2 = tree.divider(false, leaf(content_w - 28.0, 1.0)).unwrap();
+
+            let hint_label = tree
+                .label_muted(
+                    "Click nodes to select | Click data points on chart to inspect | Rotate knobs",
+                    leaf(content_w - 28.0, 14.0),
+                )
+                .unwrap();
+
+            let bottom_card = tree
+                .card(
+                    &[
+                        bottom_card_title,
+                        bottom_card_sub,
+                        node_graph_widget,
+                        div_n2,
+                        hint_label,
+                    ],
+                    None,
+                    None,
+                    Some(8.0),
+                    card_style(content_w),
                 )
                 .unwrap();
 
             tree.container(
-                &[
-                    vid_header,
-                    video_widget,
-                    audio_title,
-                    visualizer_widget,
-                    fit_header,
-                    image_widget,
-                ],
-                column(6.0),
+                &[top_card, bottom_card],
+                column(12.0),
             )
             .unwrap()
         }
@@ -2135,11 +3159,8 @@ fn build_base_ui(
     let main_content = tree
         .container(
             &[
-                title,
-                menubar,
-                breadcrumb_node,
-                search_input,
-                divider1,
+                top_header,
+                top_divider,
                 tabbar,
                 tab_content,
             ],
@@ -2179,17 +3200,17 @@ fn build_modal_ui(
     width: f32,
     height: f32,
 ) -> ui_layout::NodeId {
-    let modal_title_div = tree.divider(false, leaf(390.0, 1.0)).unwrap();
+    let modal_title_div = tree.divider(false, leaf(392.0, 1.0)).unwrap();
     let modal_msg1 = tree
         .label(
             "Do you want to reset cluster network parameters",
-            leaf(390.0, 20.0),
+            leaf(392.0, 20.0),
         )
         .unwrap();
     let modal_msg2 = tree
         .label_muted(
             "and trigger a full heuristic cluster diagnostic?",
-            leaf(390.0, 18.0),
+            leaf(392.0, 18.0),
         )
         .unwrap();
     let cancel_btn = tree
@@ -2197,25 +3218,49 @@ fn build_modal_ui(
             WidgetId::new("modal_cancel_btn"),
             "Cancel",
             true,
-            leaf(120.0, 36.0),
+            leaf(110.0, 32.0),
         )
         .unwrap();
     let confirm_btn = tree
-        .button(
+        .button_variant(
             WidgetId::new("modal_confirm_btn"),
             "Confirm",
+            ui_widgets::ButtonVariant::Primary,
             true,
-            leaf(130.0, 36.0),
+            leaf(120.0, 32.0),
         )
         .unwrap();
     let modal_btns = tree
-        .container(&[cancel_btn, confirm_btn], row(16.0))
+        .container(
+            &[cancel_btn, confirm_btn],
+            Style {
+                flex_direction: FlexDirection::Row,
+                justify_content: Some(ui_layout::JustifyContent::FlexEnd),
+                size: Size {
+                    width: length(392.0),
+                    height: length(34.0),
+                },
+                gap: Size {
+                    width: length(10.0),
+                    height: length(0.0),
+                },
+                ..Default::default()
+            },
+        )
         .unwrap();
 
     let modal_dialog_content = tree
         .container(
             &[modal_title_div, modal_msg1, modal_msg2, modal_btns],
-            column(10.0),
+            Style {
+                flex_direction: FlexDirection::Column,
+                justify_content: Some(ui_layout::JustifyContent::SpaceBetween),
+                size: Size {
+                    width: length(392.0),
+                    height: length(146.0),
+                },
+                ..Default::default()
+            },
         )
         .unwrap();
 
@@ -2256,11 +3301,60 @@ fn build_modal_ui(
     .unwrap()
 }
 
+/// Resolves interactive tooltips and optional keyboard shortcut hints for gallery widgets.
+fn get_tooltip_for_widget(widget_id: &str) -> Option<(&'static str, Option<&'static str>)> {
+    match widget_id {
+        "open_cmd_palette_btn" => Some(("Command Palette & Spotlight Launcher", Some("Ctrl+K"))),
+        "open_notifications_btn" => Some(("Notification Center History & Drawer", Some("Ctrl+N"))),
+        "user_profile_avatar" => Some(("User Presence Status [Click to Cycle]", None)),
+        "open_modal_btn" => Some(("Open Confirmation Modal Dialog", None)),
+        "toast_btn" => Some(("Trigger Alert Toast Notification", None)),
+        "hello_button" => Some(("Execute Primary System Action", None)),
+        "turbo_toggle" => Some(("Toggle Turbo Hardware Acceleration", None)),
+        "firewall_toggle" => Some(("Toggle Cybernetic Shield Mesh", None)),
+        "spinners_toggle" => Some(("Lock / Unlock Numeric Stepper Inputs", None)),
+        "media_drop_zone" => Some(("Drag & Drop image or code files", None)),
+        "tool_select" => Some(("Pointer Selection Tool", Some("V"))),
+        "tool_brush" => Some(("Digital Paint Brush", Some("B"))),
+        "tool_eraser" => Some(("Vector Stroke Eraser", Some("E"))),
+        "tool_picker" => Some(("Color Eyedropper Sampler", Some("I"))),
+        "tool_gradient" => Some(("Linear Gradient Tool", Some("G"))),
+        "concurrency_spin" => Some(("Worker Threads Count (1 to 64)", None)),
+        "port_spin" => Some(("Inbound Port (1024-65535)", None)),
+        "knob_gain" => Some(("Preamp Input Gain Level", None)),
+        "knob_freq" => Some(("Cutoff Frequency (Hz)", None)),
+        "knob_mix" => Some(("Dry / Wet DSP Mix Ratio", None)),
+        "add_tag_btn" => Some(("Add Telemetry Filter Tag", None)),
+        "lock_btn" => Some(("Lock Inbound Network Endpoints", None)),
+        "shield_btn" => Some(("Deploy Defensive Security Mesh", None)),
+        "refresh_btn" => Some(("Synchronize Cluster Node Telemetry", None)),
+        "clear_canvas_btn" => Some(("Clear Vector Drawing Canvas", None)),
+        "cyan_swatch" => Some(("Electric Cyan Preset", None)),
+        "purple_swatch" => Some(("Neon Violet Preset", None)),
+        "green_swatch" => Some(("Emerald Matrix Preset", None)),
+        "amber_swatch" => Some(("Amber Warning Preset", None)),
+        "master_token_pwd" => Some(("Security Access Token [Click eye to reveal]", None)),
+        "global_search" => Some(("Global Module & Metric Search Filter", None)),
+        "settings_tabs" => Some(("Switch Workstation Category Tabs", None)),
+        "pipeline_stepper" => Some(("Interactive Workflow Progress Stepper", None)),
+        "chip_gpu" => Some(("WGPU Graphics & Compute Pipeline Filter", None)),
+        "chip_shader" => Some(("WGSL Shader Compilation Pipeline Filter", None)),
+        "chip_shield" => Some(("Zero-Trust Containment Filter", None)),
+        "chip_auth" => Some(("TLS 1.3 Cryptographic Token Filter", None)),
+        "memory_alloc_bar" => Some(("Multi-Segment Proportional Memory Allocation", None)),
+        "demo_star_rating" => Some(("Cluster Performance Rating [Click to Score]", None)),
+        "audit_timeline" => Some(("Chronological Audit & Incident Event Log", None)),
+        _ => None,
+    }
+}
+
 fn build_popover_ui(
     tree: &mut WidgetTree,
     state: &DemoState,
     width: f32,
     height: f32,
+    hovered_widget: Option<&str>,
+    cursor_pos: (f32, f32),
 ) -> Option<ui_layout::NodeId> {
     let mut overlay_nodes = Vec::new();
 
@@ -2524,6 +3618,15 @@ fn build_popover_ui(
 
     // 5. Floating Toast if active
     if let Some((title, msg, kind)) = &state.active_toast {
+        let msg_len = msg.len();
+        let toast_w = (320.0 + (msg_len as f32 * 1.2)).clamp(320.0, 480.0);
+        let toast_h = if msg_len > 70 {
+            76.0
+        } else if msg_len > 35 {
+            68.0
+        } else {
+            58.0
+        };
         let toast_node = tree
             .toast(
                 WidgetId::new("active_toast"),
@@ -2531,10 +3634,10 @@ fn build_popover_ui(
                 msg,
                 *kind,
                 toast_style(
-                    width - 340.0 - WINDOW_MARGIN,
-                    height - 76.0 - WINDOW_MARGIN,
-                    320.0,
-                    60.0,
+                    width - toast_w - 20.0 - WINDOW_MARGIN,
+                    height - toast_h - 16.0 - WINDOW_MARGIN,
+                    toast_w,
+                    toast_h,
                 ),
             )
             .unwrap();
@@ -2564,6 +3667,225 @@ fn build_popover_ui(
         overlay_nodes.push(popover);
     }
 
+    // 7. Command Palette Modal Dialog [Ctrl+K]
+    if state.show_command_palette {
+        let cmd_items = [
+            ("cmd_tab_0", "General Dashboard", "Ctrl+1", ui_widgets::IconKind::Cpu),
+            ("cmd_tab_1", "UI Primitives & Blocks", "Ctrl+2", ui_widgets::IconKind::FileCode),
+            ("cmd_tab_2", "Security & Firewall", "Ctrl+3", ui_widgets::IconKind::Lock),
+            ("cmd_tab_3", "Cluster Telemetry", "Ctrl+4", ui_widgets::IconKind::Network),
+            ("cmd_tab_4", "Creative Studio", "Ctrl+5", ui_widgets::IconKind::Folder),
+            ("cmd_tab_5", "Media & Video Stream", "Ctrl+6", ui_widgets::IconKind::Play),
+            ("cmd_tab_6", "Vector Node Graph", "Ctrl+7", ui_widgets::IconKind::Settings),
+            ("cmd_turbo", "Toggle Cyber Turbo Mode", "Turbo", ui_widgets::IconKind::Refresh),
+            ("cmd_scan", "Run Deep Diagnostic Scan", "F5", ui_widgets::IconKind::Shield),
+            ("cmd_notifications", "Toggle Notification Center", "Ctrl+N", ui_widgets::IconKind::Alert),
+            ("cmd_status_online", "Set Presence to Online", "Online", ui_widgets::IconKind::Check),
+            ("cmd_status_busy", "Set Presence to Busy (DND)", "Busy", ui_widgets::IconKind::Minus),
+        ];
+
+        let query = state.command_palette_search.text.to_lowercase();
+        let filtered: Vec<_> = cmd_items
+            .iter()
+            .filter(|(_, label, shortcut, _)| {
+                query.is_empty()
+                    || label.to_lowercase().contains(&query)
+                    || shortcut.to_lowercase().contains(&query)
+            })
+            .collect();
+
+        let pal_w = 580.0f32;
+        let pal_h = 430.0f32;
+        let pal_x = ((width - pal_w) * 0.5).max(10.0);
+        let pal_y = ((height - pal_h) * 0.32).max(20.0);
+
+        let search_focused = state.focused_input.as_deref() == Some("command_palette_search");
+        let search_icon = tree
+            .icon(ui_widgets::IconKind::Search, 15.0, Some([0.95, 0.95, 0.95, 1.0]), leaf(22.0, 32.0))
+            .unwrap();
+        let search_input = tree
+            .text_input_with_cursor(
+                WidgetId::new("command_palette_search"),
+                &state.command_palette_search.text,
+                "Type a command or search... [Esc to close]",
+                search_focused,
+                state.command_palette_search.cursor,
+                state.command_palette_search.selection,
+                leaf(pal_w - 96.0, 32.0),
+            )
+            .unwrap();
+        let esc_badge = tree.kbd("Esc", leaf(34.0, 22.0)).unwrap();
+        let search_bar = tree
+            .container(&[search_icon, search_input, esc_badge], row(6.0))
+            .unwrap();
+
+        let div = tree.divider(false, leaf(pal_w - 24.0, 1.0)).unwrap();
+
+        let mut item_nodes = Vec::new();
+        for (idx, (id, label, shortcut, icon_kind)) in filtered.iter().enumerate() {
+            let is_selected = idx == state.command_palette_selected;
+            let variant = if is_selected {
+                ui_widgets::ButtonVariant::Primary
+            } else {
+                ui_widgets::ButtonVariant::Default
+            };
+            let glyph = icon_kind.glyph();
+            let item_btn = tree
+                .button_variant(
+                    WidgetId::new(format!("cmd_action_{}", id)),
+                    format!("{}  {:<36}  [{}]", glyph, label, shortcut),
+                    variant,
+                    true,
+                    leaf(pal_w - 24.0, 26.0),
+                )
+                .unwrap();
+            item_nodes.push(item_btn);
+        }
+
+        let list_container = tree
+            .container(&item_nodes, column(3.0))
+            .unwrap();
+
+        let footer_left = tree
+            .label_muted("↑↓ to navigate   •   ↵ to execute   •   Esc to dismiss", leaf(pal_w - 180.0, 18.0))
+            .unwrap();
+        let footer_right = tree
+            .label_muted(format!("{} commands", filtered.len()), leaf(140.0, 18.0))
+            .unwrap();
+        let footer_row = tree
+            .container(&[footer_left, footer_right], row(6.0))
+            .unwrap();
+
+        let palette_content = tree
+            .container(&[search_bar, div, list_container, footer_row], column(6.0))
+            .unwrap();
+
+        let palette_dialog = tree
+            .modal_dialog(
+                WidgetId::new("command_palette_dialog"),
+                "",
+                &[palette_content],
+                popover_style(pal_x, pal_y, pal_w, pal_h),
+            )
+            .unwrap();
+
+        overlay_nodes.push(palette_dialog);
+    }
+
+    // 8. Notifications Center Drawer / Flyout Tray [Ctrl+N]
+    if state.show_notifications_drawer {
+        let drawer_w = 340.0;
+        let drawer_h = (height - 60.0 - WINDOW_MARGIN * 2.0).max(220.0);
+
+        let bell_icon = tree
+            .icon(ui_widgets::IconKind::Shield, 14.0, Some([0.95, 0.95, 0.95, 1.0]), leaf(18.0, 22.0))
+            .unwrap();
+        let hdr_title = tree
+            .label("Notification Center", leaf(140.0, 22.0))
+            .unwrap();
+        let clear_btn = tree
+            .button(
+                WidgetId::new("clear_notifications_btn"),
+                "Clear All",
+                true,
+                leaf(72.0, 22.0),
+            )
+            .unwrap();
+        let close_drawer_btn = tree
+            .button(
+                WidgetId::new("close_drawer_btn"),
+                "✕",
+                true,
+                leaf(26.0, 22.0),
+            )
+            .unwrap();
+        let hdr_row = tree
+            .container(&[bell_icon, hdr_title, clear_btn, close_drawer_btn], row(6.0))
+            .unwrap();
+        let hdr_div = tree.divider(false, leaf(drawer_w - 24.0, 1.0)).unwrap();
+
+        let mut notif_nodes = Vec::new();
+        if state.notifications_history.is_empty() {
+            let empty_lbl = tree
+                .label_muted("No notifications. All systems operational.", leaf(drawer_w - 32.0, 30.0))
+                .unwrap();
+            notif_nodes.push(empty_lbl);
+        } else {
+            for (title, msg, kind, time) in state.notifications_history.iter().take(6) {
+                let badge_text = match kind {
+                    ToastKind::Success => "✓ OK",
+                    ToastKind::Warning => "▲ WARN",
+                    ToastKind::Error => "✕ ERR",
+                    ToastKind::Info => "≡ INFO",
+                };
+                let t_lbl = tree
+                    .label(
+                        format!("{} [{}] • {}", title, badge_text, time),
+                        leaf(drawer_w - 36.0, 16.0),
+                    )
+                    .unwrap();
+                let m_lbl = tree
+                    .label_muted(msg.as_str(), leaf(drawer_w - 36.0, 14.0))
+                    .unwrap();
+                let item_card = tree
+                    .container(&[t_lbl, m_lbl], column(2.0))
+                    .unwrap();
+                notif_nodes.push(item_card);
+            }
+        }
+
+        let notif_list = tree.container(&notif_nodes, column(6.0)).unwrap();
+        let drawer_content = tree
+            .container(&[hdr_row, hdr_div, notif_list], column(8.0))
+            .unwrap();
+
+        let drawer_dialog = tree
+            .modal_dialog(
+                WidgetId::new("notifications_drawer"),
+                "",
+                &[drawer_content],
+                popover_style(
+                    width - drawer_w - 12.0 - WINDOW_MARGIN,
+                    36.0 + WINDOW_MARGIN,
+                    drawer_w,
+                    drawer_h,
+                ),
+            )
+            .unwrap();
+        overlay_nodes.push(drawer_dialog);
+    }
+
+    // 9. Floating Hover Tooltip Bubble (Info-bulle cyber-glass)
+    if !state.show_command_palette
+        && !state.show_notifications_drawer
+        && state.active_menu.is_none()
+        && !state.dropdown_open
+        && state.context_menu.is_none()
+    {
+        if let Some(w_id) = hovered_widget {
+            if let Some((text, shortcut)) = get_tooltip_for_widget(w_id) {
+                let tip_w = if shortcut.is_some() {
+                    260.0
+                } else {
+                    (text.len() as f32 * 7.2 + 28.0).clamp(160.0, 320.0)
+                };
+                let tip_h = 28.0;
+                let tip_x = (cursor_pos.0 + 14.0).min(width - tip_w - 12.0);
+                let tip_y = (cursor_pos.1 + 18.0).min(height - tip_h - 12.0);
+
+                let tt = tree
+                    .tooltip(
+                        text,
+                        shortcut,
+                        ui_widgets::TooltipPlacement::Bottom,
+                        popover_style(tip_x, tip_y, tip_w, tip_h),
+                    )
+                    .unwrap();
+                overlay_nodes.push(tt);
+            }
+        }
+    }
+
     if overlay_nodes.is_empty() {
         None
     } else {
@@ -2582,7 +3904,8 @@ struct App {
     root: Option<ui_layout::NodeId>,
     overlay_tree: Option<WidgetTree>,
     overlay_root: Option<ui_layout::NodeId>,
-    theme: Theme,
+    theme: Arc<RwLock<Theme>>,
+    theme_watcher: Option<ThemeWatcher>,
     cursor_pos: (f32, f32),
     pressed: Option<InteractionKey>,
     scrollbar_drag: Option<(f32, f32)>,
@@ -2594,6 +3917,8 @@ struct App {
     palette_resize: Option<(String, (f32, f32), (f32, f32))>,
     text_drag: Option<(String, usize)>,
     canvas_drag: Option<String>,
+    knob_drag: Option<String>,
+    node_drag: Option<(String, String, [f32; 2])>,
     prev_cursor_pos: (f32, f32),
     shift_held: bool,
     ctrl_held: bool,
@@ -2605,12 +3930,19 @@ impl App {
         expanded_nodes.insert("crates_dir".to_string());
         expanded_nodes.insert("widgets_dir".to_string());
 
+        let initial_theme = Theme::from_file("themes/aether_os.toml")
+            .or_else(|_| Theme::from_file("themes/studio_pro.toml"))
+            .unwrap_or_else(|_| Theme::aether_os());
+        let theme = Arc::new(RwLock::new(initial_theme));
+
         Self {
             window: None,
             renderer: None,
             resources: ui_gpu::ResourceTable::new(),
             stream_texture: None,
             frame_count: 0,
+            theme,
+            theme_watcher: None,
             state: DemoState {
                 accept_checked: false,
                 turbo_toggle: true,
@@ -2668,12 +4000,127 @@ impl App {
                 media_fit_mode: MediaFit::Cover,
                 canvas_strokes: Vec::new(),
                 canvas_active_stroke: Vec::new(),
+                knob_gain: 74.5,
+                knob_freq: 1250.0,
+                knob_mix: 85.0,
+                tags_list: vec![
+                    "GPU-Render".to_string(),
+                    "SDF-Pipeline".to_string(),
+                    "Realtime-60FPS".to_string(),
+                    "DSP-Node".to_string(),
+                ],
+                chart_inspected: Some((0, 8)),
+                node_graph_nodes: vec![
+                    ui_widgets::GraphNodeSpec {
+                        id: "source_stream".to_string(),
+                        title: "Signal Source".to_string(),
+                        subtitle: Some("Sine 44.1kHz".to_string()),
+                        pos: [20.0, 16.0],
+                        size: [130.0, 68.0],
+                        inputs: vec![],
+                        outputs: vec![ui_widgets::GraphSocket {
+                            name: "Wave Out".to_string(),
+                            socket_type: ui_widgets::SocketType::Signal,
+                            color: None,
+                            is_output: true,
+                        }],
+                        header_color: Some([0.10, 0.25, 0.40, 0.95]),
+                        selected: false,
+                    },
+                    ui_widgets::GraphNodeSpec {
+                        id: "dsp_filter".to_string(),
+                        title: "DSP LowPass Filter".to_string(),
+                        subtitle: Some("Bessel 24dB".to_string()),
+                        pos: [175.0, 16.0],
+                        size: [140.0, 68.0],
+                        inputs: vec![ui_widgets::GraphSocket {
+                            name: "Audio In".to_string(),
+                            socket_type: ui_widgets::SocketType::Signal,
+                            color: None,
+                            is_output: false,
+                        }],
+                        outputs: vec![ui_widgets::GraphSocket {
+                            name: "Filtered".to_string(),
+                            socket_type: ui_widgets::SocketType::Flow,
+                            color: None,
+                            is_output: true,
+                        }],
+                        header_color: Some([0.30, 0.15, 0.45, 0.95]),
+                        selected: true,
+                    },
+                    ui_widgets::GraphNodeSpec {
+                        id: "output_sink".to_string(),
+                        title: "Audio Sink Output".to_string(),
+                        subtitle: Some("DAC Stream".to_string()),
+                        pos: [340.0, 16.0],
+                        size: [135.0, 68.0],
+                        inputs: vec![ui_widgets::GraphSocket {
+                            name: "Master In".to_string(),
+                            socket_type: ui_widgets::SocketType::Flow,
+                            color: None,
+                            is_output: false,
+                        }],
+                        outputs: vec![],
+                        header_color: Some([0.12, 0.35, 0.25, 0.95]),
+                        selected: false,
+                    },
+                ],
+                node_graph_connections: vec![
+                    ui_widgets::GraphConnectionSpec {
+                        from_node: "source_stream".to_string(),
+                        from_socket: 0,
+                        to_node: "dsp_filter".to_string(),
+                        to_socket: 0,
+                        color: Some([0.0, 0.85, 1.0, 0.9]),
+                        flow_active: true,
+                    },
+                    ui_widgets::GraphConnectionSpec {
+                        from_node: "dsp_filter".to_string(),
+                        from_socket: 0,
+                        to_node: "output_sink".to_string(),
+                        to_socket: 0,
+                        color: Some([0.65, 0.35, 0.95, 0.9]),
+                        flow_active: true,
+                    },
+                ],
+                selected_graph_node: Some("dsp_filter".to_string()),
+                file_hovered: false,
+                hovered_file: None,
+                dropped_file_info: None,
+                show_command_palette: false,
+                command_palette_search: TextEditorState::new(""),
+                command_palette_selected: 0,
+                show_notifications_drawer: false,
+                notifications_history: vec![
+                    (
+                        "System Booted".to_string(),
+                        "WGPU Render Pipeline active at 60 FPS".to_string(),
+                        ToastKind::Success,
+                        "2m ago".to_string(),
+                    ),
+                    (
+                        "Cluster Telemetry".to_string(),
+                        "4 Node clusters online (Tokyo, Paris, Frankfurt, Sydney)".to_string(),
+                        ToastKind::Info,
+                        "5m ago".to_string(),
+                    ),
+                ],
+                user_avatar_status: ui_widgets::AvatarStatus::Online,
+                workflow_step: 1,
+                selected_chips: {
+                    let mut s = std::collections::HashSet::new();
+                    s.insert("chip_gpu".to_string());
+                    s.insert("chip_shader".to_string());
+                    s
+                },
+                dismissed_chips: std::collections::HashSet::new(),
+                user_rating: 4,
+                selected_timeline_item: Some(1),
             },
             tree: WidgetTree::new(),
             root: None,
             overlay_tree: None,
             overlay_root: None,
-            theme: Theme::cyber_glass(),
             cursor_pos: (0.0, 0.0),
             prev_cursor_pos: (0.0, 0.0),
             pressed: None,
@@ -2686,6 +4133,8 @@ impl App {
             palette_resize: None,
             text_drag: None,
             canvas_drag: None,
+            knob_drag: None,
+            node_drag: None,
             shift_held: false,
             ctrl_held: false,
         }
@@ -2730,6 +4179,8 @@ impl App {
 
         let measure = renderer.text_measure();
 
+        let current_theme = self.theme.read().unwrap().clone();
+
         let base_hovered = if !self.state.show_modal
             && self.state.active_menu.is_none()
             && !self.state.dropdown_open
@@ -2750,7 +4201,7 @@ impl App {
             measure: Some(&measure),
         };
 
-        let base_frame = match base_tree.build_frame(base_root, &self.theme, base_interaction) {
+        let base_frame = match base_tree.build_frame(base_root, &current_theme, base_interaction) {
             Ok(f) => f,
             Err(err) => {
                 eprintln!("[widget_gallery] base build_frame failed: {err}");
@@ -2758,7 +4209,7 @@ impl App {
             }
         };
 
-        let family = font_family(&self.theme.typography.family);
+        let family = font_family(&current_theme.typography.family);
         let base_text_runs: Vec<_> = base_frame
             .texts
             .iter()
@@ -2831,7 +4282,7 @@ impl App {
             };
 
             let modal_frame =
-                match modal_tree.build_frame(modal_root, &self.theme, modal_interaction) {
+                match modal_tree.build_frame(modal_root, &current_theme, modal_interaction) {
                     Ok(f) => f,
                     Err(err) => {
                         eprintln!("[widget_gallery] modal build_frame failed: {err}");
@@ -2882,9 +4333,17 @@ impl App {
             self.overlay_tree = Some(modal_tree);
             self.overlay_root = Some(modal_root);
         } else {
-            // --- Layer 1: Popover / Palette / Toast / Dropdown Overlays (if active) ---
+            // --- Layer 1: Popover / Palette / Toast / Dropdown / Tooltip Overlays (if active) ---
             let mut popover_tree = WidgetTree::new();
-            let popover_root = build_popover_ui(&mut popover_tree, &self.state, width_f, height_f);
+            let hovered_key = base_hovered.as_ref().map(|k| k.widget_id.as_str());
+            let popover_root = build_popover_ui(
+                &mut popover_tree,
+                &self.state,
+                width_f,
+                height_f,
+                hovered_key,
+                self.cursor_pos,
+            );
 
             if let Some(pop_root) = popover_root {
                 if popover_tree.compute(pop_root, available).is_ok() {
@@ -2898,7 +4357,7 @@ impl App {
                     };
 
                     if let Ok(pop_frame) =
-                        popover_tree.build_frame(pop_root, &self.theme, pop_interaction)
+                        popover_tree.build_frame(pop_root, &current_theme, pop_interaction)
                     {
                         let pop_text_runs: Vec<_> = pop_frame
                             .texts
@@ -3056,11 +4515,15 @@ impl App {
 
         let measure = self.renderer.as_ref().map(|r| r.text_measure());
         let measure_ref = measure.as_ref().map(|m| m as &dyn ui_widgets::TextMeasure);
+        let (typo_family, typo_size) = {
+            let t = self.theme.read().unwrap();
+            (t.typography.family.clone(), t.typography.body_size)
+        };
         if let Ok(Some((widget_id, cursor_idx))) = self.tree.text_cursor_at(
             root,
             self.cursor_pos,
-            &self.theme.typography.family,
-            self.theme.typography.body_size,
+            &typo_family,
+            typo_size,
             measure_ref,
         ) {
             self.state.focused_input = Some(widget_id.clone());
@@ -3090,6 +4553,31 @@ impl App {
             if let Ok(Some(event)) = self.tree.dispatch_click(root, self.cursor_pos) {
                 self.state.apply(event);
             }
+        }
+
+        // Check Knob Rotary Drag
+        if let Ok(Some(node)) = self.tree.hit_test_effective(root, self.cursor_pos) {
+            if let Some(ui_widgets::WidgetKind::Knob { id, .. }) = self.tree.layout().payload(node) {
+                let kid = id.to_string();
+                if let Ok(Some(value)) = self.tree.knob_drag_value(root, &kid, self.cursor_pos) {
+                    match kid.as_str() {
+                        "knob_gain" => self.state.knob_gain = value,
+                        "knob_freq" => self.state.knob_freq = value,
+                        "knob_mix" => self.state.knob_mix = value,
+                        _ => {}
+                    }
+                }
+                self.knob_drag = Some(kid);
+            }
+        }
+
+        // Check NodeGraph Node Drag
+        if let Ok(Some((node_id, offset))) = self.tree.node_graph_hit_node(root, "gallery_node_graph", self.cursor_pos) {
+            self.state.selected_graph_node = Some(node_id.clone());
+            for n in &mut self.state.node_graph_nodes {
+                n.selected = n.id == node_id;
+            }
+            self.node_drag = Some(("gallery_node_graph".to_string(), node_id, offset));
         }
     }
 
@@ -3298,11 +4786,15 @@ impl App {
         let Some(root) = self.root else { return };
         let measure = self.renderer.as_ref().map(|r| r.text_measure());
         let measure_ref = measure.as_ref().map(|m| m as &dyn ui_widgets::TextMeasure);
+        let (typo_family, typo_size) = {
+            let t = self.theme.read().unwrap();
+            (t.typography.family.clone(), t.typography.body_size)
+        };
         if let Ok(Some((widget_id, cur_idx))) = self.tree.text_cursor_at(
             root,
             self.cursor_pos,
-            &self.theme.typography.family,
-            self.theme.typography.body_size,
+            &typo_family,
+            typo_size,
             measure_ref,
         ) {
             if &widget_id == drag_id {
@@ -3330,6 +4822,55 @@ impl App {
         }
     }
 
+    fn update_knob_drag(&mut self) {
+        if self.state.show_modal {
+            return;
+        }
+        let Some(ref target_id) = self.knob_drag else {
+            return;
+        };
+        if let Some(root) = self.root {
+            if let Ok(Some(value)) = self.tree.knob_drag_value(root, target_id, self.cursor_pos) {
+                match target_id.as_str() {
+                    "knob_gain" => self.state.knob_gain = value,
+                    "knob_freq" => self.state.knob_freq = value,
+                    "knob_mix" => self.state.knob_mix = value,
+                    _ => {}
+                }
+            }
+        }
+    }
+
+    fn update_node_drag(&mut self) {
+        if self.state.show_modal {
+            return;
+        }
+        let Some((ref graph_id, ref node_id, grab_offset)) = self.node_drag else {
+            return;
+        };
+        if let Some(root) = self.root {
+            if let Ok(effective) = self.tree.effective_bounds(root) {
+                for (node, entry) in &effective {
+                    if let Some(ui_widgets::WidgetKind::NodeGraph { id, pan, .. }) = self.tree.layout().payload(*node) {
+                        if id.as_str() == graph_id {
+                            let bounds = entry.visual;
+                            let origin_x = bounds[0] + pan[0];
+                            let origin_y = bounds[1] + pan[1];
+                            let new_x = (self.cursor_pos.0 - origin_x - grab_offset[0]).max(10.0);
+                            let new_y = (self.cursor_pos.1 - origin_y - grab_offset[1]).max(10.0);
+                            for n in &mut self.state.node_graph_nodes {
+                                if &n.id == node_id {
+                                    n.pos = [new_x, new_y];
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
     fn handle_release(&mut self) {
         self.scrollbar_drag = None;
         self.slider_drag = None;
@@ -3340,6 +4881,8 @@ impl App {
         self.palette_resize = None;
         self.text_drag = None;
         self.canvas_drag = None;
+        self.knob_drag = None;
+        self.node_drag = None;
         self.state.apply(UiEvent::PointerUp {
             x: self.cursor_pos.0,
             y: self.cursor_pos.1,
@@ -3463,6 +5006,17 @@ impl ApplicationHandler for App {
         self.resources.insert("stream_video", stream_tex.clone());
         self.stream_texture = Some(stream_tex);
         self.renderer = Some(renderer);
+
+        let window_clone = self.window.as_ref().unwrap().clone();
+        let watcher = ThemeWatcher::watch_file(
+            "themes/studio_pro.toml",
+            self.theme.clone(),
+            move |_| {
+                window_clone.request_redraw();
+            },
+        ).ok();
+        self.theme_watcher = watcher;
+
         event_loop.set_control_flow(ControlFlow::Poll);
     }
 
@@ -3492,6 +5046,114 @@ impl ApplicationHandler for App {
                 self.shift_held = modifiers.state().shift_key();
                 self.ctrl_held = modifiers.state().control_key();
             }
+            WindowEvent::HoveredFile(path) => {
+                self.state.file_hovered = true;
+                self.state.hovered_file = Some(path.clone());
+                let widget_id = self.root.and_then(|r| {
+                    self.tree
+                        .hit_test_drop_target(r, self.cursor_pos)
+                        .ok()
+                        .flatten()
+                        .map(|(id, _)| id)
+                });
+                self.state.apply(UiEvent::FileHovered {
+                    widget_id,
+                    path,
+                    position: [self.cursor_pos.0, self.cursor_pos.1],
+                });
+                if let Some(window) = &self.window {
+                    window.request_redraw();
+                }
+            }
+            WindowEvent::HoveredFileCancelled => {
+                self.state.file_hovered = false;
+                self.state.hovered_file = None;
+                self.state.apply(UiEvent::FileHoverCancelled);
+                if let Some(window) = &self.window {
+                    window.request_redraw();
+                }
+            }
+            WindowEvent::DroppedFile(path) => {
+                self.state.file_hovered = false;
+                self.state.hovered_file = None;
+                let file_name = path
+                    .file_name()
+                    .and_then(|n| n.to_str())
+                    .unwrap_or("file")
+                    .to_string();
+                let file_size = std::fs::metadata(&path).map(|m| m.len()).unwrap_or(0);
+                self.state.dropped_file_info = Some((file_name.clone(), file_size));
+
+                let widget_id = self.root.and_then(|r| {
+                    self.tree
+                        .hit_test_drop_target(r, self.cursor_pos)
+                        .ok()
+                        .flatten()
+                        .map(|(id, _)| id)
+                });
+
+                let ext = path
+                    .extension()
+                    .and_then(|e| e.to_str())
+                    .unwrap_or("")
+                    .to_lowercase();
+
+                if matches!(ext.as_str(), "png" | "jpg" | "jpeg" | "webp" | "bmp") {
+                    if let Some(renderer) = self.renderer.as_ref() {
+                        match renderer.create_texture_from_image_file(&path) {
+                            Ok(tex) => {
+                                self.resources.insert("cyber_art", tex);
+                                let disp_name = truncate_middle(&file_name, 28);
+                                self.state.active_toast = Some((
+                                    "Image Pipeline Updated".to_string(),
+                                    format!(
+                                        "Decoded '{}' ({:.1} KB) onto GPU texture",
+                                        disp_name,
+                                        file_size as f32 / 1024.0
+                                    ),
+                                    ToastKind::Success,
+                                ));
+                            }
+                            Err(e) => {
+                                self.state.active_toast = Some((
+                                    "Image Import Failed".to_string(),
+                                    e,
+                                    ToastKind::Error,
+                                ));
+                            }
+                        }
+                    }
+                } else if matches!(ext.as_str(), "rs" | "wgsl" | "json" | "toml" | "txt" | "md") {
+                    if let Ok(content) = std::fs::read_to_string(&path) {
+                        self.state.studio_editor.text = content;
+                        self.state.studio_editor.cursor = 0;
+                        self.state.studio_editor.selection = None;
+                        let disp_name = truncate_middle(&file_name, 28);
+                        self.state.active_toast = Some((
+                            "Source Code Imported".to_string(),
+                            format!("Imported '{}' into Studio Editor", disp_name),
+                            ToastKind::Info,
+                        ));
+                    }
+                } else {
+                    let disp_name = truncate_middle(&file_name, 28);
+                    self.state.active_toast = Some((
+                        "File Dropped".to_string(),
+                        format!("Imported '{}' ({:.1} KB)", disp_name, file_size as f32 / 1024.0),
+                        ToastKind::Info,
+                    ));
+                }
+
+                self.state.apply(UiEvent::FileDropped {
+                    widget_id,
+                    path,
+                    position: [self.cursor_pos.0, self.cursor_pos.1],
+                });
+
+                if let Some(window) = &self.window {
+                    window.request_redraw();
+                }
+            }
             WindowEvent::CursorMoved { position, .. } => {
                 self.prev_cursor_pos = self.cursor_pos;
                 self.cursor_pos = (position.x as f32, position.y as f32);
@@ -3500,6 +5162,8 @@ impl ApplicationHandler for App {
                 self.update_palette_resize();
                 self.update_scrollbar_drag();
                 self.update_slider_drag();
+                self.update_knob_drag();
+                self.update_node_drag();
                 self.update_color_picker_drag();
                 self.update_splitter_drag();
                 self.update_text_drag();
@@ -3577,7 +5241,12 @@ impl ApplicationHandler for App {
                             }
                         }
                         winit::keyboard::Key::Named(winit::keyboard::NamedKey::Escape) => {
-                            if self.state.show_modal {
+                            if self.state.show_command_palette {
+                                self.state.show_command_palette = false;
+                                self.state.focused_input = None;
+                            } else if self.state.show_notifications_drawer {
+                                self.state.show_notifications_drawer = false;
+                            } else if self.state.show_modal {
                                 self.state.show_modal = false;
                             } else if self.state.context_menu.is_some() {
                                 self.state.context_menu = None;
@@ -3591,6 +5260,89 @@ impl ApplicationHandler for App {
                         _ => {
                             let ctrl = self.ctrl_held;
                             let shift = self.shift_held;
+
+                            // Global Shortcuts: Ctrl+K (Command Palette) & Ctrl+N (Notification Center)
+                            if ctrl {
+                                if let winit::keyboard::Key::Character(ref s) = key_event.logical_key {
+                                    if s.eq_ignore_ascii_case("k") {
+                                        self.state.show_command_palette = !self.state.show_command_palette;
+                                        if self.state.show_command_palette {
+                                            self.state.focused_input = Some("command_palette_search".to_string());
+                                            self.state.command_palette_search.text.clear();
+                                            self.state.command_palette_search.cursor = 0;
+                                            self.state.command_palette_selected = 0;
+                                        }
+                                        if let Some(window) = &self.window {
+                                            window.request_redraw();
+                                        }
+                                        return;
+                                    } else if s.eq_ignore_ascii_case("n") {
+                                        self.state.show_notifications_drawer = !self.state.show_notifications_drawer;
+                                        if let Some(window) = &self.window {
+                                            window.request_redraw();
+                                        }
+                                        return;
+                                    }
+                                }
+                            }
+
+                            // Command Palette Arrow Navigation & Enter Execution
+                            if self.state.show_command_palette {
+                                match key_event.logical_key {
+                                    winit::keyboard::Key::Named(winit::keyboard::NamedKey::ArrowUp) => {
+                                        self.state.command_palette_selected = self.state.command_palette_selected.saturating_sub(1);
+                                        if let Some(window) = &self.window {
+                                            window.request_redraw();
+                                        }
+                                        return;
+                                    }
+                                    winit::keyboard::Key::Named(winit::keyboard::NamedKey::ArrowDown) => {
+                                        self.state.command_palette_selected = (self.state.command_palette_selected + 1).min(11);
+                                        if let Some(window) = &self.window {
+                                            window.request_redraw();
+                                        }
+                                        return;
+                                    }
+                                    winit::keyboard::Key::Named(winit::keyboard::NamedKey::Enter) => {
+                                        let all_commands = [
+                                            ("cmd_tab_0", "General Dashboard", "Ctrl+1"),
+                                            ("cmd_tab_1", "UI Primitives & Blocks", "Ctrl+2"),
+                                            ("cmd_tab_2", "Security & Firewall", "Ctrl+3"),
+                                            ("cmd_tab_3", "Cluster Telemetry", "Ctrl+4"),
+                                            ("cmd_tab_4", "Creative Studio", "Ctrl+5"),
+                                            ("cmd_tab_5", "Media & Video Stream", "Ctrl+6"),
+                                            ("cmd_tab_6", "Vector Node Graph", "Ctrl+7"),
+                                            ("cmd_turbo", "Toggle Cyber Turbo Mode", "Turbo"),
+                                            ("cmd_scan", "Run Deep Diagnostic Scan", "F5"),
+                                            ("cmd_notifications", "Toggle Notification Center", "Ctrl+N"),
+                                            ("cmd_status_online", "Set Presence to Online", "Online"),
+                                            ("cmd_status_busy", "Set Presence to Busy (DND)", "Busy"),
+                                        ];
+                                        let query = self.state.command_palette_search.text.to_lowercase();
+                                        let filtered: Vec<_> = all_commands
+                                            .iter()
+                                            .filter(|(_, l, sc)| {
+                                                query.is_empty()
+                                                    || l.to_lowercase().contains(&query)
+                                                    || sc.to_lowercase().contains(&query)
+                                            })
+                                            .collect();
+                                        if !filtered.is_empty() {
+                                            let sel_idx = self.state.command_palette_selected.min(filtered.len() - 1);
+                                            let cmd_id = filtered[sel_idx].0;
+                                            self.state.apply(UiEvent::CommandExecuted {
+                                                command_id: cmd_id.to_string(),
+                                            });
+                                        }
+                                        if let Some(window) = &self.window {
+                                            window.request_redraw();
+                                        }
+                                        return;
+                                    }
+                                    _ => {}
+                                }
+                            }
+
                             if let Some(focused) = &self.state.focused_input {
                                 if self.state.spinners_enabled
                                     && (focused == "concurrency_spin" || focused == "port_spin")
@@ -3664,6 +5416,9 @@ impl ApplicationHandler for App {
                                     let (editor, is_multiline) = match focused.as_str() {
                                         "global_search" => {
                                             (Some(&mut self.state.search_editor), false)
+                                        }
+                                        "command_palette_search" => {
+                                            (Some(&mut self.state.command_palette_search), false)
                                         }
                                         "master_token_pwd" => {
                                             (Some(&mut self.state.password_editor), false)

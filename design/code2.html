@@ -1,0 +1,563 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="fr"><head><meta charset="utf-8"/><meta content="width=device-width, initial-scale=1.0" name="viewport"/><meta content="web_standard" name="shell-type"/><link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet"/><link href="https://fonts.googleapis.com" rel="preconnect"/><link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&amp;family=JetBrains+Mono:wght@500&amp;family=Plus+Jakarta+Sans:wght@600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/><style>@layer base{html,body{margin:0;padding:0;}body{overscroll-behavior:none;}main>:first-child{margin-top:0!important;}main>:last-child{margin-bottom:0!important;}}::-webkit-scrollbar{display:none;}</style><script src="https://cdn.tailwindcss.com"></script><script id="tailwind-config">tailwind.config={darkMode:"class",theme:{extend:{"colors":{"error-container":"#93000a","on-surface":"#dfe2f1","on-secondary-fixed":"#001e2c","surface-tint":"#c0c1ff","on-secondary":"#00354a","on-primary-fixed-variant":"#2f2ebe","secondary-fixed-dim":"#7bd0ff","tertiary-fixed":"#6ffbbe","outline-variant":"#464554","on-tertiary-container":"#000703","tertiary-container":"#00885d","tertiary-fixed-dim":"#4edea3","on-primary":"#1000a9","inverse-surface":"#dfe2f1","primary-container":"#8083ff","surface-container-lowest":"#0a0e18","surface-container-high":"#262a35","primary":"#c0c1ff","on-tertiary-fixed":"#002113","tertiary":"#4edea3","on-secondary-container":"#00374d","on-secondary-fixed-variant":"#004c69","background":"#0f131d","on-primary-container":"#0d0096","primary-fixed-dim":"#c0c1ff","on-tertiary":"#003824","primary-fixed":"#e1e0ff","surface-bright":"#353944","on-surface-variant":"#c7c4d7","on-error":"#690005","error":"#ffb4ab","inverse-on-surface":"#2c303b","surface":"#0f131d","on-primary-fixed":"#07006c","outline":"#908fa0","surface-variant":"#313540","surface-container-low":"#171b26","surface-dim":"#0f131d","on-error-container":"#ffdad6","inverse-primary":"#494bd6","on-background":"#dfe2f1","secondary":"#7bd0ff","surface-container":"#1c1f2a","secondary-container":"#00a6e0","secondary-fixed":"#c4e7ff","on-tertiary-fixed-variant":"#005236","surface-container-highest":"#313540"},"borderRadius":{"DEFAULT":"0.25rem","lg":"0.5rem","xl":"0.75rem","full":"9999px"},"spacing":{"margin-mobile":"0.75rem","space-xs":"0.25rem","space-md":"0.75rem","space-sm":"0.5rem","gutter-sm":"0.5rem","space-lg":"1.25rem","margin":"1.5rem","gutter":"1rem","space-xl":"2rem"},"fontFamily":{"display-lg-mobile":["Plus Jakarta Sans"],"headline-sm":["Plus Jakarta Sans"],"label-md":["Inter"],"headline-md":["Plus Jakarta Sans"],"body-md":["Inter"],"display-lg":["Plus Jakarta Sans"],"body-lg":["Inter"],"label-sm":["Inter"],"headline-lg":["Plus Jakarta Sans"],"body-sm":["Inter"],"mono-lg":["JetBrains Mono"],"mono-sm":["JetBrains Mono"]},"fontSize":{"display-lg-mobile":["32px",{"lineHeight":"40px","letterSpacing":"-0.02em","fontWeight":"700"}],"headline-sm":["15px",{"lineHeight":"22px","letterSpacing":"-0.01em","fontWeight":"600"}],"label-md":["11px",{"lineHeight":"16px","letterSpacing":"0.04em","fontWeight":"600"}],"headline-md":["18px",{"lineHeight":"26px","letterSpacing":"-0.015em","fontWeight":"600"}],"body-md":["13px",{"lineHeight":"20px","fontWeight":"400"}],"display-lg":["48px",{"lineHeight":"56px","letterSpacing":"-0.03em","fontWeight":"700"}],"body-lg":["15px",{"lineHeight":"24px","fontWeight":"400"}],"label-sm":["10px",{"lineHeight":"14px","letterSpacing":"0.06em","fontWeight":"600"}],"headline-lg":["24px",{"lineHeight":"32px","letterSpacing":"-0.02em","fontWeight":"600"}],"body-sm":["12px",{"lineHeight":"18px","fontWeight":"400"}],"mono-lg":["13px",{"lineHeight":"18px","letterSpacing":"-0.01em","fontWeight":"500"}],"mono-sm":["11px",{"lineHeight":"16px","letterSpacing":"0em","fontWeight":"500"}]}}}};</script></head><body class="bg-background font-body-md text-body-md text-on-surface min-h-screen relative overflow-x-hidden selection:bg-primary-container selection:text-on-primary-container"><div class="fixed inset-0 pointer-events-none -z-10 bg-[radial-gradient(ellipse_80%_80%_at_50%_-20%,rgba(99,102,241,0.18),rgba(255,255,255,0)),radial-gradient(ellipse_60%_50%_at_80%_90%,rgba(56,189,248,0.12),rgba(255,255,255,0))] bg-surface-container-lowest"></div><div class="fixed inset-0 pointer-events-none -z-10 bg-[radial-gradient(#464554_1px,transparent_1px)] [background-size:24px_24px] opacity-20"></div><header class="fixed top-0 left-0 w-full h-10 z-50 bg-surface-container-lowest/80 backdrop-blur-xl shadow-[0_1px_8px_rgba(0,0,0,0.4)]"><div class="w-full h-10 px-margin flex items-center justify-between"><div class="flex items-center gap-space-lg"><div class="flex items-center gap-space-sm"><img alt="Stratus Cloud OS Logo" class="h-8 w-auto object-contain" src="https://lh3.googleusercontent.com/aida-public/AB6AXuA5crZUHAdIoPS_8WLqgoQBFUo-piGgbXHqxUTicXMVbSsZQELlb_j4NHCjUPkLvRw5rtAQDewTTljX87F02g_ayN-wRyoqlxejY1fCtHk35DPCfE8l2PrCmv1VGFbugWCULRusbVSl0hXNIP6S-6v1PXZxphGFH3RX90YBPf7tl6DwzOmevTHHbNGo2Yivba_My7YJot8kFumK5aTDDOr6VbOmR92k5k1R3Cx4Gp_76mBfV5eYU0voHw"/><span class="font-headline-sm text-headline-sm text-on-surface tracking-tight hidden sm:inline">Stratus OS</span></div><nav class="hidden xl:flex items-center gap-space-md" data-active-classes="text-primary font-semibold"><a class="text-on-surface-variant hover:text-on-surface font-body-sm text-body-sm transition-colors" data-path="espace-de-travail" href="#">Fichier</a><a aria-current="page" class="transition-colors text-primary font-semibold" data-path="fichiers-cloud" href="#">Affichage</a><a class="text-on-surface-variant hover:text-on-surface font-body-sm text-body-sm transition-colors" data-path="moniteur-systeme" href="#">Espaces Cloud</a><a class="text-on-surface-variant hover:text-on-surface font-body-sm text-body-sm transition-colors" data-path="terminal-shell" href="#">Outils</a><a class="text-on-surface-variant hover:text-on-surface font-body-sm text-body-sm transition-colors" data-path="parametres-systeme" href="#">Aide</a></nav></div><div class="flex items-center gap-space-md"><div class="hidden lg:flex items-center gap-space-sm px-space-sm py-space-xs bg-surface-container-high/60 backdrop-blur-md rounded-full shadow-[0_1px_4px_rgba(0,0,0,0.2)]"><div class="flex items-center gap-space-xs px-space-xs"><span class="w-1.5 h-1.5 rounded-full bg-tertiary animate-pulse"></span><span class="font-mono-sm text-mono-sm text-on-surface-variant">99.98%</span></div><div class="flex items-center gap-space-xs px-space-xs"><span class="font-mono-sm text-mono-sm text-secondary">12ms</span><span class="font-mono-sm text-mono-sm text-on-surface-variant">FRA</span></div><div class="flex items-center gap-space-xs px-space-xs"><span class="font-mono-sm text-mono-sm text-on-surface-variant">RAM</span><span class="font-mono-sm text-mono-sm text-on-surface">4.8/32G</span></div><div class="flex items-center gap-space-xs px-space-xs"><span class="font-mono-sm text-mono-sm text-on-surface-variant">CPU</span><span class="font-mono-sm text-mono-sm text-primary">14%</span></div></div><div class="flex items-center gap-space-sm"><button class="p-space-xs rounded-full bg-surface-container/70 text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high transition-colors" type="button"><span class="material-symbols-outlined text-[16px] leading-none block">tune</span></button><div class="flex items-center gap-space-xs text-on-surface font-mono-sm text-mono-sm"><span class="hidden md:inline text-on-surface-variant">Ven 24 Oct</span><span>14:32</span></div><img alt="Profile" class="w-8 h-8 rounded-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBh1C09UZDbriCvMYERrXJyCOWWQyo5iSp6h0kUQU1K7lMxo9k0p8FxHIeKVFhPkrC1s4EpDc-am87wP8a5dvTKv8KynWYKXt0NAxaJL4ae5ijlp9Gdwp2cnghtRDap1FLEQZWySlE1_Zwub8IjTf2Z4W2gDvtv12ZGzo3gZOnM8BmW7yrfpapgy3eL0yswdzCXIEulHaE5cthVRs2Esy-zdf6NMv3StkfK8nHmCGVVIyBvZvqOulFPMw"/></div></div></div></header><main class="w-full pt-10 min-h-screen relative pb-space-xl"><div class="flex flex-col w-full">
+<div class="w-full px-margin py-space-sm">
+<div class="w-full bg-surface-container-low/85 backdrop-blur-2xl rounded-xl shadow-xl flex flex-col overflow-hidden">
+<!-- Window Title Bar -->
+<div class="h-10 px-space-md bg-surface-container-high/60 flex items-center justify-between select-none">
+<div class="flex items-center gap-space-sm">
+<div class="flex items-center gap-1.5">
+<span class="w-3 h-3 rounded-full bg-error hover:opacity-80 cursor-pointer transition-opacity"></span>
+<span class="w-3 h-3 rounded-full bg-secondary-container hover:opacity-80 cursor-pointer transition-opacity"></span>
+<span class="w-3 h-3 rounded-full bg-tertiary hover:opacity-80 cursor-pointer transition-opacity"></span>
+</div>
+<div class="h-4 w-px bg-surface-variant mx-1"></div>
+<div class="flex items-center gap-1.5 text-on-surface-variant">
+<span class="material-symbols-outlined text-[16px] text-primary">cloud_sync</span>
+<span class="font-headline-sm text-headline-sm text-on-surface">Stratus VirtualFS</span>
+<span class="px-1.5 py-0.5 rounded bg-surface-variant/80 text-secondary font-mono-sm text-mono-sm">v3.8-edge</span>
+</div>
+</div>
+<!-- Center Quick Path Search -->
+<div class="hidden md:flex items-center gap-space-xs bg-surface-container-lowest/80 px-space-md py-1 rounded-full shadow-inner w-96 max-w-full">
+<span class="material-symbols-outlined text-[15px] text-outline">search</span>
+<input class="bg-transparent text-on-surface font-body-sm text-body-sm focus:outline-none w-full placeholder:text-outline" placeholder="Rechercher par hash, tag ou nom de fichier... (⌘K)" type="text"/>
+<span class="font-mono-sm text-mono-sm text-outline-variant bg-surface-container px-1 rounded">⌘K</span>
+</div>
+<!-- Right Quick Telemetry / Sync Actions -->
+<div class="flex items-center gap-space-sm text-on-surface-variant">
+<div class="flex items-center gap-1 px-space-xs py-0.5 rounded bg-tertiary-container/30 text-tertiary font-mono-sm text-mono-sm">
+<span class="w-1.5 h-1.5 rounded-full bg-tertiary animate-ping"></span>
+<span>Cluster Sync OK</span>
+</div>
+<button class="p-1 rounded hover:bg-surface-variant text-on-surface-variant hover:text-on-surface transition-colors" title="Paramètres du Bucket">
+<span class="material-symbols-outlined text-[18px]">more_vert</span>
+</button>
+</div>
+</div>
+<!-- Action & Filter Bar -->
+<div class="px-space-md py-space-sm bg-surface-container/70 flex flex-wrap items-center justify-between gap-space-sm">
+<!-- Breadcrumb Navigation -->
+<div class="flex items-center flex-wrap gap-1 text-on-surface-variant font-body-sm text-body-sm">
+<button class="flex items-center gap-1 hover:text-primary transition-colors px-1 py-0.5 rounded hover:bg-surface-container-high">
+<span class="material-symbols-outlined text-[16px] text-primary">cloud_queue</span>
+<span>Racine Cloud</span>
+</button>
+<span class="text-outline-variant">/</span>
+<button class="hover:text-primary transition-colors px-1 py-0.5 rounded hover:bg-surface-container-high">Projets_2025</button>
+<span class="text-outline-variant">/</span>
+<button class="hover:text-primary transition-colors px-1 py-0.5 rounded hover:bg-surface-container-high">Nebula_Platform</button>
+<span class="text-outline-variant">/</span>
+<span class="text-on-surface font-semibold bg-surface-container-highest/80 px-2 py-0.5 rounded">Builds_Production</span>
+</div>
+<!-- Filter Chips & View Mode Switcher -->
+<div class="flex items-center flex-wrap gap-space-sm ml-auto">
+<!-- Filters -->
+<div class="hidden xl:flex items-center gap-1.5">
+<button class="px-2.5 py-1 rounded-full bg-primary/20 text-primary font-label-md text-label-md flex items-center gap-1 shadow-sm">
+<span class="w-1.5 h-1.5 rounded-full bg-primary"></span>
+              Tous
+            </button>
+<button class="px-2.5 py-1 rounded-full bg-surface-container-high/60 text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high font-label-md text-label-md transition-all">
+              Modèles IA
+            </button>
+<button class="px-2.5 py-1 rounded-full bg-surface-container-high/60 text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high font-label-md text-label-md transition-all">
+              Bases de données
+            </button>
+<button class="px-2.5 py-1 rounded-full bg-surface-container-high/60 text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high font-label-md text-label-md transition-all">
+              Snapshots
+            </button>
+</div>
+<!-- View Switcher -->
+<div class="flex items-center bg-surface-container-lowest/80 p-0.5 rounded-lg">
+<button class="p-1 rounded bg-surface-container-high text-primary shadow-sm" title="Vue Grille">
+<span class="material-symbols-outlined text-[17px] leading-none block">grid_view</span>
+</button>
+<button class="p-1 rounded text-on-surface-variant hover:text-on-surface transition-colors" title="Vue Liste">
+<span class="material-symbols-outlined text-[17px] leading-none block">view_list</span>
+</button>
+<button class="p-1 rounded text-on-surface-variant hover:text-on-surface transition-colors" title="Vue Colonnes">
+<span class="material-symbols-outlined text-[17px] leading-none block">view_column_2</span>
+</button>
+</div>
+<!-- Primary Actions -->
+<div class="flex items-center gap-1.5">
+<button class="flex items-center gap-1.5 bg-surface-container-high hover:bg-surface-bright text-on-surface px-3 py-1.5 rounded-lg font-body-sm text-body-sm shadow-md transition-all">
+<span class="material-symbols-outlined text-[16px]">create_new_folder</span>
+<span class="hidden sm:inline">Dossier</span>
+</button>
+<button class="flex items-center gap-1.5 bg-primary hover:bg-primary-container text-on-primary-container px-3.5 py-1.5 rounded-lg font-headline-sm text-headline-sm shadow-lg shadow-primary-container/20 transition-all">
+<span class="material-symbols-outlined text-[17px]">cloud_upload</span>
+<span>Uploader</span>
+</button>
+</div>
+</div>
+</div>
+<!-- Main Application Body: 3-column Layout -->
+<div class="grid grid-cols-1 lg:grid-cols-12 min-h-[640px]">
+<!-- Left Sidebar: Arborescence & Storage Info (Cols: 1-3) -->
+<aside class="lg:col-span-3 bg-surface-container-lowest/60 p-space-md flex flex-col justify-between gap-space-lg">
+<div class="flex flex-col gap-space-md">
+<!-- Quick Workspace Selector -->
+<div class="flex items-center justify-between p-2 rounded-lg bg-surface-container-high/40 hover:bg-surface-container-high/70 cursor-pointer transition-colors">
+<div class="flex items-center gap-2">
+<div class="w-7 h-7 rounded-md bg-secondary/20 flex items-center justify-center text-secondary">
+<span class="material-symbols-outlined text-[18px]">dns</span>
+</div>
+<div class="flex flex-col">
+<span class="font-headline-sm text-headline-sm text-on-surface">Cluster Aether-EU</span>
+<span class="font-mono-sm text-mono-sm text-outline">s3://eu-central-cluster-09</span>
+</div>
+</div>
+<span class="material-symbols-outlined text-[16px] text-outline">unfold_more</span>
+</div>
+<!-- Directory Tree -->
+<div class="flex flex-col gap-1 text-on-surface-variant font-body-sm text-body-sm">
+<span class="font-label-sm text-label-sm text-outline px-2 tracking-wider uppercase mb-1">Espaces de Stockage</span>
+<!-- Active Item -->
+<a class="flex items-center justify-between px-2.5 py-1.5 rounded-lg bg-primary/15 text-primary font-medium transition-colors" href="#">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-[18px]">folder_special</span>
+<span>Mes Espaces</span>
+</div>
+<span class="font-mono-sm text-mono-sm bg-primary/20 px-1.5 py-0.2 rounded">1.2 TB</span>
+</a>
+<a class="flex items-center justify-between px-2.5 py-1.5 rounded-lg hover:bg-surface-container-high/50 hover:text-on-surface transition-colors" href="#">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-[18px]">domain</span>
+<span>Disque Entreprise</span>
+</div>
+<span class="font-mono-sm text-mono-sm text-outline">2.8 TB</span>
+</a>
+<a class="flex items-center justify-between px-2.5 py-1.5 rounded-lg hover:bg-surface-container-high/50 hover:text-on-surface transition-colors" href="#">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-[18px] text-tertiary">lock</span>
+<span>Buckets S3 Cryptés</span>
+</div>
+<span class="w-1.5 h-1.5 rounded-full bg-tertiary"></span>
+</a>
+<a class="flex items-center justify-between px-2.5 py-1.5 rounded-lg hover:bg-surface-container-high/50 hover:text-on-surface transition-colors" href="#">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-[18px]">history</span>
+<span>Snapshots Système</span>
+</div>
+<span class="font-mono-sm text-mono-sm text-outline">18 v.</span>
+</a>
+<span class="font-label-sm text-label-sm text-outline px-2 tracking-wider uppercase mt-3 mb-1">Accès Rapide</span>
+<a class="flex items-center gap-2 px-2.5 py-1.5 rounded-lg hover:bg-surface-container-high/50 hover:text-on-surface transition-colors" href="#">
+<span class="material-symbols-outlined text-[18px] text-secondary">star</span>
+<span>Favoris</span>
+</a>
+<a class="flex items-center gap-2 px-2.5 py-1.5 rounded-lg hover:bg-surface-container-high/50 hover:text-on-surface transition-colors" href="#">
+<span class="material-symbols-outlined text-[18px]">schedule</span>
+<span>Fichiers Récents</span>
+</a>
+<a class="flex items-center gap-2 px-2.5 py-1.5 rounded-lg hover:bg-surface-container-high/50 hover:text-on-surface transition-colors" href="#">
+<span class="material-symbols-outlined text-[18px]">share</span>
+<span>Partagés avec moi</span>
+</a>
+<a class="flex items-center justify-between px-2.5 py-1.5 rounded-lg hover:bg-surface-container-high/50 hover:text-error transition-colors mt-2" href="#">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-[18px]">delete</span>
+<span>Corbeille</span>
+</div>
+<span class="font-mono-sm text-mono-sm text-outline">412 MB</span>
+</a>
+</div>
+<!-- Pinned Micro Tags / Environments -->
+<div class="bg-surface-container-high/30 p-2.5 rounded-xl flex flex-col gap-2">
+<span class="font-label-sm text-label-sm text-outline uppercase tracking-wider">Zones CDN Actives</span>
+<div class="grid grid-cols-2 gap-1.5 font-mono-sm text-mono-sm">
+<div class="p-1.5 rounded bg-surface-container flex items-center justify-between">
+<span class="text-on-surface">FRA-1</span>
+<span class="text-tertiary">9ms</span>
+</div>
+<div class="p-1.5 rounded bg-surface-container flex items-center justify-between">
+<span class="text-on-surface">IAD-4</span>
+<span class="text-secondary">42ms</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Storage Quota Gauge Card -->
+<div class="bg-surface-container/70 p-space-sm rounded-xl flex flex-col gap-space-xs shadow-md">
+<div class="flex items-center justify-between">
+<span class="font-headline-sm text-headline-sm text-on-surface">Quota Alloué</span>
+<span class="font-mono-sm text-mono-sm text-primary font-semibold">68.4%</span>
+</div>
+<!-- Custom Progress SVG -->
+<div class="w-full bg-surface-container-lowest h-2 rounded-full overflow-hidden">
+<div class="bg-gradient-to-r from-secondary via-primary to-primary-container h-full w-[68%] rounded-full shadow-[0_0_8px_rgba(192,193,255,0.6)]"></div>
+</div>
+<div class="flex justify-between items-center text-outline font-mono-sm text-mono-sm mt-1">
+<span>3.42 TB utilisés</span>
+<span>5.0 TB Max</span>
+</div>
+<button class="mt-2 w-full py-1.5 px-2 bg-surface-container-highest/80 hover:bg-surface-container-highest text-on-surface rounded-lg font-label-md text-label-md flex items-center justify-center gap-1 transition-colors">
+<span class="material-symbols-outlined text-[14px]">tune</span>
+<span>Gérer les quotas &amp; auto-scale</span>
+</button>
+</div>
+</aside>
+<!-- Center Explorer Area: Files Grid (Cols: 4-8 or 4-9) -->
+<main class="lg:col-span-6 p-space-md flex flex-col gap-space-md overflow-y-auto max-h-[820px]">
+<!-- Folder Quick Access Carousel -->
+<div>
+<div class="flex items-center justify-between mb-space-xs">
+<span class="font-label-sm text-label-sm text-outline uppercase tracking-wider">Sous-Dossiers Actifs</span>
+<span class="font-mono-sm text-mono-sm text-outline">4 répertoires</span>
+</div>
+<div class="grid grid-cols-2 sm:grid-cols-4 gap-space-sm">
+<!-- Folder Card 1 -->
+<div class="p- space-sm p-3 rounded-xl bg-surface-container hover:bg-surface-container-high transition-all cursor-pointer group shadow-sm flex flex-col justify-between">
+<div class="flex items-center justify-between">
+<span class="material-symbols-outlined text-[26px] text-secondary group-hover:scale-110 transition-transform">folder_zip</span>
+<span class="material-symbols-outlined text-[16px] text-outline opacity-0 group-hover:opacity-100 transition-opacity">more_vert</span>
+</div>
+<div class="mt-2">
+<span class="font-headline-sm text-headline-sm text-on-surface block truncate">Release_v4.2</span>
+<span class="font-mono-sm text-mono-sm text-outline block">14 fichiers • 8.4 GB</span>
+</div>
+</div>
+<!-- Folder Card 2 -->
+<div class="p-3 rounded-xl bg-surface-container hover:bg-surface-container-high transition-all cursor-pointer group shadow-sm flex flex-col justify-between">
+<div class="flex items-center justify-between">
+<span class="material-symbols-outlined text-[26px] text-primary group-hover:scale-110 transition-transform">neurology</span>
+<span class="material-symbols-outlined text-[16px] text-outline opacity-0 group-hover:opacity-100 transition-opacity">more_vert</span>
+</div>
+<div class="mt-2">
+<span class="font-headline-sm text-headline-sm text-on-surface block truncate">LLM_Checkpoints</span>
+<span class="font-mono-sm text-mono-sm text-outline block">6 modèles • 142 GB</span>
+</div>
+</div>
+<!-- Folder Card 3 -->
+<div class="p-3 rounded-xl bg-surface-container hover:bg-surface-container-high transition-all cursor-pointer group shadow-sm flex flex-col justify-between">
+<div class="flex items-center justify-between">
+<span class="material-symbols-outlined text-[26px] text-tertiary group-hover:scale-110 transition-transform">database</span>
+<span class="material-symbols-outlined text-[16px] text-outline opacity-0 group-hover:opacity-100 transition-opacity">more_vert</span>
+</div>
+<div class="mt-2">
+<span class="font-headline-sm text-headline-sm text-on-surface block truncate">Postgres_Dumps</span>
+<span class="font-mono-sm text-mono-sm text-outline block">32 snapshots • 64 GB</span>
+</div>
+</div>
+<!-- Folder Card 4 -->
+<div class="p-3 rounded-xl bg-surface-container hover:bg-surface-container-high transition-all cursor-pointer group shadow-sm flex flex-col justify-between">
+<div class="flex items-center justify-between">
+<span class="material-symbols-outlined text-[26px] text-on-surface-variant group-hover:scale-110 transition-transform">layers</span>
+<span class="material-symbols-outlined text-[16px] text-outline opacity-0 group-hover:opacity-100 transition-opacity">more_vert</span>
+</div>
+<div class="mt-2">
+<span class="font-headline-sm text-headline-sm text-on-surface block truncate">Docker_Layers</span>
+<span class="font-mono-sm text-mono-sm text-outline block">9 images • 18.2 GB</span>
+</div>
+</div>
+</div>
+</div>
+<!-- File Grid Section -->
+<div class="flex flex-col gap-space-sm mt-1">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-space-xs">
+<span class="font-headline-md text-headline-md text-on-surface">Objets &amp; Fichiers</span>
+<span class="font-mono-sm text-mono-sm px-1.5 py-0.5 rounded-full bg-surface-container-high text-outline">8 items</span>
+</div>
+<div class="flex items-center gap-2 text-outline font-mono-sm text-mono-sm">
+<span>Tri:</span>
+<button class="text-on-surface hover:text-primary flex items-center gap-0.5">
+<span>Modifié récemment</span>
+<span class="material-symbols-outlined text-[14px]">arrow_drop_down</span>
+</button>
+</div>
+</div>
+<!-- Bento/Grid of Files -->
+<div class="grid grid-cols-1 md:grid-cols-2 gap-space-md">
+<!-- File Card 1: Selected File (model_weights_v4.safetensors) -->
+<div class="p-space-md rounded-xl bg-surface-container-high shadow-lg shadow-primary-container/10 flex flex-col justify-between relative group cursor-pointer transition-all scale-[1.01]">
+<div class="absolute top-2 right-2 flex items-center gap-1">
+<span class="px-1.5 py-0.5 rounded bg-tertiary/20 text-tertiary font-mono-sm text-label-sm flex items-center gap-1">
+<span class="material-symbols-outlined text-[12px]">lock</span> AES-256
+                  </span>
+</div>
+<div>
+<div class="w-10 h-10 rounded-lg bg-primary/20 text-primary flex items-center justify-center mb-space-sm">
+<span class="material-symbols-outlined text-[24px]">model_training</span>
+</div>
+<h3 class="font-headline-sm text-headline-sm text-on-surface truncate">model_weights_v4.safetensors</h3>
+<div class="flex items-center gap-2 mt-1">
+<span class="font-mono-sm text-mono-sm text-secondary font-medium">14.28 GB</span>
+<span class="text-outline">•</span>
+<span class="font-mono-sm text-mono-sm text-outline">PyTorch Checkpoint</span>
+</div>
+</div>
+<!-- Preview Thumbnail / Visual Canvas -->
+<div class="my-space-sm h-24 rounded-lg bg-surface-container-lowest/80 overflow-hidden relative flex items-center justify-center p-2">
+<svg class="w-full h-full text-primary/40" fill="none" viewbox="0 0 200 60">
+<path d="M0 30 Q 25 5, 50 30 T 100 30 T 150 15 T 200 45" fill="none" stroke="currentColor" stroke-width="2"></path>
+<path d="M0 30 Q 25 55, 50 30 T 100 30 T 150 45 T 200 15" fill="none" stroke="currentColor" stroke-dasharray="2 2" stroke-width="1.5"></path>
+<circle cx="50" cy="30" fill="#c0c1ff" r="3"></circle>
+<circle cx="100" cy="30" fill="#7bd0ff" r="3"></circle>
+<circle cx="150" cy="15" fill="#4edea3" r="3"></circle>
+</svg>
+<span class="absolute bottom-1 right-2 font-mono-sm text-label-sm text-outline">Tensor rank: 4 • fp16</span>
+</div>
+<div class="flex items-center justify-between pt-1">
+<div class="flex items-center -space-x-1.5">
+<img class="w-6 h-6 rounded-full object-cover" data-alt="High quality portrait of an AI engineer with dark studio lighting and subtle cyan rim light wearing minimalist black crewneck" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDW1Q2EPZOTdzJmSAeCjMjVDBjfomz5Qa3GRrjlfCZognmVRxJiNGGNJJ-QJj0XYpohq-nvo6UmGzhOBHqieeI5GiynNbMD0Q_7rTk0p3CsyA_piDNeNETtBFIk2yr15rRKjOOEQqdugHrCws0bgN2f2MAo-O9LjZa_aMHKAU2sylxjvClEZoAE70L3tD-B5BKANQiejZ-LeX6WYJG4HPRevNk31ra8C8sxvLENzVdz8t5QFAsG99WUbg"/>
+<img class="w-6 h-6 rounded-full object-cover" data-alt="Close up avatar portrait of a software architect with natural expression and soft purple background" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDmYcp0_FA8prxgUFTtHZBFM__RdYaA-ri6Q0QvNMw9u54ME-uTCgS1mUJHMY1qiVCU16ibYe-Az1OrV2jwgnLEZZg3zKfnHl49I6I1PuMtiPGZjzslpRpFF956XaHzAV-qhL2SPjyunqnGzAwTkTa2SvLDqS8UFhus2KEzdLUfoCkRpv0fWqgGaPo5RNtgYmyoE6cfVx1gdUvUYyk19_aswTzmCZh8MybsVzHuLo053WMW55O66OBcog"/>
+<span class="w-6 h-6 rounded-full bg-surface-container-highest text-outline font-mono-sm text-label-sm flex items-center justify-center">+2</span>
+</div>
+<span class="font-mono-sm text-mono-sm text-outline">Il y a 12 min</span>
+</div>
+</div>
+<!-- File Card 2: dashboard_config.json -->
+<div class="p-space-md rounded-xl bg-surface-container/60 hover:bg-surface-container-high transition-all shadow-md flex flex-col justify-between cursor-pointer group">
+<div class="flex items-start justify-between">
+<div class="w-10 h-10 rounded-lg bg-secondary/15 text-secondary flex items-center justify-center mb-space-sm">
+<span class="material-symbols-outlined text-[24px]">data_object</span>
+</div>
+<span class="px-1.5 py-0.5 rounded bg-tertiary/20 text-tertiary font-mono-sm text-label-sm flex items-center gap-1">
+<span class="material-symbols-outlined text-[12px]">verified</span> Validé
+                  </span>
+</div>
+<div>
+<h3 class="font-headline-sm text-headline-sm text-on-surface truncate">dashboard_config.json</h3>
+<div class="flex items-center gap-2 mt-1">
+<span class="font-mono-sm text-mono-sm text-secondary font-medium">42.8 KB</span>
+<span class="text-outline">•</span>
+<span class="font-mono-sm text-mono-sm text-outline">JSON Schema v2</span>
+</div>
+</div>
+<!-- Code / Config Micro Preview -->
+<div class="my-space-sm h-24 rounded-lg bg-surface-container-lowest/80 p-2 font-mono-sm text-label-sm text-on-surface-variant/80 flex flex-col justify-center overflow-hidden">
+<span class="text-secondary truncate">"telemetryEndpoint": "stratus://k8s-mesh",</span>
+<span class="text-tertiary truncate">"replicas": 12, "hotStandby": true,</span>
+<span class="text-primary truncate">"encryption": { "cipher": "AES-GCM-256" }</span>
+</div>
+<div class="flex items-center justify-between pt-1">
+<div class="flex items-center gap-1.5">
+<img class="w-6 h-6 rounded-full object-cover" data-alt="Portrait of a female DevOps lead in futuristic tech office with warm ambient screen glow" src="https://lh3.googleusercontent.com/aida-public/AB6AXuC6f5j4ClyIOPb0wdA7tyFGSE-sTOq7-U0DM7gKOpteZmkuS4WYlpzo5soiKTr4rJxPxpHvhmOb89NBRA8b1Tenl-1bC5mdMryG2XIykoXjlsb9tWvZ6BkSLspyVzpWkmMBD4SLePCFQD8f5X6bVF88vomx654o-VliNMBG90S0Tcn49gFCQ8kxhJQ5AkEjCpg12a06fUi300DWBCSnIKxRkGtrWUGSz4AguWwp5c3ve1UNrO1fKeTMOA"/>
+<span class="font-body-sm text-body-sm text-on-surface-variant">Elena R.</span>
+</div>
+<span class="font-mono-sm text-mono-sm text-outline">Hier 18:24</span>
+</div>
+</div>
+<!-- File Card 3: dataset_synthetic_telemetry.parquet -->
+<div class="p-space-md rounded-xl bg-surface-container/60 hover:bg-surface-container-high transition-all shadow-md flex flex-col justify-between cursor-pointer group">
+<div class="flex items-start justify-between">
+<div class="w-10 h-10 rounded-lg bg-tertiary/15 text-tertiary flex items-center justify-center mb-space-sm">
+<span class="material-symbols-outlined text-[24px]">table_chart</span>
+</div>
+<span class="px-1.5 py-0.5 rounded bg-surface-variant text-outline font-mono-sm text-label-sm">
+                    Snappy Comp.
+                  </span>
+</div>
+<div>
+<h3 class="font-headline-sm text-headline-sm text-on-surface truncate">telemetry_records_q3.parquet</h3>
+<div class="flex items-center gap-2 mt-1">
+<span class="font-mono-sm text-mono-sm text-secondary font-medium">3.92 GB</span>
+<span class="text-outline">•</span>
+<span class="font-mono-sm text-mono-sm text-outline">Apache Parquet</span>
+</div>
+</div>
+<div class="my-space-sm h-24 rounded-lg bg-surface-container-lowest/80 p-2 flex items-center justify-between gap-1">
+<div class="flex-1 bg-surface-container h-full rounded flex flex-col justify-end p-1">
+<div class="bg-primary/50 w-full h-[40%] rounded-sm"></div>
+</div>
+<div class="flex-1 bg-surface-container h-full rounded flex flex-col justify-end p-1">
+<div class="bg-primary/70 w-full h-[75%] rounded-sm"></div>
+</div>
+<div class="flex-1 bg-surface-container h-full rounded flex flex-col justify-end p-1">
+<div class="bg-primary w-full h-[95%] rounded-sm"></div>
+</div>
+<div class="flex-1 bg-surface-container h-full rounded flex flex-col justify-end p-1">
+<div class="bg-secondary w-full h-[60%] rounded-sm"></div>
+</div>
+</div>
+<div class="flex items-center justify-between pt-1">
+<span class="font-mono-sm text-label-sm text-outline">18.4M lignes</span>
+<span class="font-mono-sm text-mono-sm text-outline">21 Oct 09:15</span>
+</div>
+</div>
+<!-- File Card 4: cluster_snapshot_delta.tar.zst -->
+<div class="p-space-md rounded-xl bg-surface-container/60 hover:bg-surface-container-high transition-all shadow-md flex flex-col justify-between cursor-pointer group">
+<div class="flex items-start justify-between">
+<div class="w-10 h-10 rounded-lg bg-primary-container/20 text-primary-container flex items-center justify-center mb-space-sm">
+<span class="material-symbols-outlined text-[24px]">archive</span>
+</div>
+<span class="px-1.5 py-0.5 rounded bg-tertiary/20 text-tertiary font-mono-sm text-label-sm flex items-center gap-1">
+<span class="material-symbols-outlined text-[12px]">lock</span> AES-256
+                  </span>
+</div>
+<div>
+<h3 class="font-headline-sm text-headline-sm text-on-surface truncate">cluster_snapshot_delta.tar.zst</h3>
+<div class="flex items-center gap-2 mt-1">
+<span class="font-mono-sm text-mono-sm text-secondary font-medium">814.0 MB</span>
+<span class="text-outline">•</span>
+<span class="font-mono-sm text-mono-sm text-outline">Zstandard Archive</span>
+</div>
+</div>
+<div class="my-space-sm h-24 rounded-lg bg-surface-container-lowest/80 p-2 flex flex-col justify-center items-center gap-1 text-center">
+<span class="material-symbols-outlined text-[28px] text-outline">fingerprint</span>
+<span class="font-mono-sm text-label-sm text-outline">SHA256: d8e19b...4a890f</span>
+</div>
+<div class="flex items-center justify-between pt-1">
+<span class="font-mono-sm text-label-sm text-tertiary">Vérifié SHA256</span>
+<span class="font-mono-sm text-mono-sm text-outline">19 Oct 23:40</span>
+</div>
+</div>
+</div>
+</div>
+</main>
+<!-- Right Inspector Pane: Inspector Detail (Cols: 9-12 / lg:col-span-3) -->
+<aside class="lg:col-span-3 bg-surface-container-lowest/90 p-space-md flex flex-col gap-space-md shadow-2xl overflow-y-auto max-h-[820px]">
+<!-- Inspector Header -->
+<div class="flex items-center justify-between pb-1">
+<span class="font-label-sm text-label-sm text-outline uppercase tracking-wider">Inspecteur d'Objet</span>
+<div class="flex items-center gap-1">
+<button class="p-1 rounded hover:bg-surface-container text-on-surface-variant" title="Épingler">
+<span class="material-symbols-outlined text-[16px]">push_pin</span>
+</button>
+<button class="p-1 rounded hover:bg-surface-container text-on-surface-variant" title="Fermer">
+<span class="material-symbols-outlined text-[16px]">close</span>
+</button>
+</div>
+</div>
+<!-- Selected File Hero Preview -->
+<div class="flex flex-col items-center text-center p-space-md rounded-xl bg-surface-container/60 shadow-inner">
+<div class="w-16 h-16 rounded-2xl bg-primary/20 text-primary flex items-center justify-center shadow-lg shadow-primary/20 mb-space-sm">
+<span class="material-symbols-outlined text-[36px]">model_training</span>
+</div>
+<h2 class="font-headline-md text-headline-md text-on-surface break-all">model_weights_v4.safetensors</h2>
+<span class="font-mono-sm text-mono-sm text-secondary mt-1">14.28 GB (15,332,841,216 octets)</span>
+<!-- Quick Action CTA Cluster -->
+<div class="grid grid-cols-2 gap-2 w-full mt-space-md">
+<button class="py-2 px-2.5 rounded-lg bg-primary text-on-primary-container font-headline-sm text-headline-sm flex items-center justify-center gap-1 hover:brightness-110 transition-all shadow-md">
+<span class="material-symbols-outlined text-[16px]">open_in_new</span>
+<span>Ouvrir Studio</span>
+</button>
+<button class="py-2 px-2.5 rounded-lg bg-surface-container-high hover:bg-surface-bright text-on-surface font-body-sm text-body-sm flex items-center justify-center gap-1 transition-all">
+<span class="material-symbols-outlined text-[16px]">link</span>
+<span>Partager lien</span>
+</button>
+</div>
+</div>
+<!-- Metadata & Telemetry Card -->
+<div class="bg-surface-container/40 p-space-sm rounded-xl flex flex-col gap-space-xs">
+<span class="font-label-sm text-label-sm text-outline uppercase tracking-wider">Métadonnées Cloud</span>
+<div class="flex flex-col gap-1.5 font-mono-sm text-mono-sm">
+<div class="flex justify-between py-1 bg-surface-container-low/60 px-2 rounded">
+<span class="text-outline">Emplacement:</span>
+<span class="text-on-surface text-right truncate max-w-[130px]">eu-central-1b</span>
+</div>
+<div class="flex justify-between py-1 bg-surface-container-low/60 px-2 rounded">
+<span class="text-outline">Latence CDN:</span>
+<span class="text-tertiary">11 ms (Edge POP FRA)</span>
+</div>
+<div class="flex justify-between py-1 bg-surface-container-low/60 px-2 rounded">
+<span class="text-outline">Chiffrement:</span>
+<span class="text-secondary font-medium">AES-256 (KMS-Managed)</span>
+</div>
+<div class="flex justify-between py-1 bg-surface-container-low/60 px-2 rounded">
+<span class="text-outline">Check-Sum:</span>
+<span class="text-on-surface-variant truncate max-w-[120px]">sha256:4f8a92e10</span>
+</div>
+</div>
+</div>
+<!-- Version History -->
+<div class="flex flex-col gap-space-xs">
+<div class="flex items-center justify-between">
+<span class="font-label-sm text-label-sm text-outline uppercase tracking-wider">Historique de versions</span>
+<span class="font-mono-sm text-mono-sm text-primary cursor-pointer hover:underline">Voir tout (8)</span>
+</div>
+<div class="flex flex-col gap-1.5">
+<div class="p-2 rounded-lg bg-surface-container-high/60 flex items-center justify-between">
+<div class="flex flex-col">
+<div class="flex items-center gap-1.5">
+<span class="w-2 h-2 rounded-full bg-tertiary"></span>
+<span class="font-headline-sm text-headline-sm text-on-surface">v4.2 (Actuelle)</span>
+</div>
+<span class="font-mono-sm text-label-sm text-outline">Optimisation FP16 • Elena R.</span>
+</div>
+<span class="font-mono-sm text-mono-sm text-secondary">14.28 GB</span>
+</div>
+<div class="p-2 rounded-lg bg-surface-container/30 flex items-center justify-between opacity-75 hover:opacity-100 transition-opacity">
+<div class="flex flex-col">
+<span class="font-body-sm text-body-sm text-on-surface-variant">v4.1 Checkpoint</span>
+<span class="font-mono-sm text-label-sm text-outline">Il y a 3 jours • Marcus T.</span>
+</div>
+<button class="font-mono-sm text-label-sm text-outline hover:text-primary transition-colors">Rollback</button>
+</div>
+</div>
+</div>
+<!-- Access & Permissions -->
+<div class="flex flex-col gap-space-xs">
+<div class="flex items-center justify-between">
+<span class="font-label-sm text-label-sm text-outline uppercase tracking-wider">Contrôle d'accès IAM</span>
+<button class="text-primary hover:text-primary-container font-mono-sm text-mono-sm flex items-center gap-0.5">
+<span class="material-symbols-outlined text-[14px]">person_add</span>
+<span>Inviter</span>
+</button>
+</div>
+<div class="flex flex-col gap-1.5">
+<div class="flex items-center justify-between p-1.5 rounded-lg bg-surface-container/40">
+<div class="flex items-center gap-2">
+<img class="w-6 h-6 rounded-full object-cover" data-alt="Portrait of senior machine learning engineer in cinematic light with soft glowing blue tones" src="https://lh3.googleusercontent.com/aida-public/AB6AXuB5jsnGGEoVR4evqV7Wf4jVa9T0iMovYi-AMnQdmM1aNzv-UEzZX4ZUaHjj_Ojlg-eLdeTyEgTW2PYMiJWDpvORNG4UdmKa4DasE4svsrCv7HpNDPeQBMYmsB1QJ00CMUHLMYgUL0tJHdrnyO6QPjK8lp8FC--jikSKpMcZVBgjeqCvuVkDaHVBbvyAci6GVIlEIMQspRdkNt6fOJnQ3AWKhUMI47CtUkqG2gh-PVuyt-h8_AZdZpS6ag"/>
+<div class="flex flex-col leading-tight">
+<span class="font-body-sm text-body-sm text-on-surface font-medium">Dr. S. Thorne</span>
+<span class="font-mono-sm text-label-sm text-outline">Propriétaire</span>
+</div>
+</div>
+<span class="font-mono-sm text-mono-sm text-tertiary bg-tertiary/10 px-1.5 py-0.5 rounded">Full RWX</span>
+</div>
+<div class="flex items-center justify-between p-1.5 rounded-lg bg-surface-container/40">
+<div class="flex items-center gap-2">
+<div class="w-6 h-6 rounded-full bg-secondary/20 text-secondary flex items-center justify-center font-mono-sm text-label-sm">
+                    AI
+                  </div>
+<div class="flex flex-col leading-tight">
+<span class="font-body-sm text-body-sm text-on-surface">Stratus Inference Mesh</span>
+<span class="font-mono-sm text-label-sm text-outline">Service Account</span>
+</div>
+</div>
+<span class="font-mono-sm text-mono-sm text-on-surface-variant bg-surface-variant px-1.5 py-0.5 rounded">Lecture seule</span>
+</div>
+</div>
+</div>
+<!-- Secondary Actions Footer -->
+<div class="pt-2 flex flex-col gap-1.5 mt-auto">
+<button class="w-full py-1.5 px-3 rounded-lg bg-surface-container hover:bg-surface-container-high text-on-surface font-body-sm text-body-sm flex items-center justify-center gap-2 transition-colors">
+<span class="material-symbols-outlined text-[16px] text-secondary">camera</span>
+<span>Créer Snapshot Immuable</span>
+</button>
+<button class="w-full py-1.5 px-3 rounded-lg bg-surface-container hover:bg-error-container/20 text-outline hover:text-error font-body-sm text-body-sm flex items-center justify-center gap-2 transition-colors">
+<span class="material-symbols-outlined text-[16px]">delete_sweep</span>
+<span>Purger les versions obsolètes</span>
+</button>
+</div>
+</aside>
+</div>
+<!-- Window Status Bar -->
+<footer class="h-8 px-space-md bg-surface-container-high/40 flex items-center justify-between text-on-surface-variant font-mono-sm text-mono-sm select-none">
+<div class="flex items-center gap-space-md">
+<div class="flex items-center gap-1.5">
+<span class="w-2 h-2 rounded-full bg-tertiary"></span>
+<span>Filesystem: ZFS Cluster v28</span>
+</div>
+<span class="hidden sm:inline text-outline">•</span>
+<span class="hidden sm:inline text-outline">8 objets affichés</span>
+</div>
+<div class="flex items-center gap-space-md">
+<div class="flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px] text-tertiary">security</span>
+<span class="hidden md:inline">Zéro-Connaissance Validée</span>
+</div>
+<div class="flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px] text-secondary">speed</span>
+<span>Réseau: 10 Gbps RDMA</span>
+</div>
+</div>
+</footer>
+</div>
+</div>
+</div></main><aside class="fixed bottom-space-md left-1/2 -translate-x-1/2 z-50"><div class="flex items-center gap-space-sm px-space-md py-space-xs bg-surface-container-low/75 backdrop-blur-2xl rounded-full shadow-[0_16px_48px_-4px_rgba(0,0,0,0.7)]"><a class="p-space-xs rounded-xl bg-surface-container-high/40 hover:bg-surface-container-high text-on-surface-variant hover:text-on-surface transition-all flex flex-col items-center group" data-path="espace-de-travail" href="#"><span class="material-symbols-outlined text-[20px]">grid_view</span></a><a class="p-space-xs rounded-xl bg-surface-container-high/40 hover:bg-surface-container-high text-on-surface-variant hover:text-on-surface transition-all flex flex-col items-center group" data-path="fichiers-cloud" href="#"><span class="material-symbols-outlined text-[20px]">folder</span><span class="w-1 h-1 rounded-full bg-secondary mt-0.5"></span></a><a class="p-space-xs rounded-xl bg-surface-container-high/40 hover:bg-surface-container-high text-on-surface-variant hover:text-on-surface transition-all flex flex-col items-center group" data-path="terminal-shell" href="#"><span class="material-symbols-outlined text-[20px]">terminal</span><span class="w-1 h-1 rounded-full bg-tertiary mt-0.5"></span></a><a class="p-space-xs rounded-xl bg-surface-container-high/40 hover:bg-surface-container-high text-on-surface-variant hover:text-on-surface transition-all flex flex-col items-center group" data-path="studio-ia" href="#"><span class="material-symbols-outlined text-[20px]">neurology</span></a><a class="p-space-xs rounded-xl bg-surface-container-high/40 hover:bg-surface-container-high text-on-surface-variant hover:text-on-surface transition-all flex flex-col items-center group" data-path="moniteur-systeme" href="#"><span class="material-symbols-outlined text-[20px]">query_stats</span></a><a class="p-space-xs rounded-xl bg-surface-container-high/40 hover:bg-surface-container-high text-on-surface-variant hover:text-on-surface transition-all flex flex-col items-center group" data-path="parametres-systeme" href="#"><span class="material-symbols-outlined text-[20px]">settings</span></a><button class="p-space-xs rounded-xl bg-surface-container-high/40 hover:bg-surface-container-high text-on-surface-variant hover:text-error transition-all" type="button"><span class="material-symbols-outlined text-[20px]">delete</span></button></div></aside><footer class="w-full py-space-sm text-center bg-transparent"><span class="font-mono-sm text-mono-sm text-outline">Stratus Cloud OS • Kernel v4.12-aether • Encrypted Cluster Session</span></footer></body></html>

@@ -1,0 +1,270 @@
+# ==============================================================================
+# 🌌 AORUI DECLARATIVE INTERFACE DEFINITION (DEMO STUDIO / VISUAL FORM)
+# ==============================================================================
+[window]
+title = "AORUI Visual Form & Declarative Studio"
+width = 1280.0
+height = 760.0
+theme = "themes/studio_pro.toml"
+
+root = "main_window_container"
+
+# 1. CONTENEUR RACINE PRINCIPAL (Flex Column)
+[[nodes]]
+id = "main_window_container"
+type = "Panel"
+layout = { position = "absolute", top = 0.0, left = 0.0, right = 0.0, bottom = 0.0, direction = "column", padding = 8.0, gap = 8.0 }
+children = ["top_header_panel", "main_split_container", "bottom_status_bar"]
+
+# 2. EN-TÊTE SUPÉRIEUR (Header Bar)
+[[nodes]]
+id = "top_header_panel"
+type = "Panel"
+layout = { height = 44.0, direction = "row", align_items = "center", justify_content = "space_between", padding_left = 12.0, padding_right = 12.0 }
+children = ["header_left_box", "header_actions_box"]
+
+[[nodes]]
+id = "header_left_box"
+type = "Container"
+layout = { direction = "row", align_items = "center", gap = 10.0 }
+children = ["app_title_lbl", "version_badge"]
+
+[[nodes]]
+id = "app_title_lbl"
+type = "Label"
+text = "🌌 AORUI Visual Form Builder"
+layout = { width = 230.0, height = 24.0 }
+
+[[nodes]]
+id = "version_badge"
+type = "Badge"
+text = "v2.0 TOML Live"
+variant = "Success"
+layout = { width = 110.0, height = 20.0 }
+
+[[nodes]]
+id = "header_actions_box"
+type = "Container"
+layout = { direction = "row", align_items = "center", gap = 8.0 }
+children = ["btn_export_code", "btn_save_toml", "btn_run_app"]
+
+[[nodes]]
+id = "btn_export_code"
+type = "Button"
+label = "📄 Exporter Rust / Rhai"
+variant = "Ghost"
+layout = { width = 160.0, height = 28.0 }
+on_click = "studio:export_code"
+
+[[nodes]]
+id = "btn_save_toml"
+type = "Button"
+label = "💾 Sauvegarder TOML"
+variant = "Default"
+layout = { width = 150.0, height = 28.0 }
+on_click = "studio:save_toml"
+
+[[nodes]]
+id = "btn_run_app"
+type = "Button"
+label = "▶ Exécuter l'UI"
+variant = "Primary"
+layout = { width = 130.0, height = 28.0 }
+on_click = "studio:run_preview"
+
+# 3. CORPS SPLIT-VIEW (Toolbox Gauche | Canvas Central | Inspecteur Droit)
+[[nodes]]
+id = "main_split_container"
+type = "Container"
+layout = { flex_grow = 1.0, direction = "row", gap = 8.0 }
+children = ["toolbox_panel", "canvas_viewport_card", "property_inspector_panel"]
+
+# A. Boîte à Outils (Toolbox - Gauche)
+[[nodes]]
+id = "toolbox_panel"
+type = "Panel"
+layout = { width = 220.0, direction = "column", padding = 8.0, gap = 6.0 }
+children = ["toolbox_title", "t_btn_btn", "t_btn_label", "t_btn_input", "t_btn_slider", "t_btn_toggle", "t_btn_card", "t_btn_panel"]
+
+[[nodes]]
+id = "toolbox_title"
+type = "Label"
+text = "🧰 Boîte à Outils (Widgets)"
+layout = { height = 24.0 }
+
+[[nodes]]
+id = "t_btn_btn"
+type = "Button"
+label = "🔘 Bouton (Button)"
+variant = "Default"
+layout = { height = 28.0 }
+on_click = "tool:add_button"
+
+[[nodes]]
+id = "t_btn_label"
+type = "Button"
+label = "📝 Texte / Label"
+variant = "Default"
+layout = { height = 28.0 }
+on_click = "tool:add_label"
+
+[[nodes]]
+id = "t_btn_input"
+type = "Button"
+label = "⌨️ Saisie de Texte"
+variant = "Default"
+layout = { height = 28.0 }
+on_click = "tool:add_input"
+
+[[nodes]]
+id = "t_btn_slider"
+type = "Button"
+label = "🎚️ Curseur (Slider)"
+variant = "Default"
+layout = { height = 28.0 }
+on_click = "tool:add_slider"
+
+[[nodes]]
+id = "t_btn_toggle"
+type = "Button"
+label = "⚡ Interrupteur (Toggle)"
+variant = "Default"
+layout = { height = 28.0 }
+on_click = "tool:add_toggle"
+
+[[nodes]]
+id = "t_btn_card"
+type = "Button"
+label = "📦 Carte Glass (Card)"
+variant = "Default"
+layout = { height = 28.0 }
+on_click = "tool:add_card"
+
+[[nodes]]
+id = "t_btn_panel"
+type = "Button"
+label = "🗂️ Panneau Conteneur"
+variant = "Default"
+layout = { height = 28.0 }
+on_click = "tool:add_panel"
+
+# B. Toile Centrale de Conception (Canvas - Centre)
+[[nodes]]
+id = "canvas_viewport_card"
+type = "Card"
+layout = { flex_grow = 1.0, direction = "column", padding = 16.0, gap = 12.0 }
+children = ["preview_title", "form_login_demo"]
+
+[[nodes]]
+id = "preview_title"
+type = "Badge"
+text = "📐 Toile Interactive de Conception Visuelle (Live Form Preview)"
+variant = "Success"
+layout = { height = 24.0 }
+
+# Exemple de Formulaire généré sur le Canvas
+[[nodes]]
+id = "form_login_demo"
+type = "Panel"
+layout = { width = 420.0, direction = "column", padding = 16.0, gap = 10.0, align_self = "center" }
+children = ["form_header", "inp_username", "inp_password", "remember_toggle", "btn_submit_login"]
+
+[[nodes]]
+id = "form_header"
+type = "Label"
+text = "🔐 Authentification Sécurisée"
+layout = { height = 26.0 }
+
+[[nodes]]
+id = "inp_username"
+type = "TextInput"
+placeholder = "Nom d'utilisateur / Email..."
+layout = { height = 30.0 }
+
+[[nodes]]
+id = "inp_password"
+type = "TextInput"
+placeholder = "Mot de passe..."
+layout = { height = 30.0 }
+
+[[nodes]]
+id = "remember_toggle"
+type = "Toggle"
+checked = true
+layout = { height = 24.0 }
+
+[[nodes]]
+id = "btn_submit_login"
+type = "Button"
+label = "🚀 Connexion"
+variant = "Primary"
+layout = { height = 34.0 }
+on_click = "auth:submit"
+
+# C. Inspecteur de Propriétés (PropGrid - Droite)
+[[nodes]]
+id = "property_inspector_panel"
+type = "Panel"
+layout = { width = 280.0, direction = "column", padding = 10.0, gap = 8.0 }
+children = ["insp_title", "prop_selected_badge", "lbl_id_tag", "lbl_pos_tag", "lbl_layout_tag", "btn_delete_widget"]
+
+[[nodes]]
+id = "insp_title"
+type = "Label"
+text = "⚙️ Inspecteur de Propriétés"
+layout = { height = 24.0 }
+
+[[nodes]]
+id = "prop_selected_badge"
+type = "Badge"
+text = "Sélection: btn_submit_login"
+variant = "Success"
+layout = { height = 22.0 }
+
+[[nodes]]
+id = "lbl_id_tag"
+type = "Label"
+text = "• Identifiant : btn_submit_login"
+layout = { height = 20.0 }
+
+[[nodes]]
+id = "lbl_pos_tag"
+type = "Label"
+text = "• Type : Button (Primary)"
+layout = { height = 20.0 }
+
+[[nodes]]
+id = "lbl_layout_tag"
+type = "Label"
+text = "• Événement Clic : auth:submit"
+muted = true
+layout = { height = 20.0 }
+
+[[nodes]]
+id = "btn_delete_widget"
+type = "Button"
+label = "🗑️ Supprimer l'Élément"
+variant = "Danger"
+layout = { height = 28.0, margin_top = 10.0 }
+on_click = "studio:delete_selected"
+
+# 4. BARRE DE STATUT INFÉRIEURE
+[[nodes]]
+id = "bottom_status_bar"
+type = "Panel"
+layout = { height = 26.0, direction = "row", align_items = "center", justify_content = "space_between", padding_left = 8.0, padding_right = 8.0 }
+children = ["status_left_lbl", "status_right_badge"]
+
+[[nodes]]
+id = "status_left_lbl"
+type = "Label"
+text = "⚡ Document TOML synchronisé en direct • Prêt pour le design visuel"
+muted = true
+layout = { width = 450.0, height = 20.0 }
+
+[[nodes]]
+id = "status_right_badge"
+type = "Badge"
+text = "GPU Vulkan / WGPU 60 FPS"
+variant = "Success"
+layout = { width = 180.0, height = 18.0 }

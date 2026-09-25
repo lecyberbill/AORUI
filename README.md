@@ -127,6 +127,7 @@ cargo test --workspace
 
 ## Documentation
 
+- **[Agent Integration Guide (Agent-Ready SDK)](AGENT_INTEGRATION_GUIDE.md)**: Connect any external AI agent (LangChain, AutoGen, OpenAI, Claude, cURL) in 3 lines of Rust with memory sandboxing.
 - **[Widget Catalog & API Guide](WIDGET_CATALOG.md)**: Full reference for all available widgets, styles, and events.
 - **[Technical Report](TECHNICAL_REPORT.md)**: Deep dive into the mathematical axioms, GPU memory layouts, and security invariants.
 

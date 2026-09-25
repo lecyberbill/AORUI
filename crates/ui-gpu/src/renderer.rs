@@ -22,6 +22,9 @@ pub struct GpuRenderer {
     blurred_full: RenderTarget,
     blur_pipeline: BlurPipeline,
     sdf_pipeline: SdfPipeline,
+    background_pipeline: crate::background_pipeline::BackgroundPipeline,
+    background_params: crate::background_pipeline::BackgroundParams,
+    background_enabled: bool,
     text: TextLayer,
     measure: crate::measure::CosmicTextMeasure,
     /// Open pipeline registry for content formats beyond SDF glass
@@ -45,6 +48,11 @@ impl GpuRenderer {
 
         let blur_pipeline = BlurPipeline::new(&ctx.device, format);
         let sdf_pipeline = SdfPipeline::new(&ctx.device, format);
+        let background_pipeline = crate::background_pipeline::BackgroundPipeline::new(&ctx.device, format);
+        let background_params = crate::background_pipeline::BackgroundParams::aether_os(
+            ctx.config.width as f32,
+            ctx.config.height as f32,
+        );
         let text = TextLayer::new(&ctx.device, &ctx.queue, format);
         let measure = crate::measure::CosmicTextMeasure::new();
 
@@ -67,6 +75,9 @@ impl GpuRenderer {
             blurred_full,
             blur_pipeline,
             sdf_pipeline,
+            background_pipeline,
+            background_params,
+            background_enabled: true,
             text,
             measure,
             media_pipelines,
@@ -101,6 +112,32 @@ impl GpuRenderer {
         texture.update(&self.ctx.queue, data);
     }
 
+    /// Decodes image bytes (PNG, JPEG, WebP, BMP) and allocates an RGBA8 texture on the GPU.
+    pub fn create_texture_from_image_bytes(
+        &self,
+        bytes: &[u8],
+    ) -> Result<Arc<crate::texture::GpuTexture>, String> {
+        crate::texture::GpuTexture::from_image_bytes(
+            &self.ctx.device,
+            &self.ctx.queue,
+            bytes,
+            Some("aorui_decoded_image"),
+        )
+    }
+
+    /// Reads an image file from disk, decodes it, and allocates an RGBA8 texture on the GPU.
+    pub fn create_texture_from_image_file(
+        &self,
+        path: impl AsRef<std::path::Path>,
+    ) -> Result<Arc<crate::texture::GpuTexture>, String> {
+        crate::texture::GpuTexture::from_image_file(
+            &self.ctx.device,
+            &self.ctx.queue,
+            path,
+            Some("aorui_file_image"),
+        )
+    }
+
     pub fn text_measure(&self) -> crate::measure::CosmicTextMeasure {
         self.measure.clone()
     }
@@ -129,6 +166,26 @@ impl GpuRenderer {
         self.ctx.config.format
     }
 
+    /// Sets the procedural background gradient parameters (zenith/nadir auroras, base color, micro-grid).
+    pub fn set_background_params(&mut self, params: crate::background_pipeline::BackgroundParams) {
+        self.background_params = params;
+    }
+
+    /// Returns a reference to the active background parameters.
+    pub fn background_params(&self) -> &crate::background_pipeline::BackgroundParams {
+        &self.background_params
+    }
+
+    /// Returns a mutable reference to the active background parameters.
+    pub fn background_params_mut(&mut self) -> &mut crate::background_pipeline::BackgroundParams {
+        &mut self.background_params
+    }
+
+    /// Enables or disables procedural gradient background rendering.
+    pub fn set_background_enabled(&mut self, enabled: bool) {
+        self.background_enabled = enabled;
+    }
+
     /// Registers a custom pipeline for an extended content format (see [`MediaPipeline`]).
     /// Multiple pipelines can coexist (one per `kind`). Registering the same `kind` twice
     /// gives priority to the latest registered.
@@ -150,7 +207,7 @@ impl GpuRenderer {
         weight: glyphon::Weight,
         clip: [f32; 4],
     ) -> TextRun {
-        let line_height = font_size * 1.2;
+        let line_height = font_size * 1.25;
         let buffer = self.text.make_buffer(
             text,
             font_size,
@@ -161,8 +218,8 @@ impl GpuRenderer {
             family,
             weight,
         );
-        // Vertical centering offset for single-line widget text
-        let top = bounds[1] + ((bounds[3] - line_height) * 0.5).max(0.0);
+        // Optical vertical centering for component labels and buttons
+        let top = bounds[1] + ((bounds[3] - font_size) * 0.5).max(0.0);
         let clip = glyphon::TextBounds {
             left: clip[0] as i32,
             top: clip[1] as i32,
@@ -180,6 +237,7 @@ impl GpuRenderer {
 
     pub fn resize(&mut self, new_size: winit::dpi::PhysicalSize<u32>) {
         self.ctx.resize(new_size);
+        self.background_params.screen_size = [new_size.width as f32, new_size.height as f32];
         let format = self.ctx.config.format;
         let full_size = (self.ctx.config.width, self.ctx.config.height);
         let half_size = ((full_size.0 / 2).max(1), (full_size.1 / 2).max(1));
@@ -229,6 +287,48 @@ impl GpuRenderer {
         clear_target(&mut encoder, &self.blurred_full.view, background_clear);
         clear_target(&mut encoder, &self.blur_half.view, background_clear);
 
+        // Pass 2: Procedural Background Gradient & Micro-grid (rendered to both surface & background target)
+        if self.background_enabled {
+            self.background_pipeline
+                .set_params(&self.ctx.queue, &self.background_params);
+
+            {
+                let mut pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
+                    label: Some("background gradient surface pass"),
+                    color_attachments: &[Some(wgpu::RenderPassColorAttachment {
+                        view: &surface_view,
+                        resolve_target: None,
+                        ops: wgpu::Operations {
+                            load: wgpu::LoadOp::Load,
+                            store: wgpu::StoreOp::Store,
+                        },
+                    })],
+                    depth_stencil_attachment: None,
+                    timestamp_writes: None,
+                    occlusion_query_set: None,
+                });
+                self.background_pipeline.render(&mut pass);
+            }
+
+            {
+                let mut pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
+                    label: Some("background gradient offscreen pass"),
+                    color_attachments: &[Some(wgpu::RenderPassColorAttachment {
+                        view: &self.background.view,
+                        resolve_target: None,
+                        ops: wgpu::Operations {
+                            load: wgpu::LoadOp::Load,
+                            store: wgpu::StoreOp::Store,
+                        },
+                    })],
+                    depth_stencil_attachment: None,
+                    timestamp_writes: None,
+                    occlusion_query_set: None,
+                });
+                self.background_pipeline.render(&mut pass);
+            }
+        }
+
         self.sdf_pipeline.set_screen_size(
             &self.ctx.queue,
             self.ctx.config.width as f32,
@@ -243,7 +343,29 @@ impl GpuRenderer {
         }
 
         if layers.len() > 1 {
-            // --- Step 1: Render registered media pipelines (e.g. 3D Viewport canvas) FIRST ---
+            // --- Step 1: Layer 0 (Base UI): render SDF cards/windows to surface_view AND background target FIRST ---
+            let layer0 = &layers[0];
+            if !layer0.instances.is_empty() {
+                self.sdf_pipeline.upload_instances(
+                    &self.ctx.device,
+                    &self.ctx.queue,
+                    layer0.instances,
+                );
+                self.sdf_pipeline.render(
+                    &self.ctx.device,
+                    &mut encoder,
+                    &surface_view,
+                    &self.blurred_full.view,
+                );
+                self.sdf_pipeline.render(
+                    &self.ctx.device,
+                    &mut encoder,
+                    &self.background.view,
+                    &self.blurred_full.view,
+                );
+            }
+
+            // --- Step 2: Render registered media pipelines (Images & Videos) ON TOP of cards/windows ---
             for pipeline in self.media_pipelines.iter_mut() {
                 let matching: Vec<MediaInstance> = media
                     .iter()
@@ -270,28 +392,7 @@ impl GpuRenderer {
                 }
             }
 
-            // --- Step 2: Layer 0 (Base UI): rendered ON TOP of media to surface_view AND background target ---
-            let layer0 = &layers[0];
-            if !layer0.instances.is_empty() {
-                self.sdf_pipeline.upload_instances(
-                    &self.ctx.device,
-                    &self.ctx.queue,
-                    layer0.instances,
-                );
-                self.sdf_pipeline.render(
-                    &self.ctx.device,
-                    &mut encoder,
-                    &surface_view,
-                    &self.blurred_full.view,
-                );
-                self.sdf_pipeline.render(
-                    &self.ctx.device,
-                    &mut encoder,
-                    &self.background.view,
-                    &self.blurred_full.view,
-                );
-            }
-
+            // --- Step 3: Layer 0 Text rendered ON TOP of cards & media ---
             if !layer0.texts.is_empty() {
                 if self
                     .text
@@ -417,7 +518,22 @@ impl GpuRenderer {
                 }
             }
         } else if let Some(layer) = layers.first() {
-            // Render registered media pipelines FIRST (Background / 3D Canvas)
+            // Render SDF cards / panels / windows FIRST
+            if !layer.instances.is_empty() {
+                self.sdf_pipeline.upload_instances(
+                    &self.ctx.device,
+                    &self.ctx.queue,
+                    layer.instances,
+                );
+                self.sdf_pipeline.render(
+                    &self.ctx.device,
+                    &mut encoder,
+                    &surface_view,
+                    &self.blurred_full.view,
+                );
+            }
+
+            // Render registered media pipelines (Images & Videos) ON TOP of cards/windows
             for pipeline in self.media_pipelines.iter_mut() {
                 let matching: Vec<MediaInstance> = media
                     .iter()
@@ -436,21 +552,7 @@ impl GpuRenderer {
                 }
             }
 
-            // Render SDF cards / palettes ON TOP of media
-            if !layer.instances.is_empty() {
-                self.sdf_pipeline.upload_instances(
-                    &self.ctx.device,
-                    &self.ctx.queue,
-                    layer.instances,
-                );
-                self.sdf_pipeline.render(
-                    &self.ctx.device,
-                    &mut encoder,
-                    &surface_view,
-                    &self.blurred_full.view,
-                );
-            }
-
+            // Render text ON TOP of everything
             if !layer.texts.is_empty() {
                 if self
                     .text
@@ -505,12 +607,21 @@ impl GpuRenderer {
 }
 
 fn to_glyphon_color(color: [f32; 4]) -> glyphon::Color {
-    let to_u8 = |c: f32| (c.clamp(0.0, 1.0) * 255.0).round() as u8;
+    let linear_to_srgb = |val: f32| -> f32 {
+        let v = val.clamp(0.0, 1.0);
+        if v <= 0.0031308 {
+            v * 12.92
+        } else {
+            1.055 * v.powf(1.0 / 2.4) - 0.055
+        }
+    };
+    let to_u8 = |c: f32| (linear_to_srgb(c) * 255.0).round().clamp(0.0, 255.0) as u8;
+    let alpha_u8 = (color[3].clamp(0.0, 1.0) * 255.0).round().clamp(0.0, 255.0) as u8;
     glyphon::Color::rgba(
         to_u8(color[0]),
         to_u8(color[1]),
         to_u8(color[2]),
-        to_u8(color[3]),
+        alpha_u8,
     )
 }
 

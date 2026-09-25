@@ -1,0 +1,22 @@
+# AORUI Cyber Glass Theme
+glass_bg = "#1a2130d9"
+accent = "#00e0fa"
+accent_secondary = "#b861fa"
+danger = "#ff4761"
+success = "#2ee07a"
+warning = "#fac02e"
+text_color = "#f0f7ff"
+text_muted = "#99adc7"
+corner_radius = 14.0
+border_width = 1.2
+glow_intensity = 0.12
+glow_intensity_hover = 0.35
+
+[typography]
+family = "SansSerif"
+title_size = 20.0
+body_size = 15.0
+small_size = 13.0
+caption_size = 11.5
+heading_weight = "Bold"
+body_weight = "Normal"

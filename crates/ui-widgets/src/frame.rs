@@ -264,6 +264,50 @@ fn render_kind(
             // Structural nodes with no independent visual quad
         }
 
+        WidgetKind::Card { bg, border, radius } => {
+            let bg_col = bg.unwrap_or([
+                (theme.glass_bg[0] * 1.5).min(1.0),
+                (theme.glass_bg[1] * 1.4).min(1.0),
+                (theme.glass_bg[2] * 1.4).min(1.0),
+                theme.glass_bg[3].min(0.95),
+            ]);
+            let border_col = border.unwrap_or([
+                (theme.glass_bg[0] * 3.0).min(1.0),
+                (theme.glass_bg[1] * 2.7).min(1.0),
+                (theme.glass_bg[2] * 2.3).min(1.0),
+                0.60,
+            ]);
+            let r = radius.unwrap_or(theme.corner_radius.min(8.0));
+            frame.instances.push(custom_glass_instance(
+                bounds,
+                clip,
+                bg_col,
+                border_col,
+                r,
+                theme.border_width,
+                0.01,
+            ));
+        }
+
+        WidgetKind::Panel { bg, border } => {
+            let bg_col = bg.unwrap_or(theme.glass_bg);
+            let border_col = border.unwrap_or([
+                theme.glass_bg[0] * 2.5,
+                theme.glass_bg[1] * 2.2,
+                theme.glass_bg[2] * 1.9,
+                0.50,
+            ]);
+            frame.instances.push(custom_glass_instance(
+                bounds,
+                clip,
+                bg_col,
+                border_col,
+                theme.corner_radius.min(8.0),
+                theme.border_width,
+                0.005,
+            ));
+        }
+
         WidgetKind::Label { text, muted } => {
             let (color, role) = if *muted {
                 (theme.text_muted, TextRole::Caption)
@@ -281,88 +325,112 @@ fn render_kind(
             ));
         }
 
-        WidgetKind::Button { label, enabled, .. } => {
-            let glow = if *enabled {
-                theme.accent
-            } else {
-                [0.4, 0.4, 0.4, 1.0]
+        WidgetKind::Button { label, enabled, variant, .. } => {
+            let (bg, border_color, glow_mult, text_color, radius) = match variant {
+                crate::kind::ButtonVariant::Primary => {
+                    if hovered && *enabled {
+                        ([theme.accent[0] * 0.95, theme.accent[1] * 0.95, theme.accent[2] * 0.95, 1.0], [1.0, 1.0, 1.0, 1.0], 0.35, [0.06, 0.08, 0.13, 1.0], 6.0)
+                    } else if *enabled {
+                        (theme.accent, [theme.accent[0] * 1.1, theme.accent[1] * 1.1, theme.accent[2] * 1.1, 1.0], 0.20, [0.06, 0.08, 0.13, 1.0], 6.0)
+                    } else {
+                        ([theme.accent[0] * 0.25, theme.accent[1] * 0.25, theme.accent[2] * 0.25, 0.4], [0.2, 0.2, 0.25, 0.3], 0.0, theme.text_muted, 6.0)
+                    }
+                }
+                crate::kind::ButtonVariant::Secondary => {
+                    if hovered && *enabled {
+                        ([theme.accent_secondary[0] * 0.25, theme.accent_secondary[1] * 0.25, theme.accent_secondary[2] * 0.25, 0.95], theme.accent_secondary, 0.30, [1.0, 1.0, 1.0, 1.0], 6.0)
+                    } else if *enabled {
+                        ([theme.accent_secondary[0] * 0.16, theme.accent_secondary[1] * 0.16, theme.accent_secondary[2] * 0.16, 0.85], [theme.accent_secondary[0] * 0.6, theme.accent_secondary[1] * 0.6, theme.accent_secondary[2] * 0.6, 0.7], 0.10, theme.accent_secondary, 6.0)
+                    } else {
+                        ([0.06, 0.09, 0.14, 0.40], [0.12, 0.16, 0.22, 0.3], 0.0, theme.text_muted, 6.0)
+                    }
+                }
+                crate::kind::ButtonVariant::Danger => {
+                    if hovered && *enabled {
+                        ([theme.danger[0] * 0.35, theme.danger[1] * 0.35, theme.danger[2] * 0.35, 0.95], theme.danger, 0.35, [1.0, 1.0, 1.0, 1.0], 6.0)
+                    } else if *enabled {
+                        ([theme.danger[0] * 0.20, theme.danger[1] * 0.20, theme.danger[2] * 0.20, 0.85], [theme.danger[0] * 0.7, theme.danger[1] * 0.7, theme.danger[2] * 0.7, 0.7], 0.12, theme.danger, 6.0)
+                    } else {
+                        ([0.06, 0.09, 0.14, 0.40], [0.12, 0.16, 0.22, 0.3], 0.0, theme.text_muted, 6.0)
+                    }
+                }
+                crate::kind::ButtonVariant::Ghost => {
+                    if hovered && *enabled {
+                        ([0.14, 0.18, 0.28, 0.70], [0.25, 0.32, 0.45, 0.60], 0.10, [1.0, 1.0, 1.0, 1.0], 6.0)
+                    } else if *enabled {
+                        ([0.0, 0.0, 0.0, 0.0], [0.0, 0.0, 0.0, 0.0], 0.0, theme.text_muted, 6.0)
+                    } else {
+                        ([0.0, 0.0, 0.0, 0.0], [0.0, 0.0, 0.0, 0.0], 0.0, [0.35, 0.40, 0.50, 0.5], 6.0)
+                    }
+                }
+                crate::kind::ButtonVariant::Default => {
+                    if hovered && *enabled {
+                        // High-contrast midnight navy solid fill with luminous cyan/periwinkle outline
+                        ([0.14, 0.18, 0.28, 0.96], [0.48, 0.82, 1.0, 0.85], 0.20, [1.0, 1.0, 1.0, 1.0], 6.0)
+                    } else if *enabled {
+                        // Solid distinct midnight navy container with crisp subtle structural border
+                        ([0.08, 0.11, 0.18, 0.92], [0.18, 0.24, 0.36, 0.65], 0.04, theme.text_color, 6.0)
+                    } else {
+                        ([0.05, 0.07, 0.11, 0.40], [0.10, 0.13, 0.20, 0.3], 0.0, [0.35, 0.45, 0.60, 0.6], 6.0)
+                    }
+                }
             };
-            let base = if *enabled { theme.glow_intensity } else { 0.0 };
+
             let intensity = if *enabled {
-                interactive_glow(base, hovered, pressed, theme)
+                if pressed {
+                    (theme.glow_intensity_hover * 0.7).max(glow_mult)
+                } else if hovered {
+                    glow_mult.max(theme.glow_intensity_hover)
+                } else {
+                    glow_mult
+                }
             } else {
                 0.0
             };
-            let bg = [
-                theme.glass_bg[0] + 0.05,
-                theme.glass_bg[1] + 0.07,
-                theme.glass_bg[2] + 0.10,
-                0.85,
-            ];
-            frame
-                .instances
-                .push(glass_instance(bounds, clip, bg, glow, intensity, theme));
+
+            frame.instances.push(custom_glass_instance(
+                bounds,
+                clip,
+                bg,
+                border_color,
+                radius,
+                1.0,
+                intensity,
+            ));
             frame.texts.push(text_spec(
                 label.clone(),
                 bounds,
                 clip,
                 theme,
-                theme.text_color,
+                text_color,
                 TextAlign::Center,
                 TextRole::Body,
             ));
         }
 
         WidgetKind::IconButton { icon, enabled, .. } => {
-            let glow = if *enabled {
-                theme.accent
+            let (bg, border, glow_mult, icon_color) = if hovered && *enabled {
+                ([0.14, 0.18, 0.28, 0.96], [0.48, 0.82, 1.0, 0.85], 0.22, [1.0, 1.0, 1.0, 1.0])
+            } else if *enabled {
+                ([0.08, 0.11, 0.18, 0.92], [0.18, 0.24, 0.36, 0.65], 0.04, theme.text_color)
             } else {
-                [0.4, 0.4, 0.4, 1.0]
-            };
-            let base = if *enabled {
-                theme.glow_intensity * 0.5
-            } else {
-                0.0
+                ([0.05, 0.07, 0.11, 0.40], [0.10, 0.13, 0.20, 0.3], 0.0, theme.text_muted)
             };
             let intensity = if *enabled {
-                interactive_glow(base, hovered, pressed, theme)
+                if pressed { 0.40 } else if hovered { glow_mult } else { 0.05 }
             } else {
                 0.0
-            };
-            let bg = if hovered {
-                [
-                    theme.accent[0] * 0.20,
-                    theme.accent[1] * 0.20,
-                    theme.accent[2] * 0.20,
-                    0.90,
-                ]
-            } else {
-                [
-                    theme.glass_bg[0] * 0.70,
-                    theme.glass_bg[1] * 0.70,
-                    theme.glass_bg[2] * 0.70,
-                    0.60,
-                ]
             };
             frame.instances.push(custom_glass_instance(
                 bounds,
                 clip,
                 bg,
-                glow,
+                border,
                 6.0,
-                theme.border_width,
+                1.0,
                 intensity,
             ));
             let glyph = icon.glyph();
-            let icon_color = if *enabled {
-                if hovered {
-                    [1.0, 1.0, 1.0, 1.0]
-                } else {
-                    theme.text_color
-                }
-            } else {
-                theme.text_muted
-            };
             frame.texts.push(text_spec(
                 glyph.to_string(),
                 bounds,
@@ -775,7 +843,6 @@ fn render_kind(
         } => {
             let range = (max - min).max(1.0e-5);
             let ratio = ((value - min) / range).clamp(0.0, 1.0);
-            let intensity = interactive_glow(theme.glow_intensity * 0.8, hovered, pressed, theme);
 
             match orientation {
                 crate::kind::SliderOrientation::Horizontal => {
@@ -799,7 +866,7 @@ fn render_kind(
                             clip,
                             theme.accent,
                             theme.accent,
-                            0.35,
+                            0.06,
                             theme,
                         ));
                     }
@@ -809,12 +876,13 @@ fn render_kind(
                     let thumb_x = bounds[0] + ratio * bounds[2] - thumb_w * 0.5;
                     let thumb_y = bounds[1] + (bounds[3] - thumb_h) * 0.5;
                     let thumb_bounds = [thumb_x, thumb_y, thumb_w, thumb_h];
+                    let thumb_glow = if pressed { 0.20 } else if hovered { 0.12 } else { 0.04 };
                     frame.instances.push(glass_instance(
                         thumb_bounds,
                         clip,
                         [0.95, 0.98, 1.0, 1.0],
                         theme.accent,
-                        intensity,
+                        thumb_glow,
                         theme,
                     ));
                 }
@@ -840,7 +908,7 @@ fn render_kind(
                             clip,
                             theme.accent,
                             theme.accent,
-                            0.35,
+                            0.06,
                             theme,
                         ));
                     }
@@ -850,12 +918,13 @@ fn render_kind(
                     let thumb_x = bounds[0] + (bounds[2] - thumb_w) * 0.5;
                     let thumb_y = bounds[1] + (1.0 - ratio) * bounds[3] - thumb_h * 0.5;
                     let thumb_bounds = [thumb_x, thumb_y, thumb_w, thumb_h];
+                    let thumb_glow = if pressed { 0.20 } else if hovered { 0.12 } else { 0.04 };
                     frame.instances.push(glass_instance(
                         thumb_bounds,
                         clip,
                         [0.95, 0.98, 1.0, 1.0],
                         theme.accent,
-                        intensity,
+                        thumb_glow,
                         theme,
                     ));
                 }
@@ -895,7 +964,7 @@ fn render_kind(
                             clip,
                             theme.accent,
                             theme.accent,
-                            0.4,
+                            0.08,
                             theme,
                         ));
                     }
@@ -927,7 +996,7 @@ fn render_kind(
                             clip,
                             theme.accent,
                             theme.accent,
-                            0.4,
+                            0.08,
                             theme,
                         ));
                     }
@@ -1206,14 +1275,15 @@ fn render_kind(
                     safe_cursor,
                 );
                 let cursor_x = (bounds[0] + 12.0 + text_w).min(bounds[0] + bounds[2] - 14.0);
-                let cursor_bounds = [cursor_x, cursor_y, 2.0, cursor_h];
-                frame.instances.push(glass_instance(
+                let cursor_bounds = [cursor_x, cursor_y, 1.5, cursor_h];
+                frame.instances.push(custom_glass_instance(
                     cursor_bounds,
                     clip,
                     theme.accent,
-                    theme.accent,
-                    0.6,
-                    theme,
+                    [0.0, 0.0, 0.0, 0.0],
+                    0.0,
+                    0.0,
+                    0.0,
                 ));
             }
         }
@@ -1305,14 +1375,15 @@ fn render_kind(
                     ));
                 }
                 if *focused {
-                    let cursor_bounds = [text_offset_x, start_y + 2.0, 2.0, line_h - 4.0];
-                    frame.instances.push(glass_instance(
+                    let cursor_bounds = [text_offset_x, start_y + 2.0, 1.5, line_h - 4.0];
+                    frame.instances.push(custom_glass_instance(
                         cursor_bounds,
                         clip,
                         theme.accent,
-                        theme.accent,
-                        0.6,
-                        theme,
+                        [0.0, 0.0, 0.0, 0.0],
+                        0.0,
+                        0.0,
+                        0.0,
                     ));
                 }
             } else {
@@ -1423,14 +1494,15 @@ fn render_kind(
                     let cur_y = start_y + cur_line_idx as f32 * line_h;
 
                     if cur_y + line_h <= bounds[1] + bounds[3] {
-                        let cursor_bounds = [cursor_x, cur_y + 2.0, 2.0, line_h - 4.0];
-                        frame.instances.push(glass_instance(
+                        let cursor_bounds = [cursor_x, cur_y + 2.0, 1.5, line_h - 4.0];
+                        frame.instances.push(custom_glass_instance(
                             cursor_bounds,
                             clip,
                             theme.accent,
-                            theme.accent,
-                            0.6,
-                            theme,
+                            [0.0, 0.0, 0.0, 0.0],
+                            0.0,
+                            0.0,
+                            0.0,
                         ));
                     }
                 }
@@ -1522,14 +1594,15 @@ fn render_kind(
                 let cursor_x = (bounds[0] + 12.0 + text_w).min(bounds[0] + bounds[2] - 34.0);
                 let cursor_h = (bounds[3] - 14.0).max(12.0);
                 let cursor_y = bounds[1] + (bounds[3] - cursor_h) * 0.5;
-                let cursor_bounds = [cursor_x, cursor_y, 2.0, cursor_h];
-                frame.instances.push(glass_instance(
+                let cursor_bounds = [cursor_x, cursor_y, 1.5, cursor_h];
+                frame.instances.push(custom_glass_instance(
                     cursor_bounds,
                     clip,
                     theme.accent,
-                    theme.accent,
-                    0.6,
-                    theme,
+                    [0.0, 0.0, 0.0, 0.0],
+                    0.0,
+                    0.0,
+                    0.0,
                 ));
             }
         }
@@ -1597,14 +1670,15 @@ fn render_kind(
                 let cursor_x = (bounds[0] + 12.0 + text_w).min(bounds[0] + bounds[2] - 34.0);
                 let cursor_h = (bounds[3] - 14.0).max(12.0);
                 let cursor_y = bounds[1] + (bounds[3] - cursor_h) * 0.5;
-                let cursor_bounds = [cursor_x, cursor_y, 2.0, cursor_h];
-                frame.instances.push(glass_instance(
+                let cursor_bounds = [cursor_x, cursor_y, 1.5, cursor_h];
+                frame.instances.push(custom_glass_instance(
                     cursor_bounds,
                     clip,
                     theme.accent,
-                    theme.accent,
-                    0.8,
-                    theme,
+                    [0.0, 0.0, 0.0, 0.0],
+                    0.0,
+                    0.0,
+                    0.0,
                 ));
             }
 
@@ -1750,40 +1824,53 @@ fn render_kind(
         WidgetKind::SegmentItem {
             label, selected, ..
         } => {
-            let glow = if *selected {
-                theme.accent
+            let radius = (bounds[3] * 0.5).min(bounds[2] * 0.5);
+            let (bg, border_color, glow_mult, text_color): ([f32; 4], [f32; 4], f32, [f32; 4]) = if *selected {
+                (
+                    [
+                        theme.accent[0] * 0.22,
+                        theme.accent[1] * 0.22,
+                        theme.accent[2] * 0.22,
+                        0.95,
+                    ],
+                    theme.accent,
+                    0.25f32,
+                    theme.accent,
+                )
+            } else if hovered {
+                (
+                    [0.14, 0.18, 0.28, 0.85],
+                    [0.30, 0.40, 0.55, 0.60],
+                    0.10f32,
+                    theme.text_color,
+                )
             } else {
-                [0.25, 0.25, 0.25, 1.0]
+                (
+                    [0.08, 0.11, 0.18, 0.65],
+                    [0.16, 0.22, 0.32, 0.45],
+                    0.0f32,
+                    theme.text_muted,
+                )
             };
-            let base = if *selected {
-                theme.glow_intensity * 0.8
+
+            let intensity = if pressed {
+                0.35
+            } else if hovered {
+                glow_mult.max(theme.glow_intensity_hover)
             } else {
-                0.0
+                glow_mult
             };
-            let intensity = interactive_glow(base, hovered, pressed, theme);
-            let bg = if *selected {
-                [
-                    theme.accent[0] * 0.28,
-                    theme.accent[1] * 0.28,
-                    theme.accent[2] * 0.28,
-                    0.95,
-                ]
-            } else {
-                [
-                    theme.glass_bg[0] * 0.55,
-                    theme.glass_bg[1] * 0.55,
-                    theme.glass_bg[2] * 0.55,
-                    0.45,
-                ]
-            };
-            frame
-                .instances
-                .push(glass_instance(bounds, clip, bg, glow, intensity, theme));
-            let text_color = if *selected {
-                [1.0, 1.0, 1.0, 1.0]
-            } else {
-                theme.text_muted
-            };
+
+            frame.instances.push(custom_glass_instance(
+                bounds,
+                clip,
+                bg,
+                border_color,
+                radius,
+                1.0,
+                intensity,
+            ));
+
             frame.texts.push(text_spec(
                 label.clone(),
                 bounds,
@@ -1808,14 +1895,41 @@ fn render_kind(
         }
 
         WidgetKind::Modal { title, .. } => {
-            let bg = [0.08, 0.11, 0.18, 0.98];
-            frame.instances.push(glass_instance(
+            // Soft atmospheric drop shadow under the modal
+            let shadow_color = [0.0, 0.0, 0.0, 0.65];
+            let shadow_glow = [0.0, 0.0, 0.0, 0.80];
+            let shadow_bounds = [bounds[0], bounds[1] + 6.0, bounds[2], bounds[3]];
+            frame.instances.push(custom_glass_instance(
+                shadow_bounds,
+                clip,
+                shadow_color,
+                shadow_glow,
+                theme.corner_radius + 2.0,
+                0.0,
+                0.70,
+            ));
+
+            // Deep midnight navy glass body derived strictly from theme tokens in linear space
+            let bg = [
+                theme.glass_bg[0],
+                theme.glass_bg[1],
+                theme.glass_bg[2],
+                0.98,
+            ];
+            let border_color = [
+                (theme.accent_secondary[0] * 0.35).min(1.0),
+                (theme.accent_secondary[1] * 0.35).min(1.0),
+                (theme.accent_secondary[2] * 0.35).min(1.0),
+                0.85,
+            ];
+            frame.instances.push(custom_glass_instance(
                 bounds,
                 clip,
                 bg,
-                theme.accent,
-                theme.glow_intensity * 1.5,
-                theme,
+                border_color,
+                theme.corner_radius,
+                theme.border_width,
+                theme.glow_intensity * 0.6,
             ));
             let title_bar = [bounds[0] + 20.0, bounds[1] + 16.0, bounds[2] - 48.0, 24.0];
             frame.texts.push(text_spec(
@@ -1830,14 +1944,20 @@ fn render_kind(
         }
 
         WidgetKind::ModalBackdrop { .. } => {
-            let backdrop_bg = [0.01, 0.02, 0.04, 0.42];
-            frame.instances.push(glass_instance(
+            let backdrop_bg = [
+                theme.glass_bg[0] * 0.30,
+                theme.glass_bg[1] * 0.30,
+                theme.glass_bg[2] * 0.30,
+                0.75,
+            ];
+            frame.instances.push(custom_glass_instance(
                 bounds,
                 clip,
                 backdrop_bg,
-                backdrop_bg,
+                [0.0, 0.0, 0.0, 0.0],
                 0.0,
-                theme,
+                0.0,
+                0.0,
             ));
         }
 
@@ -2332,7 +2452,16 @@ fn render_kind(
                 crate::kind::ToastKind::Warning => ([1.0, 0.78, 0.12, 1.0], 1.3),
                 crate::kind::ToastKind::Error => ([1.0, 0.28, 0.32, 1.0], 1.5),
             };
-            // High-contrast, crystal clear solid cyber-glass toast card
+
+            // Strict inner clip: ensures text and indicators never overflow outside card borders
+            let toast_clip = crate::effective::intersect(clip, [
+                bounds[0] + 2.0,
+                bounds[1] + 2.0,
+                (bounds[2] - 4.0).max(10.0),
+                (bounds[3] - 4.0).max(10.0),
+            ]);
+
+            // High-contrast solid cyber-glass toast card
             let bg = [0.04, 0.07, 0.13, 0.98];
             frame.instances.push(custom_glass_instance(
                 bounds,
@@ -2354,7 +2483,7 @@ fn render_kind(
             ];
             frame.instances.push(custom_glass_instance(
                 bar_bounds,
-                clip,
+                toast_clip,
                 accent_color,
                 accent_color,
                 2.0,
@@ -2364,10 +2493,10 @@ fn render_kind(
 
             // Glowing indicator dot
             let dot_size = 8.0;
-            let dot_bounds = [bounds[0] + 20.0, bounds[1] + 14.0, dot_size, dot_size];
+            let dot_bounds = [bounds[0] + 20.0, bounds[1] + 13.0, dot_size, dot_size];
             frame.instances.push(custom_glass_instance(
                 dot_bounds,
-                clip,
+                toast_clip,
                 accent_color,
                 accent_color,
                 4.0,
@@ -2376,49 +2505,112 @@ fn render_kind(
             ));
 
             // High-contrast crisp title
-            let title_bounds = [bounds[0] + 34.0, bounds[1] + 8.0, bounds[2] - 44.0, 20.0];
-            frame.texts.push(text_spec(
-                title.clone(),
-                title_bounds,
-                clip,
-                theme,
-                [1.0, 1.0, 1.0, 1.0],
-                TextAlign::Left,
-                TextRole::Body,
-            ));
+            let title_bounds = [
+                bounds[0] + 34.0,
+                bounds[1] + 8.0,
+                (bounds[2] - 44.0).max(20.0),
+                18.0,
+            ];
+            frame.texts.push(TextSpec {
+                text: title.clone(),
+                bounds: title_bounds,
+                font_size: 12.0,
+                color: [1.0, 1.0, 1.0, 1.0],
+                align: TextAlign::Left,
+                weight: FontWeight::Bold,
+                clip: toast_clip,
+            });
 
-            // High-contrast legible message
+            // High-contrast legible message with strict clipping and multi-line safety
             let msg_bounds = [
                 bounds[0] + 34.0,
-                bounds[1] + 28.0,
-                bounds[2] - 44.0,
-                (bounds[3] - 32.0).max(16.0),
+                bounds[1] + 26.0,
+                (bounds[2] - 44.0).max(20.0),
+                (bounds[3] - 30.0).max(14.0),
             ];
-            frame.texts.push(text_spec(
-                message.clone(),
-                msg_bounds,
-                clip,
-                theme,
-                [0.86, 0.93, 1.0, 1.0],
-                TextAlign::Left,
-                TextRole::Small,
-            ));
+            frame.texts.push(TextSpec {
+                text: message.clone(),
+                bounds: msg_bounds,
+                font_size: 10.5,
+                color: [0.86, 0.93, 1.0, 0.95],
+                align: TextAlign::Left,
+                weight: FontWeight::Normal,
+                clip: toast_clip,
+            });
         }
 
-        WidgetKind::Tooltip { text } => {
-            let bg = [0.04, 0.06, 0.10, 0.96];
-            frame
-                .instances
-                .push(glass_instance(bounds, clip, bg, theme.accent, 0.25, theme));
-            frame.texts.push(text_spec(
-                text.clone(),
+        WidgetKind::Tooltip { text, shortcut, placement: _ } => {
+            let bg = [0.03, 0.06, 0.11, 0.98];
+            let border_col = theme.accent;
+            let tooltip_clip = crate::effective::intersect(clip, [
+                bounds[0] + 1.0,
+                bounds[1] + 1.0,
+                (bounds[2] - 2.0).max(4.0),
+                (bounds[3] - 2.0).max(4.0),
+            ]);
+
+            // High-contrast cyber-glass tooltip bubble
+            frame.instances.push(custom_glass_instance(
                 bounds,
                 clip,
-                theme,
-                theme.text_color,
-                TextAlign::Center,
-                TextRole::Caption,
+                bg,
+                border_col,
+                6.0,
+                1.0,
+                theme.glow_intensity * 0.75,
             ));
+
+            if let Some(ref sc) = shortcut {
+                let badge_w = (sc.len() as f32 * 6.5 + 14.0).clamp(36.0, 90.0);
+                let text_w = (bounds[2] - badge_w - 18.0).max(10.0);
+
+                // Main Tooltip Text
+                frame.texts.push(TextSpec {
+                    text: text.clone(),
+                    bounds: [bounds[0] + 8.0, bounds[1], text_w, bounds[3]],
+                    font_size: 11.0,
+                    color: [0.95, 0.97, 1.0, 1.0],
+                    align: TextAlign::Left,
+                    weight: FontWeight::Normal,
+                    clip: tooltip_clip,
+                });
+
+                // Shortcut Key Badge
+                let badge_h = (bounds[3] - 8.0).clamp(14.0, 20.0);
+                let badge_x = bounds[0] + bounds[2] - badge_w - 6.0;
+                let badge_y = bounds[1] + (bounds[3] - badge_h) * 0.5;
+                let badge_bounds = [badge_x, badge_y, badge_w, badge_h];
+
+                frame.instances.push(custom_glass_instance(
+                    badge_bounds,
+                    tooltip_clip,
+                    [0.10, 0.18, 0.28, 0.90],
+                    [theme.accent[0] * 0.7, theme.accent[1] * 0.7, theme.accent[2] * 0.7, 0.60],
+                    4.0,
+                    1.0,
+                    0.1,
+                ));
+
+                frame.texts.push(TextSpec {
+                    text: sc.clone(),
+                    bounds: badge_bounds,
+                    font_size: 10.0,
+                    color: theme.accent,
+                    align: TextAlign::Center,
+                    weight: FontWeight::Bold,
+                    clip: tooltip_clip,
+                });
+            } else {
+                frame.texts.push(TextSpec {
+                    text: text.clone(),
+                    bounds: [bounds[0] + 8.0, bounds[1], (bounds[2] - 16.0).max(10.0), bounds[3]],
+                    font_size: 11.0,
+                    color: [0.95, 0.97, 1.0, 1.0],
+                    align: TextAlign::Center,
+                    weight: FontWeight::Normal,
+                    clip: tooltip_clip,
+                });
+            }
         }
 
         WidgetKind::Splitter { orientation, .. } => {
@@ -2927,14 +3119,14 @@ fn render_kind(
                     [color[0] * 0.15, color[1] * 0.15, color[2] * 0.15, 0.85],
                 ),
                 crate::kind::ListItemBadge::None => (
-                    theme.accent_secondary,
-                    [
-                        theme.glass_bg[0] * 0.6,
-                        theme.glass_bg[1] * 0.6,
-                        theme.glass_bg[2] * 0.6,
-                        0.6,
-                    ],
+                    [0.055, 0.085, 0.155, 0.35], // Subtle dark border
+                    [0.030, 0.045, 0.090, 0.45], // Subtle dark recessed chip
                 ),
+            };
+
+            let text_color = match badge {
+                crate::kind::ListItemBadge::None => theme.text_color,
+                _ => accent_color,
             };
 
             frame.instances.push(custom_glass_instance(
@@ -2942,16 +3134,16 @@ fn render_kind(
                 clip,
                 bg_tint,
                 accent_color,
-                4.0,
-                1.0,
-                0.15,
+                theme.corner_radius.min(6.0),
+                if matches!(badge, crate::kind::ListItemBadge::None) { 0.5 } else { theme.border_width },
+                if matches!(badge, crate::kind::ListItemBadge::None) { 0.0 } else { 0.15 },
             ));
             frame.texts.push(text_spec(
                 label.clone(),
                 bounds,
                 clip,
                 theme,
-                accent_color,
+                text_color,
                 TextAlign::Center,
                 TextRole::Caption,
             ));
@@ -3571,10 +3763,11 @@ fn render_kind(
                         let p2 = [origin_x + ctrl2[0], origin_y + ctrl2[1]];
                         let p3 = [origin_x + end[0], origin_y + end[1]];
 
-                        const SUBDIVISIONS: usize = 16;
+                        let chord = ((p3[0] - p0[0]).powi(2) + (p3[1] - p0[1]).powi(2)).sqrt();
+                        let subdivisions = (chord / 5.0).clamp(20.0, 64.0) as usize;
                         let mut prev_pt = p0;
-                        for i in 1..=SUBDIVISIONS {
-                            let t = i as f32 / SUBDIVISIONS as f32;
+                        for i in 1..=subdivisions {
+                            let t = i as f32 / subdivisions as f32;
                             let pt = crate::paint::eval_cubic_bezier(p0, p1, p2, p3, t);
                             render_custom_paint_line(
                                 prev_pt,
@@ -3648,6 +3841,1491 @@ fn render_kind(
                 }
             }
         }
+
+        WidgetKind::Knob {
+            id: _,
+            value,
+            min,
+            max,
+            step: _,
+            label,
+            unit,
+        } => {
+            let is_hovered = hovered;
+            let is_pressed = pressed;
+
+            let cx = bounds[0] + bounds[2] * 0.5;
+            let cy = bounds[1] + bounds[3] * 0.45;
+            let radius = (bounds[2].min(bounds[3]) * 0.35).max(12.0);
+
+            // Background Outer Dial Ring
+            let ring_bounds = [cx - radius, cy - radius, radius * 2.0, radius * 2.0];
+            frame.instances.push(custom_glass_instance(
+                ring_bounds,
+                clip,
+                theme.card_bg(),
+                theme.border_subtle(),
+                radius,
+                1.5,
+                if is_hovered { 0.15 } else { 0.05 },
+            ));
+
+            // Inner Metallic Dial Cap
+            let inner_radius = radius * 0.75;
+            let cap_bounds = [
+                cx - inner_radius,
+                cy - inner_radius,
+                inner_radius * 2.0,
+                inner_radius * 2.0,
+            ];
+            let cap_bg = if is_pressed {
+                [0.12, 0.16, 0.24, 0.95]
+            } else if is_hovered {
+                [0.10, 0.14, 0.20, 0.90]
+            } else {
+                [0.06, 0.08, 0.12, 0.85]
+            };
+            frame.instances.push(custom_glass_instance(
+                cap_bounds,
+                clip,
+                cap_bg,
+                if is_hovered { theme.accent } else { theme.border_subtle() },
+                inner_radius,
+                1.0,
+                0.0,
+            ));
+
+            // Angle calculation: from -135 deg to +135 deg (270 deg range)
+            let ratio = if *max > *min {
+                ((*value - *min) / (*max - *min)).clamp(0.0, 1.0)
+            } else {
+                0.0
+            };
+            let start_angle = -std::f32::consts::PI * 0.75;
+            let total_sweep = std::f32::consts::PI * 1.5;
+            let cur_angle = start_angle + ratio * total_sweep;
+
+            // Indicator Needle Dot / Line
+            let needle_dist = inner_radius * 0.65;
+            let nx = cx + cur_angle.cos() * needle_dist;
+            let ny = cy + cur_angle.sin() * needle_dist;
+            let dot_r = 2.5;
+            frame.instances.push(custom_glass_instance(
+                [nx - dot_r, ny - dot_r, dot_r * 2.0, dot_r * 2.0],
+                clip,
+                theme.accent,
+                theme.accent,
+                dot_r,
+                0.0,
+                0.4,
+            ));
+
+            // Text Label and Value Display
+            if let Some(lbl) = label {
+                frame.texts.push(TextSpec {
+                    text: lbl.clone(),
+                    bounds: [bounds[0], bounds[1], bounds[2], 14.0],
+                    font_size: 10.0,
+                    color: theme.text_muted,
+                    align: TextAlign::Center,
+                    weight: FontWeight::Normal,
+                    clip,
+                });
+            }
+
+            let val_str = if let Some(u) = unit {
+                format!("{:.1} {}", value, u)
+            } else {
+                format!("{:.1}", value)
+            };
+            frame.texts.push(TextSpec {
+                text: val_str,
+                bounds: [bounds[0], bounds[1] + bounds[3] - 16.0, bounds[2], 14.0],
+                font_size: 11.0,
+                color: theme.text_color,
+                align: TextAlign::Center,
+                weight: FontWeight::Bold,
+                clip,
+            });
+        }
+
+        WidgetKind::TimeSeriesChart {
+            id: _,
+            title,
+            series,
+            x_min,
+            x_max,
+            y_min,
+            y_max,
+            show_grid,
+            show_legend: _,
+            inspected_point,
+        } => {
+            // Chart Card Background
+            frame.instances.push(custom_glass_instance(
+                bounds,
+                clip,
+                theme.card_bg(),
+                theme.border_subtle(),
+                6.0,
+                1.0,
+                0.05,
+            ));
+
+            let pad_left = 36.0;
+            let pad_right = 16.0;
+            let pad_top = if title.is_some() { 28.0 } else { 12.0 };
+            let pad_bottom = 24.0;
+
+            if let Some(t) = title {
+                frame.texts.push(TextSpec {
+                    text: t.clone(),
+                    bounds: [bounds[0] + 12.0, bounds[1] + 8.0, bounds[2] - 24.0, 16.0],
+                    font_size: 12.0,
+                    color: theme.text_color,
+                    align: TextAlign::Left,
+                    weight: FontWeight::Bold,
+                    clip,
+                });
+            }
+
+            let plot_x = bounds[0] + pad_left;
+            let plot_y = bounds[1] + pad_top;
+            let plot_w = (bounds[2] - pad_left - pad_right).max(10.0);
+            let plot_h = (bounds[3] - pad_top - pad_bottom).max(10.0);
+            let plot_clip = crate::effective::intersect(clip, [plot_x, plot_y, plot_w, plot_h]);
+
+            // Grid Lines & Axis Ticks
+            if *show_grid {
+                for i in 0..=4 {
+                    let gy = plot_y + (i as f32 / 4.0) * plot_h;
+                    render_custom_paint_line(
+                        [plot_x, gy],
+                        [plot_x + plot_w, gy],
+                        0.8,
+                        [1.0, 1.0, 1.0, 0.05],
+                        clip,
+                        frame,
+                    );
+                    // Y-Axis Value Label
+                    let y_val = y_max - (i as f32 / 4.0) * (y_max - y_min);
+                    frame.texts.push(TextSpec {
+                        text: format!("{:.0}", y_val),
+                        bounds: [bounds[0] + 4.0, gy - 6.0, pad_left - 8.0, 12.0],
+                        font_size: 9.0,
+                        color: theme.text_muted,
+                        align: TextAlign::Right,
+                        weight: FontWeight::Normal,
+                        clip,
+                    });
+                }
+            }
+
+            // Draw Series Polylines and Area Fills
+            let dx_range = (*x_max - *x_min).max(0.001);
+            let dy_range = (*y_max - *y_min).max(0.001);
+
+            for (s_idx, s) in series.iter().enumerate() {
+                if s.points.len() < 2 {
+                    continue;
+                }
+                let mut screen_pts: Vec<[f32; 2]> = Vec::with_capacity(s.points.len());
+                for pt in &s.points {
+                    let nx = ((pt[0] - *x_min) / dx_range).clamp(0.0, 1.0);
+                    let ny = ((pt[1] - *y_min) / dy_range).clamp(0.0, 1.0);
+                    let sx = plot_x + nx * plot_w;
+                    let sy = plot_y + (1.0 - ny) * plot_h;
+                    screen_pts.push([sx, sy]);
+                }
+
+                // Area Fill under curve
+                if s.filled {
+                    let mut fill_color = s.color;
+                    fill_color[3] *= 0.15;
+                    for i in 0..(screen_pts.len() - 1) {
+                        let p1 = screen_pts[i];
+                        let p2 = screen_pts[i + 1];
+                        let bottom_y = plot_y + plot_h;
+                        let col_w = (p2[0] - p1[0]).max(1.0);
+                        let avg_h = (bottom_y - (p1[1] + p2[1]) * 0.5).max(0.0);
+                        let col_rect = [p1[0], bottom_y - avg_h, col_w, avg_h];
+                        frame.instances.push(custom_glass_instance(
+                            col_rect,
+                            plot_clip,
+                            fill_color,
+                            [0.0, 0.0, 0.0, 0.0],
+                            0.0,
+                            0.0,
+                            0.0,
+                        ));
+                    }
+                }
+
+                // Line Stroke
+                for i in 0..(screen_pts.len() - 1) {
+                    render_custom_paint_line(
+                        screen_pts[i],
+                        screen_pts[i + 1],
+                        1.8,
+                        s.color,
+                        plot_clip,
+                        frame,
+                    );
+                }
+
+                // Inspection Point Highlight
+                if let Some((insp_s, insp_p)) = inspected_point {
+                    if *insp_s == s_idx && *insp_p < screen_pts.len() {
+                        let ipt = screen_pts[*insp_p];
+                        // Vertical guideline
+                        render_custom_paint_line(
+                            [ipt[0], plot_y],
+                            [ipt[0], plot_y + plot_h],
+                            1.0,
+                            [1.0, 1.0, 1.0, 0.3],
+                            plot_clip,
+                            frame,
+                        );
+                        // Highlight dot
+                        frame.instances.push(custom_glass_instance(
+                            [ipt[0] - 4.0, ipt[1] - 4.0, 8.0, 8.0],
+                            clip,
+                            s.color,
+                            [1.0, 1.0, 1.0, 1.0],
+                            4.0,
+                            1.5,
+                            0.5,
+                        ));
+                    }
+                }
+            }
+        }
+
+        WidgetKind::NodeGraph {
+            id: _,
+            nodes,
+            connections,
+            pan,
+            zoom: _,
+            connecting_from: _,
+        } => {
+            // Node Graph Canvas Base with Subtle Grid
+            frame.instances.push(custom_glass_instance(
+                bounds,
+                clip,
+                [0.03, 0.04, 0.07, 0.95],
+                theme.border_subtle(),
+                4.0,
+                1.0,
+                0.0,
+            ));
+            let graph_clip = crate::effective::intersect(clip, bounds);
+
+            let origin_x = bounds[0] + pan[0];
+            let origin_y = bounds[1] + pan[1];
+
+            // Render Connections as Smooth Bézier Cables
+            for conn in connections {
+                let from_node = nodes.iter().find(|n| n.id == conn.from_node);
+                let to_node = nodes.iter().find(|n| n.id == conn.to_node);
+
+                if let (Some(fn_node), Some(tn_node)) = (from_node, to_node) {
+                    let out_idx = conn.from_socket;
+                    let in_idx = conn.to_socket;
+
+                    let p_start = [
+                        origin_x + fn_node.pos[0] + fn_node.size[0],
+                        origin_y + fn_node.pos[1] + 32.0 + (out_idx as f32 * 20.0) + 8.0,
+                    ];
+                    let p_end = [
+                        origin_x + tn_node.pos[0],
+                        origin_y + tn_node.pos[1] + 32.0 + (in_idx as f32 * 20.0) + 8.0,
+                    ];
+
+                    let dx = (p_end[0] - p_start[0]).abs().max(40.0) * 0.5;
+                    let p_ctrl1 = [p_start[0] + dx, p_start[1]];
+                    let p_ctrl2 = [p_end[0] - dx, p_end[1]];
+
+                    let cable_color = conn.color.unwrap_or([0.0, 0.85, 1.0, 0.8]);
+                    let subdivisions = 32;
+                    let mut prev = p_start;
+                    for i in 1..=subdivisions {
+                        let t = i as f32 / subdivisions as f32;
+                        let pt = crate::paint::eval_cubic_bezier(p_start, p_ctrl1, p_ctrl2, p_end, t);
+                        render_custom_paint_line(prev, pt, 1.8, cable_color, graph_clip, frame);
+                        prev = pt;
+                    }
+                }
+            }
+
+            // Render Nodes
+            for node in nodes {
+                let nx = origin_x + node.pos[0];
+                let ny = origin_y + node.pos[1];
+                let nw = node.size[0];
+                let nh = node.size[1];
+                let node_bounds = [nx, ny, nw, nh];
+
+                // Card Body
+                let border_col = if node.selected {
+                    theme.accent
+                } else {
+                    theme.border_subtle()
+                };
+                frame.instances.push(custom_glass_instance(
+                    node_bounds,
+                    graph_clip,
+                    theme.card_bg(),
+                    border_col,
+                    6.0,
+                    if node.selected { 1.5 } else { 1.0 },
+                    if node.selected { 0.2 } else { 0.05 },
+                ));
+
+                // Node Header Bar
+                let header_bg = node.header_color.unwrap_or([0.15, 0.20, 0.30, 0.9]);
+                frame.instances.push(custom_glass_instance(
+                    [nx, ny, nw, 28.0],
+                    graph_clip,
+                    header_bg,
+                    [0.0, 0.0, 0.0, 0.0],
+                    6.0,
+                    0.0,
+                    0.0,
+                ));
+                frame.texts.push(TextSpec {
+                    text: node.title.clone(),
+                    bounds: [nx + 8.0, ny + 7.0, nw - 16.0, 14.0],
+                    font_size: 11.0,
+                    color: [1.0, 1.0, 1.0, 1.0],
+                    align: TextAlign::Left,
+                    weight: FontWeight::Bold,
+                    clip: graph_clip,
+                });
+
+                // Input Sockets (Left side)
+                for (i, sock) in node.inputs.iter().enumerate() {
+                    let sy = ny + 32.0 + (i as f32 * 20.0);
+                    let scol = sock.color.unwrap_or_else(|| sock.socket_type.default_color());
+                    // Pin dot
+                    frame.instances.push(custom_glass_instance(
+                        [nx - 4.0, sy + 4.0, 8.0, 8.0],
+                        graph_clip,
+                        scol,
+                        [0.0, 0.0, 0.0, 0.8],
+                        4.0,
+                        1.0,
+                        0.3,
+                    ));
+                    // Socket Name
+                    frame.texts.push(TextSpec {
+                        text: sock.name.clone(),
+                        bounds: [nx + 8.0, sy + 2.0, nw * 0.5 - 12.0, 12.0],
+                        font_size: 9.0,
+                        color: theme.text_muted,
+                        align: TextAlign::Left,
+                        weight: FontWeight::Normal,
+                        clip: graph_clip,
+                    });
+                }
+
+                // Output Sockets (Right side)
+                for (i, sock) in node.outputs.iter().enumerate() {
+                    let sy = ny + 32.0 + (i as f32 * 20.0);
+                    let scol = sock.color.unwrap_or_else(|| sock.socket_type.default_color());
+                    // Pin dot
+                    frame.instances.push(custom_glass_instance(
+                        [nx + nw - 4.0, sy + 4.0, 8.0, 8.0],
+                        graph_clip,
+                        scol,
+                        [0.0, 0.0, 0.0, 0.8],
+                        4.0,
+                        1.0,
+                        0.3,
+                    ));
+                    // Socket Name
+                    frame.texts.push(TextSpec {
+                        text: sock.name.clone(),
+                        bounds: [nx + nw * 0.5, sy + 2.0, nw * 0.5 - 8.0, 12.0],
+                        font_size: 9.0,
+                        color: theme.text_muted,
+                        align: TextAlign::Right,
+                        weight: FontWeight::Normal,
+                        clip: graph_clip,
+                    });
+                }
+            }
+        }
+
+        WidgetKind::TagInput {
+            id: _,
+            tags,
+            placeholder,
+            active_tag: _,
+        } => {
+            let tag_clip = crate::effective::intersect(clip, bounds);
+
+            // Container Box
+            frame.instances.push(custom_glass_instance(
+                bounds,
+                clip,
+                theme.glass_bg,
+                theme.border_subtle(),
+                4.0,
+                1.0,
+                0.0,
+            ));
+
+            let mut cur_x = bounds[0] + 6.0;
+            let tag_h = (bounds[3] - 8.0).clamp(16.0, 22.0);
+            let tag_y = bounds[1] + (bounds[3] - tag_h) * 0.5;
+            let max_x = bounds[0] + bounds[2] - 6.0;
+
+            let mut remaining_count = 0;
+            for (i, tag) in tags.iter().enumerate() {
+                let tag_text_w = (tag.len() as f32 * 6.5 + 18.0).max(36.0);
+                if cur_x + tag_text_w > max_x - 30.0 && i < tags.len() - 1 {
+                    remaining_count = tags.len() - i;
+                    break;
+                }
+                if cur_x + tag_text_w > max_x {
+                    remaining_count = tags.len() - i;
+                    break;
+                }
+
+                let chip_bounds = [cur_x, tag_y, tag_text_w, tag_h];
+
+                // Chip pill
+                frame.instances.push(custom_glass_instance(
+                    chip_bounds,
+                    tag_clip,
+                    [0.10, 0.18, 0.28, 0.9],
+                    theme.accent,
+                    tag_h * 0.5,
+                    1.0,
+                    0.05,
+                ));
+
+                // Tag text with cross
+                frame.texts.push(TextSpec {
+                    text: format!("{} ✕", tag),
+                    bounds: [cur_x + 6.0, tag_y + 2.0, tag_text_w - 8.0, 12.0],
+                    font_size: 9.5,
+                    color: theme.accent,
+                    align: TextAlign::Left,
+                    weight: FontWeight::Normal,
+                    clip: tag_clip,
+                });
+
+                cur_x += tag_text_w + 5.0;
+            }
+
+            if remaining_count > 0 {
+                let badge_w = 26.0;
+                let badge_bounds = [cur_x.min(max_x - badge_w), tag_y, badge_w, tag_h];
+                frame.instances.push(custom_glass_instance(
+                    badge_bounds,
+                    tag_clip,
+                    [0.15, 0.22, 0.35, 0.9],
+                    theme.border_subtle(),
+                    tag_h * 0.5,
+                    1.0,
+                    0.0,
+                ));
+                frame.texts.push(TextSpec {
+                    text: format!("+{}", remaining_count),
+                    bounds: [badge_bounds[0], tag_y + 2.0, badge_w, 12.0],
+                    font_size: 9.0,
+                    color: theme.text_muted,
+                    align: TextAlign::Center,
+                    weight: FontWeight::Bold,
+                    clip: tag_clip,
+                });
+            }
+
+            if tags.is_empty() {
+                frame.texts.push(TextSpec {
+                    text: placeholder.clone(),
+                    bounds: [bounds[0] + 8.0, bounds[1] + 6.0, bounds[2] - 16.0, 14.0],
+                    font_size: 10.5,
+                    color: theme.text_muted,
+                    align: TextAlign::Left,
+                    weight: FontWeight::Normal,
+                    clip: tag_clip,
+                });
+            }
+        }
+
+        WidgetKind::CodeEditor {
+            id: _,
+            text,
+            language: _,
+            line_numbers,
+            focused,
+            cursor: _,
+            selection: _,
+        } => {
+            let editor_clip = crate::effective::intersect(clip, bounds);
+
+            // Background Card Body
+            let border_col = if *focused {
+                theme.border_highlight()
+            } else {
+                theme.border_subtle()
+            };
+            frame.instances.push(custom_glass_instance(
+                bounds,
+                clip,
+                [0.05, 0.07, 0.12, 0.95],
+                border_col,
+                4.0,
+                1.0,
+                if *focused { 0.12 } else { 0.02 },
+            ));
+
+            let gutter_w = if *line_numbers { 36.0 } else { 8.0 };
+
+            // Gutter background
+            if *line_numbers {
+                frame.instances.push(custom_glass_instance(
+                    [bounds[0], bounds[1], gutter_w, bounds[3]],
+                    editor_clip,
+                    [0.03, 0.04, 0.08, 0.98],
+                    theme.border_subtle(),
+                    4.0,
+                    1.0,
+                    0.0,
+                ));
+            }
+
+            let lines: Vec<&str> = text.lines().collect();
+            let line_h = 16.0;
+            let start_y = bounds[1] + 6.0;
+
+            for (i, line) in lines.iter().enumerate() {
+                let cur_y = start_y + i as f32 * line_h;
+                if cur_y + line_h > bounds[1] + bounds[3] {
+                    break;
+                }
+
+                // Line Number
+                if *line_numbers {
+                    frame.texts.push(TextSpec {
+                        text: format!("{}", i + 1),
+                        bounds: [bounds[0] + 4.0, cur_y, gutter_w - 10.0, line_h],
+                        font_size: 10.0,
+                        color: [0.45, 0.55, 0.70, 0.8],
+                        align: TextAlign::Right,
+                        weight: FontWeight::Normal,
+                        clip: editor_clip,
+                    });
+                }
+
+                // Simple syntax coloring heuristic for code text
+                let text_x = bounds[0] + gutter_w + 8.0;
+                let text_w = bounds[2] - gutter_w - 16.0;
+
+                let line_str = *line;
+                let line_trimmed = line_str.trim_start();
+                let line_color = if line_trimmed.starts_with("//") {
+                    [0.45, 0.58, 0.65, 0.85] // Comments (Slate Green)
+                } else if line_trimmed.starts_with("fn ") || line_trimmed.starts_with("pub fn ") {
+                    [0.0, 0.9, 0.8, 1.0] // Function definitions (Cyan)
+                } else if line_trimmed.starts_with("let ") || line_trimmed.starts_with("struct ") {
+                    [0.75, 0.45, 0.95, 1.0] // Keywords / structs (Violet)
+                } else if line_trimmed.starts_with("return ") {
+                    [0.95, 0.55, 0.35, 1.0] // Control flow (Amber)
+                } else {
+                    theme.text_color
+                };
+
+                frame.texts.push(TextSpec {
+                    text: line_str.to_string(),
+                    bounds: [text_x, cur_y, text_w, line_h],
+                    font_size: 11.0,
+                    color: line_color,
+                    align: TextAlign::Left,
+                    weight: FontWeight::Normal,
+                    clip: editor_clip,
+                });
+            }
+        }
+
+        WidgetKind::BarChart {
+            id: _,
+            title,
+            bars,
+            max_value,
+            horizontal,
+        } => {
+            let chart_clip = crate::effective::intersect(clip, bounds);
+
+            // Container Box
+            frame.instances.push(custom_glass_instance(
+                bounds,
+                clip,
+                theme.card_bg(),
+                theme.border_subtle(),
+                6.0,
+                1.0,
+                0.05,
+            ));
+
+            let pad_top = if title.is_some() { 24.0 } else { 10.0 };
+            if let Some(t) = title {
+                frame.texts.push(TextSpec {
+                    text: t.clone(),
+                    bounds: [bounds[0] + 10.0, bounds[1] + 6.0, bounds[2] - 20.0, 16.0],
+                    font_size: 11.0,
+                    color: theme.text_color,
+                    align: TextAlign::Left,
+                    weight: FontWeight::Bold,
+                    clip: chart_clip,
+                });
+            }
+
+            let max_val = max_value.unwrap_or_else(|| {
+                bars.iter()
+                    .map(|b| b.value)
+                    .fold(1.0f32, |acc, v| acc.max(v))
+            }).max(0.001);
+
+            if *horizontal {
+                let avail_h = bounds[3] - pad_top - 8.0;
+                let bar_count = bars.len().max(1);
+                let bar_h = (avail_h / bar_count as f32 - 6.0).clamp(12.0, 28.0);
+                let max_bar_w = (bounds[2] - 120.0).max(20.0);
+
+                for (i, bar) in bars.iter().enumerate() {
+                    let by = bounds[1] + pad_top + i as f32 * (bar_h + 6.0);
+                    let bw = (bar.value / max_val * max_bar_w).clamp(4.0, max_bar_w);
+
+                    // Label
+                    frame.texts.push(TextSpec {
+                        text: bar.label.clone(),
+                        bounds: [bounds[0] + 8.0, by + 2.0, 60.0, bar_h],
+                        font_size: 10.0,
+                        color: theme.text_muted,
+                        align: TextAlign::Left,
+                        weight: FontWeight::Normal,
+                        clip: chart_clip,
+                    });
+
+                    // Bar Track
+                    let bx = bounds[0] + 72.0;
+                    frame.instances.push(custom_glass_instance(
+                        [bx, by, max_bar_w, bar_h],
+                        chart_clip,
+                        [0.08, 0.12, 0.18, 0.8],
+                        [0.0, 0.0, 0.0, 0.0],
+                        bar_h * 0.4,
+                        0.0,
+                        0.0,
+                    ));
+
+                    // Bar Active Fill
+                    frame.instances.push(custom_glass_instance(
+                        [bx, by, bw, bar_h],
+                        chart_clip,
+                        bar.color,
+                        bar.color,
+                        bar_h * 0.4,
+                        0.0,
+                        0.25,
+                    ));
+
+                    // Value text
+                    frame.texts.push(TextSpec {
+                        text: format!("{:.0}", bar.value),
+                        bounds: [bx + max_bar_w + 8.0, by + 2.0, 40.0, bar_h],
+                        font_size: 10.0,
+                        color: theme.text_color,
+                        align: TextAlign::Left,
+                        weight: FontWeight::Bold,
+                        clip: chart_clip,
+                    });
+                }
+            } else {
+                let avail_w = bounds[2] - 20.0;
+                let bar_count = bars.len().max(1);
+                let col_w = (avail_w / bar_count as f32).max(16.0);
+                let bar_w = (col_w - 8.0).clamp(12.0, 36.0);
+                let plot_h = (bounds[3] - pad_top - 28.0).max(20.0);
+                let base_y = bounds[1] + bounds[3] - 20.0;
+
+                for (i, bar) in bars.iter().enumerate() {
+                    let bx = bounds[0] + 10.0 + i as f32 * col_w + (col_w - bar_w) * 0.5;
+                    let bh = (bar.value / max_val * plot_h).clamp(4.0, plot_h);
+                    let by = base_y - bh;
+
+                    // Bar Fill
+                    frame.instances.push(custom_glass_instance(
+                        [bx, by, bar_w, bh],
+                        chart_clip,
+                        bar.color,
+                        bar.color,
+                        4.0,
+                        0.0,
+                        0.2,
+                    ));
+
+                    // Label at bottom
+                    frame.texts.push(TextSpec {
+                        text: bar.label.clone(),
+                        bounds: [bx - 6.0, base_y + 4.0, bar_w + 12.0, 12.0],
+                        font_size: 9.0,
+                        color: theme.text_muted,
+                        align: TextAlign::Center,
+                        weight: FontWeight::Normal,
+                        clip: chart_clip,
+                    });
+                }
+            }
+        }
+
+        WidgetKind::RadialMeter {
+            id: _,
+            label,
+            value,
+            min,
+            max,
+            unit,
+            color,
+        } => {
+            let meter_clip = crate::effective::intersect(clip, bounds);
+            let cx = bounds[0] + bounds[2] * 0.5;
+            let cy = bounds[1] + bounds[3] * 0.45;
+            let radius = (bounds[2].min(bounds[3]) * 0.38).max(14.0);
+            let arc_color = color.unwrap_or(theme.accent);
+
+            // Outer dial track
+            frame.instances.push(custom_glass_instance(
+                [cx - radius, cy - radius, radius * 2.0, radius * 2.0],
+                meter_clip,
+                [0.08, 0.12, 0.18, 0.85],
+                theme.border_subtle(),
+                radius,
+                1.5,
+                0.05,
+            ));
+
+            // Inner disc
+            let inner_r = radius * 0.72;
+            frame.instances.push(custom_glass_instance(
+                [cx - inner_r, cy - inner_r, inner_r * 2.0, inner_r * 2.0],
+                meter_clip,
+                [0.04, 0.06, 0.10, 0.95],
+                theme.border_subtle(),
+                inner_r,
+                1.0,
+                0.0,
+            ));
+
+            // Angle calculation
+            let ratio = if *max > *min {
+                ((*value - *min) / (*max - *min)).clamp(0.0, 1.0)
+            } else {
+                0.0
+            };
+            let cur_angle = -std::f32::consts::PI * 0.75 + ratio * std::f32::consts::PI * 1.5;
+
+            // Needle Pip Indicator
+            let needle_dist = inner_r * 0.7;
+            let nx = cx + cur_angle.cos() * needle_dist;
+            let ny = cy + cur_angle.sin() * needle_dist;
+            frame.instances.push(custom_glass_instance(
+                [nx - 3.0, ny - 3.0, 6.0, 6.0],
+                meter_clip,
+                arc_color,
+                arc_color,
+                3.0,
+                0.0,
+                0.4,
+            ));
+
+            // Central Value text
+            let val_str = if let Some(u) = unit {
+                format!("{:.0}{}", value, u)
+            } else {
+                format!("{:.0}", value)
+            };
+            frame.texts.push(TextSpec {
+                text: val_str,
+                bounds: [cx - inner_r, cy - 8.0, inner_r * 2.0, 16.0],
+                font_size: 11.0,
+                color: theme.text_color,
+                align: TextAlign::Center,
+                weight: FontWeight::Bold,
+                clip: meter_clip,
+            });
+
+            // Bottom Label
+            if let Some(lbl) = label {
+                frame.texts.push(TextSpec {
+                    text: lbl.clone(),
+                    bounds: [bounds[0], bounds[1] + bounds[3] - 16.0, bounds[2], 14.0],
+                    font_size: 10.0,
+                    color: theme.text_muted,
+                    align: TextAlign::Center,
+                    weight: FontWeight::Normal,
+                    clip: meter_clip,
+                });
+            }
+        }
+
+        WidgetKind::DropZone {
+            id: _,
+            label,
+            hint,
+            accepted_extensions,
+            hovered: is_hovered,
+            dropped_file,
+        } => {
+            let drop_clip = crate::effective::intersect(clip, bounds);
+            let is_active = *is_hovered || hovered;
+
+            // Background container
+            let bg_color = if is_active {
+                [theme.accent[0] * 0.15, theme.accent[1] * 0.15, theme.accent[2] * 0.15, 0.90]
+            } else if dropped_file.is_some() {
+                [0.05, 0.12, 0.08, 0.85] // Subtle success tint
+            } else {
+                theme.card_bg()
+            };
+
+            let border_color = if is_active {
+                theme.accent
+            } else if dropped_file.is_some() {
+                [0.2, 0.85, 0.45, 1.0] // Success green
+            } else {
+                theme.border_subtle()
+            };
+
+            let glow = if is_active { 0.40 } else { 0.05 };
+
+            frame.instances.push(custom_glass_instance(
+                bounds,
+                drop_clip,
+                bg_color,
+                border_color,
+                8.0,
+                if is_active { 2.0 } else { 1.2 },
+                glow,
+            ));
+
+            let center_y = bounds[1] + bounds[3] * 0.35;
+
+            // Header Icon / Glyph
+            let icon_glyph = if is_active {
+                "▼"
+            } else if dropped_file.is_some() {
+                "✓"
+            } else {
+                "◫"
+            };
+
+            let icon_color = if is_active {
+                theme.accent
+            } else if dropped_file.is_some() {
+                [0.2, 0.85, 0.45, 1.0]
+            } else {
+                theme.text_muted
+            };
+
+            frame.texts.push(TextSpec {
+                text: icon_glyph.to_string(),
+                bounds: [bounds[0], center_y - 18.0, bounds[2], 22.0],
+                font_size: 18.0,
+                color: icon_color,
+                align: TextAlign::Center,
+                weight: FontWeight::Bold,
+                clip: drop_clip,
+            });
+
+            // Primary Label
+            frame.texts.push(TextSpec {
+                text: label.clone(),
+                bounds: [bounds[0] + 12.0, center_y + 8.0, bounds[2] - 24.0, 16.0],
+                font_size: 12.0,
+                color: theme.text_color,
+                align: TextAlign::Center,
+                weight: FontWeight::Bold,
+                clip: drop_clip,
+            });
+
+            // Secondary Hint / Dropped File Info
+            if let Some((fname, fsize)) = dropped_file {
+                let size_str = if *fsize > 1024 * 1024 {
+                    format!("{:.2} MB", *fsize as f32 / (1024.0 * 1024.0))
+                } else {
+                    format!("{:.1} KB", *fsize as f32 / 1024.0)
+                };
+                let info_text = format!("Imported: {} ({})", fname, size_str);
+                frame.texts.push(TextSpec {
+                    text: info_text,
+                    bounds: [bounds[0] + 8.0, center_y + 26.0, bounds[2] - 16.0, 14.0],
+                    font_size: 10.0,
+                    color: [0.2, 0.85, 0.45, 1.0],
+                    align: TextAlign::Center,
+                    weight: FontWeight::Normal,
+                    clip: drop_clip,
+                });
+            } else if let Some(h) = hint {
+                frame.texts.push(TextSpec {
+                    text: h.clone(),
+                    bounds: [bounds[0] + 8.0, center_y + 26.0, bounds[2] - 16.0, 14.0],
+                    font_size: 10.0,
+                    color: theme.text_muted,
+                    align: TextAlign::Center,
+                    weight: FontWeight::Normal,
+                    clip: drop_clip,
+                });
+            }
+
+            // Accepted Extensions Badges at Bottom
+            if !accepted_extensions.is_empty() && bounds[3] >= 75.0 {
+                let badges_str = accepted_extensions
+                    .iter()
+                    .map(|ext| format!("[{}]", ext.to_uppercase()))
+                    .collect::<Vec<_>>()
+                    .join(" ");
+                frame.texts.push(TextSpec {
+                    text: badges_str,
+                    bounds: [bounds[0] + 8.0, bounds[1] + bounds[3] - 18.0, bounds[2] - 16.0, 12.0],
+                    font_size: 9.0,
+                    color: theme.text_muted,
+                    align: TextAlign::Center,
+                    weight: FontWeight::Normal,
+                    clip: drop_clip,
+                });
+            }
+        }
+
+        WidgetKind::Avatar {
+            id: _,
+            resource_id,
+            initials,
+            status,
+            size: _,
+            ring_color,
+            glow,
+        } => {
+            let cx = bounds[0] + bounds[2] * 0.5;
+            let cy = bounds[1] + bounds[3] * 0.5;
+            let r = (bounds[2].min(bounds[3]) * 0.5).max(8.0);
+            let avatar_clip = crate::effective::intersect(clip, bounds);
+
+            let ring = ring_color.unwrap_or(theme.accent);
+            let glow_val = if *glow || hovered { 0.45 } else { 0.08 };
+
+            // Circular Glass Base & Ring Border
+            let bg_col = if hovered {
+                [0.10, 0.15, 0.22, 0.96]
+            } else {
+                [0.06, 0.09, 0.14, 0.94]
+            };
+            frame.instances.push(custom_glass_instance(
+                [cx - r, cy - r, r * 2.0, r * 2.0],
+                avatar_clip,
+                bg_col,
+                ring,
+                r,
+                if hovered { 2.0 } else { 1.5 },
+                glow_val,
+            ));
+
+            // Content: Image Media or Initials Monogram
+            if let Some(ref res_id) = resource_id {
+                let inner_r = (r - 1.5).max(4.0);
+                frame.media.push(crate::media::MediaSpec {
+                    resource_id: res_id.clone(),
+                    kind: crate::media::MediaKind("image"),
+                    bounds: [cx - inner_r, cy - inner_r, inner_r * 2.0, inner_r * 2.0],
+                    clip: avatar_clip,
+                    fit: crate::media::MediaFit::Cover,
+                    radius: inner_r,
+                });
+            } else {
+                let text_str = initials.clone().unwrap_or_else(|| "U".to_string());
+                let font_size = (r * 0.82).clamp(10.0, 26.0);
+                frame.texts.push(TextSpec {
+                    text: text_str,
+                    bounds: [cx - r, cy - font_size * 0.55, r * 2.0, font_size * 1.2],
+                    font_size,
+                    color: [1.0, 1.0, 1.0, 1.0],
+                    align: TextAlign::Center,
+                    weight: FontWeight::Bold,
+                    clip: avatar_clip,
+                });
+            }
+
+            // Presence Status Indicator Pip (bottom-right)
+            if let Some(status_col) = status.indicator_color() {
+                let dot_r = (r * 0.28).clamp(3.5, 7.5);
+                let dot_cx = cx + r * 0.65;
+                let dot_cy = cy + r * 0.65;
+
+                // Dark Cutout Bezel
+                let cutout_r = dot_r + 1.5;
+                frame.instances.push(custom_glass_instance(
+                    [dot_cx - cutout_r, dot_cy - cutout_r, cutout_r * 2.0, cutout_r * 2.0],
+                    clip,
+                    [0.02, 0.04, 0.08, 1.0],
+                    [0.02, 0.04, 0.08, 1.0],
+                    cutout_r,
+                    0.0,
+                    0.0,
+                ));
+
+                // Glowing Status Dot
+                frame.instances.push(custom_glass_instance(
+                    [dot_cx - dot_r, dot_cy - dot_r, dot_r * 2.0, dot_r * 2.0],
+                    clip,
+                    status_col,
+                    status_col,
+                    dot_r,
+                    0.0,
+                    0.5,
+                ));
+            }
+        }
+
+        WidgetKind::Stepper {
+            id: _,
+            steps,
+            current_step,
+        } => {
+            let n = steps.len();
+            if n == 0 {
+                return;
+            }
+            let step_w = bounds[2] / n as f32;
+            let node_r = 12.0;
+            let line_y = bounds[1] + node_r + 2.0;
+
+            // Connecting Lines Between Nodes
+            for i in 0..n.saturating_sub(1) {
+                let x1 = bounds[0] + (i as f32 + 0.5) * step_w + node_r;
+                let x2 = bounds[0] + (i as f32 + 1.5) * step_w - node_r;
+                let is_past = i < *current_step;
+                let line_col = if is_past {
+                    [theme.accent[0], theme.accent[1], theme.accent[2], 0.85]
+                } else {
+                    [0.15, 0.22, 0.32, 0.50]
+                };
+                frame.instances.push(custom_glass_instance(
+                    [x1, line_y - 1.0, (x2 - x1).max(2.0), 2.0],
+                    clip,
+                    line_col,
+                    line_col,
+                    1.0,
+                    0.0,
+                    if is_past { 0.2 } else { 0.0 },
+                ));
+            }
+
+            // Step Nodes & Labels
+            for (idx, step) in steps.iter().enumerate() {
+                let cx = bounds[0] + (idx as f32 + 0.5) * step_w;
+                let is_current = idx == *current_step;
+                let is_done = idx < *current_step || step.state == crate::kind::StepState::Completed;
+                let is_error = step.state == crate::kind::StepState::Error;
+
+                let (bg_col, ring_col, glow_val) = if is_error {
+                    ([0.25, 0.08, 0.10, 0.95], [1.0, 0.28, 0.32, 1.0], 0.5)
+                } else if is_done {
+                    ([0.08, 0.22, 0.15, 0.95], [0.15, 0.92, 0.45, 1.0], 0.4)
+                } else if is_current {
+                    ([0.06, 0.18, 0.28, 0.98], theme.accent, 0.6)
+                } else {
+                    ([0.04, 0.08, 0.14, 0.85], [0.20, 0.28, 0.40, 0.60], 0.05)
+                };
+
+                // Circle Node
+                frame.instances.push(custom_glass_instance(
+                    [cx - node_r, line_y - node_r, node_r * 2.0, node_r * 2.0],
+                    clip,
+                    bg_col,
+                    ring_col,
+                    node_r,
+                    if is_current { 2.0 } else { 1.5 },
+                    glow_val,
+                ));
+
+                // Step Glyph / Number
+                let glyph_text = if is_error {
+                    "!".to_string()
+                } else if is_done {
+                    "✓".to_string()
+                } else {
+                    (idx + 1).to_string()
+                };
+
+                frame.texts.push(TextSpec {
+                    text: glyph_text,
+                    bounds: [cx - node_r, line_y - 7.0, node_r * 2.0, 14.0],
+                    font_size: 11.0,
+                    color: if is_done { [0.15, 0.92, 0.45, 1.0] } else if is_current { [1.0, 1.0, 1.0, 1.0] } else { theme.text_muted },
+                    align: TextAlign::Center,
+                    weight: FontWeight::Bold,
+                    clip,
+                });
+
+                // Step Title & Subtitle Below Node
+                let label_w = (step_w - 8.0).max(40.0);
+                frame.texts.push(TextSpec {
+                    text: step.label.clone(),
+                    bounds: [cx - label_w * 0.5, line_y + node_r + 4.0, label_w, 14.0],
+                    font_size: 10.0,
+                    color: if is_current { [1.0, 1.0, 1.0, 1.0] } else { theme.text_muted },
+                    align: TextAlign::Center,
+                    weight: if is_current { FontWeight::Bold } else { FontWeight::Normal },
+                    clip,
+                });
+
+                if let Some(ref desc) = step.description {
+                    frame.texts.push(TextSpec {
+                        text: desc.clone(),
+                        bounds: [cx - label_w * 0.5, line_y + node_r + 18.0, label_w, 12.0],
+                        font_size: 9.0,
+                        color: theme.text_muted,
+                        align: TextAlign::Center,
+                        weight: FontWeight::Normal,
+                        clip,
+                    });
+                }
+            }
+        }
+
+        WidgetKind::Kbd { text } => {
+            let kbd_clip = crate::effective::intersect(clip, bounds);
+            let bg = [0.06, 0.10, 0.16, 0.95];
+            let border_col = [theme.accent[0] * 0.5, theme.accent[1] * 0.5, theme.accent[2] * 0.5, 0.70];
+
+            // 3D Shadow Bottom Line
+            frame.instances.push(custom_glass_instance(
+                [bounds[0], bounds[1] + bounds[3] - 2.0, bounds[2], 2.0],
+                kbd_clip,
+                [0.0, 0.0, 0.0, 0.7],
+                [0.0, 0.0, 0.0, 0.0],
+                2.0,
+                0.0,
+                0.0,
+            ));
+
+            // Main Beveled Key Body
+            frame.instances.push(custom_glass_instance(
+                [bounds[0], bounds[1], bounds[2], (bounds[3] - 1.5).max(4.0)],
+                kbd_clip,
+                bg,
+                border_col,
+                4.0,
+                1.0,
+                0.08,
+            ));
+
+            frame.texts.push(TextSpec {
+                text: text.clone(),
+                bounds: [bounds[0] + 4.0, bounds[1], (bounds[2] - 8.0).max(4.0), bounds[3] - 2.0],
+                font_size: 10.0,
+                color: [0.90, 0.94, 1.0, 1.0],
+                align: TextAlign::Center,
+                weight: FontWeight::Bold,
+                clip: kbd_clip,
+            });
+        }
+
+        WidgetKind::Chip {
+            id: _,
+            label,
+            icon,
+            color_pip,
+            selected,
+            dismissible,
+            variant,
+        } => {
+            let r = bounds[3] * 0.5;
+            let chip_clip = crate::effective::intersect(clip, bounds);
+
+            let (bg_col, border_col, text_col, glow_val) = match variant {
+                crate::kind::ChipVariant::Primary => {
+                    if *selected || hovered {
+                        ([0.08, 0.25, 0.35, 0.95], theme.accent, [1.0, 1.0, 1.0, 1.0], 0.35)
+                    } else {
+                        ([0.05, 0.12, 0.20, 0.85], [theme.accent[0] * 0.6, theme.accent[1] * 0.6, theme.accent[2] * 0.6, 0.6], [0.85, 0.93, 1.0, 0.9], 0.08)
+                    }
+                }
+                crate::kind::ChipVariant::Success => {
+                    ([0.06, 0.20, 0.12, 0.90], [0.15, 0.92, 0.45, 0.85], [0.20, 0.95, 0.50, 1.0], if *selected { 0.35 } else { 0.08 })
+                }
+                crate::kind::ChipVariant::Warning => {
+                    ([0.22, 0.16, 0.05, 0.90], [1.0, 0.78, 0.12, 0.85], [1.0, 0.82, 0.20, 1.0], if *selected { 0.35 } else { 0.08 })
+                }
+                crate::kind::ChipVariant::Danger => {
+                    ([0.22, 0.06, 0.08, 0.90], [1.0, 0.28, 0.32, 0.85], [1.0, 0.40, 0.45, 1.0], if *selected { 0.35 } else { 0.08 })
+                }
+                crate::kind::ChipVariant::Outline => {
+                    ([0.03, 0.05, 0.08, 0.60], theme.accent_secondary, theme.text_color, if *selected { 0.3 } else { 0.0 })
+                }
+                crate::kind::ChipVariant::Default => {
+                    if *selected || hovered {
+                        ([0.12, 0.18, 0.28, 0.95], theme.accent, [1.0, 1.0, 1.0, 1.0], 0.25)
+                    } else {
+                        ([0.06, 0.09, 0.15, 0.88], [0.18, 0.25, 0.36, 0.60], theme.text_muted, 0.02)
+                    }
+                }
+            };
+
+            frame.instances.push(custom_glass_instance(
+                bounds,
+                clip,
+                bg_col,
+                border_col,
+                r,
+                if *selected || hovered { 1.5 } else { 1.0 },
+                glow_val,
+            ));
+
+            let mut cur_x = bounds[0] + 8.0;
+
+            // Optional Leading Pip or Icon
+            if let Some(pip_color) = color_pip {
+                let pip_r = 3.5;
+                let pip_cy = bounds[1] + bounds[3] * 0.5;
+                frame.instances.push(custom_glass_instance(
+                    [cur_x, pip_cy - pip_r, pip_r * 2.0, pip_r * 2.0],
+                    chip_clip,
+                    *pip_color,
+                    *pip_color,
+                    pip_r,
+                    0.0,
+                    0.3,
+                ));
+                cur_x += pip_r * 2.0 + 5.0;
+            } else if let Some(ico) = icon {
+                frame.texts.push(TextSpec {
+                    text: ico.glyph().to_string(),
+                    bounds: [cur_x, bounds[1], 14.0, bounds[3]],
+                    font_size: 10.0,
+                    color: border_col,
+                    align: TextAlign::Center,
+                    weight: FontWeight::Normal,
+                    clip: chip_clip,
+                });
+                cur_x += 16.0;
+            }
+
+            let text_w = if *dismissible { (bounds[2] - (cur_x - bounds[0]) - 20.0).max(10.0) } else { (bounds[2] - (cur_x - bounds[0]) - 8.0).max(10.0) };
+
+            frame.texts.push(TextSpec {
+                text: label.clone(),
+                bounds: [cur_x, bounds[1], text_w, bounds[3]],
+                font_size: 10.5,
+                color: text_col,
+                align: TextAlign::Left,
+                weight: if *selected { FontWeight::Bold } else { FontWeight::Normal },
+                clip: chip_clip,
+            });
+
+            if *dismissible {
+                let close_x = bounds[0] + bounds[2] - 18.0;
+                frame.texts.push(TextSpec {
+                    text: "✕".to_string(),
+                    bounds: [close_x, bounds[1], 12.0, bounds[3]],
+                    font_size: 9.0,
+                    color: if hovered { [1.0, 0.4, 0.45, 1.0] } else { theme.text_muted },
+                    align: TextAlign::Center,
+                    weight: FontWeight::Bold,
+                    clip: chip_clip,
+                });
+            }
+        }
+
+        WidgetKind::Skeleton { radius, shimmer } => {
+            let r = radius.unwrap_or(theme.corner_radius.min(6.0));
+            let bg = [0.08, 0.13, 0.20, 0.75];
+            let border_col = if *shimmer {
+                [theme.accent[0] * 0.4, theme.accent[1] * 0.4, theme.accent[2] * 0.4, 0.40]
+            } else {
+                [0.10, 0.15, 0.22, 0.30]
+            };
+            frame.instances.push(custom_glass_instance(
+                bounds,
+                clip,
+                bg,
+                border_col,
+                r,
+                1.0,
+                if *shimmer { 0.15 } else { 0.0 },
+            ));
+        }
+
+        WidgetKind::MultiProgressBar {
+            id: _,
+            segments,
+            show_labels,
+        } => {
+            let total: f32 = segments.iter().map(|s| s.value).sum();
+            let bar_h = if *show_labels { (bounds[3] - 16.0).max(6.0) } else { bounds[3] };
+            let bar_clip = crate::effective::intersect(clip, [bounds[0], bounds[1], bounds[2], bar_h]);
+
+            // Background Track
+            frame.instances.push(custom_glass_instance(
+                [bounds[0], bounds[1], bounds[2], bar_h],
+                clip,
+                [0.03, 0.06, 0.10, 0.95],
+                [0.12, 0.18, 0.28, 0.60],
+                4.0,
+                1.0,
+                0.05,
+            ));
+
+            if total > 0.0 {
+                let mut cur_x = bounds[0];
+                for seg in segments {
+                    let seg_w = (seg.value / total) * bounds[2];
+                    if seg_w > 0.5 {
+                        frame.instances.push(custom_glass_instance(
+                            [cur_x, bounds[1], seg_w, bar_h],
+                            bar_clip,
+                            seg.color,
+                            seg.color,
+                            0.0,
+                            0.0,
+                            0.25,
+                        ));
+                        cur_x += seg_w;
+                    }
+                }
+            }
+
+            if *show_labels && bounds[3] >= 24.0 {
+                let legend_y = bounds[1] + bar_h + 4.0;
+                let mut leg_x = bounds[0] + 4.0;
+                for seg in segments {
+                    let dot_r = 3.0;
+                    frame.instances.push(custom_glass_instance(
+                        [leg_x, legend_y + 3.0, dot_r * 2.0, dot_r * 2.0],
+                        clip,
+                        seg.color,
+                        seg.color,
+                        dot_r,
+                        0.0,
+                        0.2,
+                    ));
+                    leg_x += dot_r * 2.0 + 4.0;
+
+                    let txt = format!("{}: {:.0}%", seg.label, if total > 0.0 { (seg.value / total) * 100.0 } else { 0.0 });
+                    let txt_w = txt.len() as f32 * 6.0 + 8.0;
+                    frame.texts.push(TextSpec {
+                        text: txt,
+                        bounds: [leg_x, legend_y, txt_w, 12.0],
+                        font_size: 9.0,
+                        color: theme.text_muted,
+                        align: TextAlign::Left,
+                        weight: FontWeight::Normal,
+                        clip,
+                    });
+                    leg_x += txt_w + 8.0;
+                }
+            }
+        }
+
+        WidgetKind::Rating {
+            id: _,
+            value,
+            max,
+            glyph,
+            readonly: _,
+        } => {
+            let m = (*max).max(1) as usize;
+            let item_w = bounds[2] / m as f32;
+            let font_size = (item_w.min(bounds[3]) * 0.75).clamp(12.0, 24.0);
+
+            for i in 1..=m {
+                let is_filled = i <= *value as usize;
+                let cx = bounds[0] + (i as f32 - 0.5) * item_w;
+                let glyph_str = glyph.glyph(is_filled);
+                let col = if is_filled {
+                    [1.0, 0.80, 0.15, 1.0] // Glowing Amber Gold
+                } else {
+                    [0.35, 0.42, 0.52, 0.60] // Slate Outline
+                };
+
+                frame.texts.push(TextSpec {
+                    text: glyph_str.to_string(),
+                    bounds: [cx - font_size * 0.6, bounds[1] + (bounds[3] - font_size) * 0.5, font_size * 1.2, font_size],
+                    font_size,
+                    color: col,
+                    align: TextAlign::Center,
+                    weight: FontWeight::Bold,
+                    clip,
+                });
+            }
+        }
+
+        WidgetKind::Timeline { id: _, items } => {
+            let line_x = bounds[0] + 16.0;
+            let line_clip = crate::effective::intersect(clip, bounds);
+
+            // Vertical Connecting Track
+            if !items.is_empty() {
+                frame.instances.push(custom_glass_instance(
+                    [line_x - 1.0, bounds[1] + 10.0, 2.0, (bounds[3] - 20.0).max(4.0)],
+                    line_clip,
+                    [0.12, 0.18, 0.28, 0.70],
+                    [0.12, 0.18, 0.28, 0.70],
+                    1.0,
+                    0.0,
+                    0.0,
+                ));
+            }
+
+            let item_h = (bounds[3] / items.len().max(1) as f32).max(36.0);
+            for (idx, it) in items.iter().enumerate() {
+                let node_y = bounds[1] + idx as f32 * item_h + 12.0;
+                let node_r = 5.0;
+                let node_col = it.status.color();
+
+                // Glowing Event Node Pip
+                frame.instances.push(custom_glass_instance(
+                    [line_x - node_r, node_y - node_r, node_r * 2.0, node_r * 2.0],
+                    line_clip,
+                    node_col,
+                    node_col,
+                    node_r,
+                    0.0,
+                    0.4,
+                ));
+
+                // Time & Title
+                let text_x = line_x + 16.0;
+                let text_w = (bounds[2] - (text_x - bounds[0]) - 8.0).max(20.0);
+
+                let header_str = format!("{} • {}", it.time, it.title);
+                frame.texts.push(TextSpec {
+                    text: header_str,
+                    bounds: [text_x, node_y - 8.0, text_w, 14.0],
+                    font_size: 11.0,
+                    color: [0.92, 0.96, 1.0, 1.0],
+                    align: TextAlign::Left,
+                    weight: FontWeight::Bold,
+                    clip: line_clip,
+                });
+
+                if let Some(ref desc) = it.description {
+                    frame.texts.push(TextSpec {
+                        text: desc.clone(),
+                        bounds: [text_x, node_y + 6.0, text_w, 12.0],
+                        font_size: 9.5,
+                        color: theme.text_muted,
+                        align: TextAlign::Left,
+                        weight: FontWeight::Normal,
+                        clip: line_clip,
+                    });
+                }
+            }
+        }
     }
 }
 
@@ -3664,7 +5342,7 @@ fn render_custom_paint_line(
     let len = (dx * dx + dy * dy).sqrt();
     let r = (stroke_width * 0.5).max(0.5);
 
-    if len < 1.0 {
+    if len < 0.5 {
         let b = [
             from[0] - r,
             from[1] - r,
@@ -3673,11 +5351,11 @@ fn render_custom_paint_line(
         ];
         frame
             .instances
-            .push(custom_glass_instance(b, clip, color, color, r, 0.0, 0.2));
+            .push(custom_glass_instance(b, clip, color, color, r, 0.0, 0.0));
         return;
     }
 
-    let step_size = (stroke_width * 0.6).max(2.5);
+    let step_size = (stroke_width * 0.35).clamp(0.6, 1.8);
     let steps = ((len / step_size).ceil() as usize).max(1);
 
     for i in 0..=steps {
@@ -3687,7 +5365,7 @@ fn render_custom_paint_line(
         let b = [x - r, y - r, stroke_width.max(1.0), stroke_width.max(1.0)];
         frame
             .instances
-            .push(custom_glass_instance(b, clip, color, color, r, 0.0, 0.2));
+            .push(custom_glass_instance(b, clip, color, color, r, 0.0, 0.0));
     }
 }
 
