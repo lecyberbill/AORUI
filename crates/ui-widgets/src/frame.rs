@@ -278,6 +278,21 @@ fn render_kind(
                 0.60,
             ]);
             let r = radius.unwrap_or(theme.corner_radius.min(8.0));
+
+            // Soft tactile drop shadow under the card (matching screen3.png)
+            let shadow_color = [0.0, 0.0, 0.0, 0.50];
+            let shadow_glow = [0.0, 0.0, 0.0, 0.65];
+            let shadow_bounds = [bounds[0], bounds[1] + 4.0, bounds[2], bounds[3]];
+            frame.instances.push(custom_glass_instance(
+                shadow_bounds,
+                clip,
+                shadow_color,
+                shadow_glow,
+                r + 1.0,
+                0.0,
+                0.40,
+            ));
+
             frame.instances.push(custom_glass_instance(
                 bounds,
                 clip,
@@ -297,12 +312,28 @@ fn render_kind(
                 theme.glass_bg[2] * 1.9,
                 0.50,
             ]);
+            let r = theme.corner_radius.min(8.0);
+
+            // Soft drop shadow under the panel
+            let shadow_color = [0.0, 0.0, 0.0, 0.40];
+            let shadow_glow = [0.0, 0.0, 0.0, 0.55];
+            let shadow_bounds = [bounds[0], bounds[1] + 3.0, bounds[2], bounds[3]];
+            frame.instances.push(custom_glass_instance(
+                shadow_bounds,
+                clip,
+                shadow_color,
+                shadow_glow,
+                r + 1.0,
+                0.0,
+                0.35,
+            ));
+
             frame.instances.push(custom_glass_instance(
                 bounds,
                 clip,
                 bg_col,
                 border_col,
-                theme.corner_radius.min(8.0),
+                r,
                 theme.border_width,
                 0.005,
             ));
@@ -1123,6 +1154,20 @@ fn render_kind(
             value,
             delta,
         } => {
+            // Soft drop shadow under the metric card
+            let shadow_color = [0.0, 0.0, 0.0, 0.40];
+            let shadow_glow = [0.0, 0.0, 0.0, 0.55];
+            let shadow_bounds = [bounds[0], bounds[1] + 3.0, bounds[2], bounds[3]];
+            frame.instances.push(custom_glass_instance(
+                shadow_bounds,
+                clip,
+                shadow_color,
+                shadow_glow,
+                theme.corner_radius.min(6.0) + 1.0,
+                0.0,
+                0.35,
+            ));
+
             frame.instances.push(glass_instance(
                 bounds,
                 clip,
