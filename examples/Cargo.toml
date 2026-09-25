@@ -25,6 +25,10 @@ path = "agent_control_center.rs"
 name = "aether_workstation"
 path = "aether_workstation.rs"
 
+[[bin]]
+name = "blade_runner"
+path = "blade_runner.rs"
+
 [dependencies]
 ui-core.workspace = true
 ui-gpu.workspace = true

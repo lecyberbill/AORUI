@@ -78,7 +78,13 @@ Clone the repository and run the built-in gallery:
 ```bash
 git clone https://github.com/lecyberbill/AORUI.git
 cd AORUI
-cargo run -p widget_gallery
+cargo run --release --bin widget_gallery
+```
+
+### Running the "Blade Runner" Cyber-Ops Desktop Application
+
+```bash
+cargo run --release --bin blade_runner
 ```
 
 ### Basic Code Example
