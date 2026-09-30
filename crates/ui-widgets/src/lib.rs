@@ -14,12 +14,15 @@
 
 mod color;
 pub mod declarative;
+pub mod docking;
 mod effective;
+pub mod focus;
 mod frame;
 mod id;
 mod interaction;
 mod kind;
 mod media;
+pub mod motion;
 pub mod paint;
 pub mod text_measure;
 mod theme;
@@ -28,7 +31,9 @@ mod watcher;
 
 pub use color::{Color, ColorSpace};
 pub use declarative::{DeclarativeUiDoc, EventRouter, LayoutStyleSpec, WidgetNodeSpec, WindowMetaSpec};
+pub use docking::{DockArea, DockDirection, DockNode, DockTab};
 pub use effective::{EffectiveBounds, NO_CLIP};
+pub use focus::{FocusManager, KeyChord, KeyCode, KeyMap, Modifiers};
 pub use frame::{Frame, InteractionState, TextAlign, TextSpec};
 pub use id::WidgetId;
 pub use kind::{
@@ -38,6 +43,7 @@ pub use kind::{
     WidgetKind,
 };
 pub use media::{MediaFit, MediaKind, MediaSpec};
+pub use motion::{lerp, lerp_color, AnimatedValue, Easing, Spring};
 pub use paint::{eval_cubic_bezier, PaintCommand, Painter};
 pub use text_measure::{DefaultTextMeasure, TextMeasure};
 pub use theme::{color_serde, FontFamily, FontWeight, Theme, Typography};

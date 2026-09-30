@@ -9,7 +9,8 @@ use ui_layout::{
     auto, length, AlignItems, AvailableSpace, FlexDirection, JustifyContent, NodeId, Rect, Size, Style,
 };
 use ui_widgets::{
-    IconKind, InteractionKey, InteractionState, ListItemBadge, Painter, Theme, ToastKind, WidgetId, WidgetTree,
+    AnimatedValue, FocusManager, IconKind, InteractionKey, InteractionState, KeyChord, KeyCode,
+    KeyMap, ListItemBadge, Modifiers, Painter, Spring, Theme, ToastKind, WidgetId, WidgetTree,
 };
 
 use winit::application::ApplicationHandler;
@@ -177,6 +178,10 @@ pub struct BladeRunnerState {
     pub focused_input: Option<String>,
     pub close_requested: bool,
     pub start_time: Instant,
+    pub anomaly_score_animated: AnimatedValue,
+    pub tab_transition_animated: AnimatedValue,
+    pub focus_manager: FocusManager,
+    pub key_map: KeyMap,
 }
 
 impl BladeRunnerState {
@@ -342,6 +347,31 @@ impl BladeRunnerState {
             focused_input: None,
             close_requested: false,
             start_time: Instant::now(),
+            anomaly_score_animated: AnimatedValue::new(68.4).with_spring(Spring::smooth()),
+            tab_transition_animated: AnimatedValue::new(0.0).with_spring(Spring::snappy()),
+            focus_manager: {
+                let mut fm = FocusManager::new();
+                fm.set_tab_order(vec![
+                    WidgetId::new("quick_cmd_btn"),
+                    WidgetId::new("bell_notifications_btn"),
+                    WidgetId::new("btn_quarantine_selected"),
+                    WidgetId::new("btn_mitigate_all"),
+                    WidgetId::new("btn_deep_scan"),
+                ]);
+                fm
+            },
+            key_map: {
+                let mut km = KeyMap::new();
+                km.bind(KeyChord::ctrl(KeyCode::Char('k')), "open_spotlight");
+                km.bind(KeyChord::ctrl(KeyCode::Char('b')), "toggle_notifications");
+                km.bind(KeyChord::ctrl(KeyCode::Char('1')), "tab_0");
+                km.bind(KeyChord::ctrl(KeyCode::Char('2')), "tab_1");
+                km.bind(KeyChord::ctrl(KeyCode::Char('3')), "tab_2");
+                km.bind(KeyChord::ctrl(KeyCode::Char('4')), "tab_3");
+                km.bind(KeyChord::ctrl(KeyCode::Char('5')), "tab_4");
+                km.bind(KeyChord::key(KeyCode::Escape), "dismiss_overlays");
+                km
+            },
         }
     }
 
@@ -1320,6 +1350,7 @@ struct App {
     pressed: Option<InteractionKey>,
     theme: Arc<RwLock<Theme>>,
     resources: ResourceTable,
+    modifiers: winit::keyboard::ModifiersState,
 }
 
 impl App {
@@ -1336,6 +1367,7 @@ impl App {
             pressed: None,
             theme: Arc::new(RwLock::new(Theme::default())),
             resources: ResourceTable::new(),
+            modifiers: winit::keyboard::ModifiersState::default(),
         }
     }
 
@@ -1343,6 +1375,7 @@ impl App {
         match event {
             UiEvent::TabSelected { tab_index, .. } => {
                 self.state.active_tab = tab_index;
+                self.state.tab_transition_animated.set_target(tab_index as f32);
             }
             UiEvent::TableRowSelected { row_index, .. } => {
                 self.state.selected_incident = Some(row_index);
@@ -1527,6 +1560,10 @@ impl App {
             let t = elapsed * 2.0 + i as f32 * 0.5;
             *val = 32.0 + (t * 0.6).sin() * 18.0 + (t * 1.2).cos() * 8.0;
         }
+
+        let dt = 1.0 / 60.0;
+        self.state.anomaly_score_animated.update(dt);
+        self.state.tab_transition_animated.update(dt);
 
         let size = window.inner_size();
         if size.width == 0 || size.height == 0 {
@@ -1841,44 +1878,131 @@ impl ApplicationHandler for App {
                     w.request_redraw();
                 }
             }
+            WindowEvent::ModifiersChanged(modifiers) => {
+                self.modifiers = modifiers.state();
+            }
             WindowEvent::KeyboardInput {
                 event:
                     KeyEvent {
-                        logical_key,
+                        ref logical_key,
                         state: ElementState::Pressed,
                         ..
                     },
                 ..
             } => {
-                match logical_key {
-                    Key::Named(NamedKey::Escape) => {
-                        if self.state.show_command_palette {
-                            self.state.show_command_palette = false;
-                        } else if self.state.show_notifications_drawer {
-                            self.state.show_notifications_drawer = false;
-                        }
-                    }
-                    Key::Named(NamedKey::Enter) => {
-                        if self.state.focused_input.as_deref() == Some("terminal_input_field") && !self.state.terminal_input.is_empty() {
-                            let cmd = self.state.terminal_input.clone();
-                            self.state.terminal_input.clear();
-                            self.state.terminal_cursor = 0;
-                            self.state.execute_terminal_cmd(&cmd);
-                        }
-                    }
-                    Key::Named(NamedKey::Backspace) => {
-                        if self.state.focused_input.as_deref() == Some("terminal_input_field") && self.state.terminal_cursor > 0 {
-                            self.state.terminal_cursor -= 1;
-                            self.state.terminal_input.remove(self.state.terminal_cursor);
-                        }
-                    }
+                let mut mods = Modifiers::NONE;
+                if self.modifiers.control_key() {
+                    mods = mods.union(Modifiers::CTRL);
+                }
+                if self.modifiers.alt_key() {
+                    mods = mods.union(Modifiers::ALT);
+                }
+                if self.modifiers.shift_key() {
+                    mods = mods.union(Modifiers::SHIFT);
+                }
+                if self.modifiers.super_key() {
+                    mods = mods.union(Modifiers::META);
+                }
+
+                let key_code = match logical_key {
+                    Key::Named(NamedKey::Tab) => Some(KeyCode::Tab),
+                    Key::Named(NamedKey::Enter) => Some(KeyCode::Enter),
+                    Key::Named(NamedKey::Escape) => Some(KeyCode::Escape),
+                    Key::Named(NamedKey::Backspace) => Some(KeyCode::Backspace),
+                    Key::Named(NamedKey::ArrowUp) => Some(KeyCode::ArrowUp),
+                    Key::Named(NamedKey::ArrowDown) => Some(KeyCode::ArrowDown),
+                    Key::Named(NamedKey::ArrowLeft) => Some(KeyCode::ArrowLeft),
+                    Key::Named(NamedKey::ArrowRight) => Some(KeyCode::ArrowRight),
                     Key::Character(s) => {
-                        if self.state.focused_input.as_deref() == Some("terminal_input_field") {
-                            self.state.terminal_input.insert_str(self.state.terminal_cursor, s.as_str());
-                            self.state.terminal_cursor += s.len();
+                        let mut chars = s.chars();
+                        if let (Some(c), None) = (chars.next(), chars.next()) {
+                            Some(KeyCode::Char(c.to_ascii_lowercase()))
+                        } else {
+                            None
                         }
                     }
-                    _ => {}
+                    _ => None,
+                };
+
+                let mut shortcut_handled = false;
+                if let Some(code) = key_code {
+                    let chord = KeyChord::new(mods, code);
+                    if let Some(action) = self.state.key_map.resolve(&chord) {
+                        shortcut_handled = true;
+                        match action {
+                            "open_spotlight" => {
+                                self.state.show_command_palette = !self.state.show_command_palette;
+                            }
+                            "toggle_notifications" => {
+                                self.state.show_notifications_drawer = !self.state.show_notifications_drawer;
+                            }
+                            "tab_0" => {
+                                self.state.active_tab = 0;
+                                self.state.tab_transition_animated.set_target(0.0);
+                            }
+                            "tab_1" => {
+                                self.state.active_tab = 1;
+                                self.state.tab_transition_animated.set_target(1.0);
+                            }
+                            "tab_2" => {
+                                self.state.active_tab = 2;
+                                self.state.tab_transition_animated.set_target(2.0);
+                            }
+                            "tab_3" => {
+                                self.state.active_tab = 3;
+                                self.state.tab_transition_animated.set_target(3.0);
+                            }
+                            "tab_4" => {
+                                self.state.active_tab = 4;
+                                self.state.tab_transition_animated.set_target(4.0);
+                            }
+                            "dismiss_overlays" => {
+                                self.state.show_command_palette = false;
+                                self.state.show_notifications_drawer = false;
+                            }
+                            _ => {}
+                        }
+                    }
+                }
+
+                if !shortcut_handled {
+                    match logical_key {
+                        Key::Named(NamedKey::Tab) => {
+                            if mods.contains(Modifiers::SHIFT) {
+                                self.state.focus_manager.focus_prev();
+                            } else {
+                                self.state.focus_manager.focus_next();
+                            }
+                        }
+                        Key::Named(NamedKey::Escape) => {
+                            if self.state.show_command_palette {
+                                self.state.show_command_palette = false;
+                            } else if self.state.show_notifications_drawer {
+                                self.state.show_notifications_drawer = false;
+                            }
+                        }
+                        Key::Named(NamedKey::Enter) => {
+                            if self.state.focused_input.as_deref() == Some("terminal_input_field") && !self.state.terminal_input.is_empty() {
+                                let cmd = self.state.terminal_input.clone();
+                                self.state.terminal_input.clear();
+                                self.state.terminal_cursor = 0;
+                                self.state.execute_terminal_cmd(&cmd);
+                            }
+                        }
+                        Key::Named(NamedKey::Backspace) => {
+                            if self.state.focused_input.as_deref() == Some("terminal_input_field") && self.state.terminal_cursor > 0 {
+                                self.state.terminal_cursor -= 1;
+                                self.state.terminal_input.remove(self.state.terminal_cursor);
+                            }
+                        }
+                        Key::Character(s) => {
+                            if self.state.focused_input.as_deref() == Some("terminal_input_field") {
+                                self.state.terminal_input.insert_str(self.state.terminal_cursor, s.as_str());
+                                self.state.terminal_cursor += s.len();
+                            }
+                        }
+                        _ => {}
+                    }
                 }
                 if let Some(w) = &self.window {
                     w.request_redraw();
