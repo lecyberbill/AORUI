@@ -1,8 +1,8 @@
 // [WFGY] Zone: SAFE | λ: 0.2 | Fallbacks: 0 | Action: Universal Cross-Widget Drag and Drop Engine
+use crate::id::WidgetId;
 use serde::{Deserialize, Serialize};
 use std::any::Any;
 use std::sync::Arc;
-use crate::id::WidgetId;
 
 /// Visual representation of the dragged item trailing the cursor.
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -115,7 +115,12 @@ impl DragDropContext {
                 payload,
                 ghost,
                 ..
-            } => (source_id.clone(), *current_pos, payload.clone(), ghost.clone()),
+            } => (
+                source_id.clone(),
+                *current_pos,
+                payload.clone(),
+                ghost.clone(),
+            ),
             _ => return,
         };
 
@@ -172,15 +177,17 @@ impl DragDropContext {
     /// Returns current ghost preview geometry `[x, y, w, h]` if dragging.
     pub fn ghost_rect(&self) -> Option<[f32; 4]> {
         match &self.state {
-            DragState::Dragging { current_pos, ghost, .. }
-            | DragState::HoveringTarget { current_pos, ghost, .. } => {
-                Some([
-                    current_pos.0 - ghost.width * 0.5,
-                    current_pos.1 - ghost.height * 0.5,
-                    ghost.width,
-                    ghost.height,
-                ])
+            DragState::Dragging {
+                current_pos, ghost, ..
             }
+            | DragState::HoveringTarget {
+                current_pos, ghost, ..
+            } => Some([
+                current_pos.0 - ghost.width * 0.5,
+                current_pos.1 - ghost.height * 0.5,
+                ghost.width,
+                ghost.height,
+            ]),
             _ => None,
         }
     }

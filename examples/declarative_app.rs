@@ -45,30 +45,36 @@ impl DeclarativeApp {
         let watcher_target = theme_shared.clone();
         let _theme_watcher = ThemeWatcher::watch_file(&theme_path, watcher_target, |_new_theme| {
             println!("⚡ [ThemeWatcher] Rechargement à chaud du thème réussi !");
-        }).ok();
+        })
+        .ok();
 
-        let ui_doc = DeclarativeUiDoc::from_file(&ui_path)
-            .unwrap_or_else(|e| {
-                eprintln!("⚠️ Impossible de charger {:?}: {} — Utilisation d'un document par défaut", ui_path, e);
-                DeclarativeUiDoc::default()
-            });
+        let ui_doc = DeclarativeUiDoc::from_file(&ui_path).unwrap_or_else(|e| {
+            eprintln!(
+                "⚠️ Impossible de charger {:?}: {} — Utilisation d'un document par défaut",
+                ui_path, e
+            );
+            DeclarativeUiDoc::default()
+        });
 
         let mut event_router = EventRouter::new();
 
         // 1. Câblage des événements applicatifs déclarés dans le TOML
         event_router.on("studio:save_toml", |state: &mut AppState, _id| {
-            state.log_message = "💾 Fichier d'interface TOML exporté et enregistré avec succès !".to_string();
+            state.log_message =
+                "💾 Fichier d'interface TOML exporté et enregistré avec succès !".to_string();
             println!("{}", state.log_message);
         });
 
         event_router.on("studio:export_code", |state: &mut AppState, _id| {
-            state.log_message = "📄 Code Rust et Rhai pour la gestion des événements généré !".to_string();
+            state.log_message =
+                "📄 Code Rust et Rhai pour la gestion des événements généré !".to_string();
             println!("{}", state.log_message);
         });
 
         event_router.on("studio:run_preview", |state: &mut AppState, _id| {
             state.counter += 1;
-            state.log_message = format!("▶ Mode Exécution déclenché (Itération #{})", state.counter);
+            state.log_message =
+                format!("▶ Mode Exécution déclenché (Itération #{})", state.counter);
             println!("{}", state.log_message);
         });
 
@@ -127,12 +133,17 @@ impl DeclarativeApp {
         let root = match self.ui_doc.build_tree(&mut tree) {
             Ok(r) => r,
             Err(e) => {
-                eprintln!("Erreur lors de la construction de l'arbre déclaratif: {}", e);
+                eprintln!(
+                    "Erreur lors de la construction de l'arbre déclaratif: {}",
+                    e
+                );
                 return;
             }
         };
 
-        let Some(renderer) = self.renderer.as_mut() else { return; };
+        let Some(renderer) = self.renderer.as_mut() else {
+            return;
+        };
 
         let available = Size {
             width: AvailableSpace::Definite(width_f),
@@ -185,7 +196,12 @@ impl DeclarativeApp {
             let clear_b = (self.theme.glass_bg[2] * 0.7).clamp(0.0, 1.0) as f64;
 
             let _ = renderer.render_layers(
-                wgpu::Color { r: clear_r, g: clear_g, b: clear_b, a: 1.0 },
+                wgpu::Color {
+                    r: clear_r,
+                    g: clear_g,
+                    b: clear_b,
+                    a: 1.0,
+                },
                 &[layer],
                 &[],
                 &self.resources,
@@ -226,7 +242,12 @@ impl ApplicationHandler for DeclarativeApp {
         self.window = Some(window);
     }
 
-    fn window_event(&mut self, event_loop: &ActiveEventLoop, _window_id: WindowId, event: WindowEvent) {
+    fn window_event(
+        &mut self,
+        event_loop: &ActiveEventLoop,
+        _window_id: WindowId,
+        event: WindowEvent,
+    ) {
         match event {
             WindowEvent::CloseRequested => event_loop.exit(),
             WindowEvent::Resized(new_size) => {
@@ -243,11 +264,23 @@ impl ApplicationHandler for DeclarativeApp {
             WindowEvent::CursorMoved { position, .. } => {
                 self.last_mouse_pos = Some((position.x as f32, position.y as f32));
             }
-            WindowEvent::MouseInput { state: ElementState::Pressed, button: MouseButton::Left, .. } => {
-                if let (Some(tree), Some(root), Some(pos)) = (&self.last_tree, self.last_root, self.last_mouse_pos) {
-                    if let Ok(Some(UiEvent::ButtonClicked { widget_id })) = tree.dispatch_click(root, pos) {
+            WindowEvent::MouseInput {
+                state: ElementState::Pressed,
+                button: MouseButton::Left,
+                ..
+            } => {
+                if let (Some(tree), Some(root), Some(pos)) =
+                    (&self.last_tree, self.last_root, self.last_mouse_pos)
+                {
+                    if let Ok(Some(UiEvent::ButtonClicked { widget_id })) =
+                        tree.dispatch_click(root, pos)
+                    {
                         println!("🖱️ Clic sur widget : {}", widget_id);
-                        self.ui_doc.dispatch_click(&self.event_router, &mut self.app_state, &widget_id);
+                        self.ui_doc.dispatch_click(
+                            &self.event_router,
+                            &mut self.app_state,
+                            &widget_id,
+                        );
                         if let Some(win) = &self.window {
                             win.request_redraw();
                         }

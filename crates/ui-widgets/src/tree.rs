@@ -1279,7 +1279,12 @@ impl WidgetTree {
         text: impl Into<String>,
         style: Style,
     ) -> Result<NodeId, LayoutError> {
-        self.tooltip(text, None::<String>, crate::kind::TooltipPlacement::Top, style)
+        self.tooltip(
+            text,
+            None::<String>,
+            crate::kind::TooltipPlacement::Top,
+            style,
+        )
     }
 
     /// Tab selection bar container.
@@ -1797,17 +1802,9 @@ impl WidgetTree {
     }
 
     /// Stylized keyboard key badge for shortcuts.
-    pub fn kbd(
-        &mut self,
-        text: impl Into<String>,
-        style: Style,
-    ) -> Result<NodeId, LayoutError> {
-        self.layout.insert_leaf(
-            style,
-            WidgetKind::Kbd {
-                text: text.into(),
-            },
-        )
+    pub fn kbd(&mut self, text: impl Into<String>, style: Style) -> Result<NodeId, LayoutError> {
+        self.layout
+            .insert_leaf(style, WidgetKind::Kbd { text: text.into() })
     }
 
     /// Interactive filter/tag Chip with icon, color pip, selection state, and dismiss button.
@@ -1843,13 +1840,8 @@ impl WidgetTree {
         shimmer: bool,
         style: Style,
     ) -> Result<NodeId, LayoutError> {
-        self.layout.insert_leaf(
-            style,
-            WidgetKind::Skeleton {
-                radius,
-                shimmer,
-            },
-        )
+        self.layout
+            .insert_leaf(style, WidgetKind::Skeleton { radius, shimmer })
     }
 
     /// Multi-segment proportional progress bar (e.g. disk / memory / task breakdown).

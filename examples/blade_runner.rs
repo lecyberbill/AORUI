@@ -6,7 +6,8 @@ use std::time::Instant;
 use ui_core::UiEvent;
 use ui_gpu::{BackgroundParams, GpuRenderer, MediaInstance, RenderLayer, ResourceTable};
 use ui_layout::{
-    auto, length, AlignItems, AvailableSpace, FlexDirection, JustifyContent, NodeId, Rect, Size, Style,
+    auto, length, AlignItems, AvailableSpace, FlexDirection, JustifyContent, NodeId, Rect, Size,
+    Style,
 };
 use ui_widgets::{
     AnimatedValue, FocusManager, IconKind, InteractionKey, InteractionState, KeyChord, KeyCode,
@@ -88,8 +89,6 @@ fn card_style(w: f32) -> Style {
         ..Default::default()
     }
 }
-
-
 
 // ============================================================================
 // Data Models & State
@@ -184,13 +183,31 @@ pub struct BladeRunnerState {
     pub key_map: KeyMap,
 }
 
+impl Default for BladeRunnerState {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl BladeRunnerState {
     pub fn new() -> Self {
         let mut logs = VecDeque::new();
-        logs.push_back(("[SYSTEM] Blade Runner Cyber-Ops Initialized.".to_string(), [0.0, 0.85, 1.0, 1.0]));
-        logs.push_back(("[SENTINEL] Nexus-06 Sentinel online. Neural weights verified.".to_string(), [0.06, 0.72, 0.51, 1.0]));
-        logs.push_back(("[INGRESS] Ingress filter active on Sector 4 (Tokyo Gateway).".to_string(), [0.6, 0.7, 0.8, 1.0]));
-        logs.push_back(("[THREAT-FEED] 4 anomalies detected in last 60 seconds.".to_string(), [0.96, 0.62, 0.04, 1.0]));
+        logs.push_back((
+            "[SYSTEM] Blade Runner Cyber-Ops Initialized.".to_string(),
+            [0.0, 0.85, 1.0, 1.0],
+        ));
+        logs.push_back((
+            "[SENTINEL] Nexus-06 Sentinel online. Neural weights verified.".to_string(),
+            [0.06, 0.72, 0.51, 1.0],
+        ));
+        logs.push_back((
+            "[INGRESS] Ingress filter active on Sector 4 (Tokyo Gateway).".to_string(),
+            [0.6, 0.7, 0.8, 1.0],
+        ));
+        logs.push_back((
+            "[THREAT-FEED] 4 anomalies detected in last 60 seconds.".to_string(),
+            [0.96, 0.62, 0.04, 1.0],
+        ));
 
         let incidents = vec![
             ThreatIncident {
@@ -389,10 +406,8 @@ impl BladeRunnerState {
         let parts: Vec<&str> = trimmed.split_whitespace().collect();
         match parts[0] {
             "help" => {
-                self.terminal_logs.push_back((
-                    "Available Commands:".to_string(),
-                    [0.6, 0.7, 0.8, 1.0],
-                ));
+                self.terminal_logs
+                    .push_back(("Available Commands:".to_string(), [0.6, 0.7, 0.8, 1.0]));
                 self.terminal_logs.push_back((
                     "  scan               - Trigger full cluster anomaly diagnostic".to_string(),
                     [0.6, 0.7, 0.8, 1.0],
@@ -455,7 +470,10 @@ impl BladeRunnerState {
                         ));
                     } else {
                         self.terminal_logs.push_back((
-                            format!("[ERROR] Incident or IP '{}' not found in active table.", target),
+                            format!(
+                                "[ERROR] Incident or IP '{}' not found in active table.",
+                                target
+                            ),
                             [1.0, 0.25, 0.25, 1.0],
                         ));
                     }
@@ -517,7 +535,10 @@ impl BladeRunnerState {
             }
             _ => {
                 self.terminal_logs.push_back((
-                    format!("[ERROR] Command '{}' unrecognized. Type 'help' for manual.", parts[0]),
+                    format!(
+                        "[ERROR] Command '{}' unrecognized. Type 'help' for manual.",
+                        parts[0]
+                    ),
                     [1.0, 0.25, 0.25, 1.0],
                 ));
             }
@@ -544,7 +565,10 @@ fn build_blade_runner_ui(
 
     // 0. Top Cyber Titlebar (App Name & Window Trio Controls: Minimize, Maximize, Close)
     let app_title_lbl = tree
-        .label("❖ BLADE RUNNER // SENTINEL CYBER-OPS WORKSTATION", leaf(440.0, 24.0))
+        .label(
+            "❖ BLADE RUNNER // SENTINEL CYBER-OPS WORKSTATION",
+            leaf(440.0, 24.0),
+        )
         .unwrap();
 
     let btn_min = tree
@@ -566,15 +590,12 @@ fn build_blade_runner_ui(
         .unwrap();
 
     let btn_close = tree
-        .button(
-            WidgetId::new("btn_win_close"),
-            "✕",
-            true,
-            leaf(28.0, 22.0),
-        )
+        .button(WidgetId::new("btn_win_close"), "✕", true, leaf(28.0, 22.0))
         .unwrap();
 
-    let win_controls = tree.container(&[btn_min, btn_max, btn_close], row(4.0)).unwrap();
+    let win_controls = tree
+        .container(&[btn_min, btn_max, btn_close], row(4.0))
+        .unwrap();
 
     let titlebar = tree
         .container(
@@ -609,7 +630,13 @@ fn build_blade_runner_ui(
         )
         .unwrap();
 
-    let tabs = ["Threat Matrix", "Sentinel Fleet", "Tactical Radar", "Forensic Signals", "Cyber Terminal"];
+    let tabs = [
+        "Threat Matrix",
+        "Sentinel Fleet",
+        "Tactical Radar",
+        "Forensic Signals",
+        "Cyber Terminal",
+    ];
     let current_tab_name = tabs.get(state.active_tab).unwrap_or(&"Threat Matrix");
     let crumbs = [
         ("nav_ops", "Operations"),
@@ -651,9 +678,7 @@ fn build_blade_runner_ui(
         )
         .unwrap();
 
-    let user_lbl = tree
-        .label("Deckard // Op-07", leaf(98.0, 20.0))
-        .unwrap();
+    let user_lbl = tree.label("Deckard // Op-07", leaf(98.0, 20.0)).unwrap();
 
     let right_header = tree
         .container(&[cmd_btn, bell_btn, avatar_widget, user_lbl], row(8.0))
@@ -695,7 +720,10 @@ fn build_blade_runner_ui(
             let m1 = tree
                 .metric_card(
                     "Active Threats",
-                    format!("{}", state.incidents.iter().filter(|i| !i.quarantined).count()),
+                    format!(
+                        "{}",
+                        state.incidents.iter().filter(|i| !i.quarantined).count()
+                    ),
                     Some(("+2 New", false)),
                     leaf(m_card_w, 56.0),
                 )
@@ -703,7 +731,10 @@ fn build_blade_runner_ui(
             let m2 = tree
                 .metric_card(
                     "Quarantined Nodes",
-                    format!("{}", state.incidents.iter().filter(|i| i.quarantined).count()),
+                    format!(
+                        "{}",
+                        state.incidents.iter().filter(|i| i.quarantined).count()
+                    ),
                     Some(("100% Isolated", true)),
                     leaf(m_card_w, 56.0),
                 )
@@ -719,7 +750,11 @@ fn build_blade_runner_ui(
             let m4 = tree
                 .metric_card(
                     "Zero-Trust Shield",
-                    if state.zero_trust_enforced { "STRICT" } else { "PERMISSIVE" },
+                    if state.zero_trust_enforced {
+                        "STRICT"
+                    } else {
+                        "PERMISSIVE"
+                    },
                     Some(("Active", true)),
                     leaf(m_card_w, 56.0),
                 )
@@ -731,11 +766,51 @@ fn build_blade_runner_ui(
             // Table of Ingress Incidents
             let col_step = (content_w - 28.0 - 48.0) / 5.0;
             let cols = [
-                ("Incident ID", col_step * 0.9, if state.table_sort_col == 0 { Some(state.table_sort_asc) } else { None }),
-                ("Timestamp", col_step * 0.8, if state.table_sort_col == 1 { Some(state.table_sort_asc) } else { None }),
-                ("Source IP", col_step * 1.1, if state.table_sort_col == 2 { Some(state.table_sort_asc) } else { None }),
-                ("Target Node", col_step * 1.1, if state.table_sort_col == 3 { Some(state.table_sort_asc) } else { None }),
-                ("Threat Classification", col_step * 1.5, if state.table_sort_col == 4 { Some(state.table_sort_asc) } else { None }),
+                (
+                    "Incident ID",
+                    col_step * 0.9,
+                    if state.table_sort_col == 0 {
+                        Some(state.table_sort_asc)
+                    } else {
+                        None
+                    },
+                ),
+                (
+                    "Timestamp",
+                    col_step * 0.8,
+                    if state.table_sort_col == 1 {
+                        Some(state.table_sort_asc)
+                    } else {
+                        None
+                    },
+                ),
+                (
+                    "Source IP",
+                    col_step * 1.1,
+                    if state.table_sort_col == 2 {
+                        Some(state.table_sort_asc)
+                    } else {
+                        None
+                    },
+                ),
+                (
+                    "Target Node",
+                    col_step * 1.1,
+                    if state.table_sort_col == 3 {
+                        Some(state.table_sort_asc)
+                    } else {
+                        None
+                    },
+                ),
+                (
+                    "Threat Classification",
+                    col_step * 1.5,
+                    if state.table_sort_col == 4 {
+                        Some(state.table_sort_asc)
+                    } else {
+                        None
+                    },
+                ),
             ];
 
             let row_data: Vec<[(&str, ListItemBadge); 5]> = state
@@ -807,7 +882,13 @@ fn build_blade_runner_ui(
                 .unwrap();
 
             let pagination = tree
-                .pagination("incidents_pages", state.table_page, 3, leaf(32.0, 26.0), row(4.0))
+                .pagination(
+                    "incidents_pages",
+                    state.table_page,
+                    3,
+                    leaf(32.0, 26.0),
+                    row(4.0),
+                )
                 .unwrap();
 
             let table_footer = tree
@@ -836,7 +917,8 @@ fn build_blade_runner_ui(
                 )
                 .unwrap();
 
-            tree.container(&[metrics_grid, table_card], column(12.0)).unwrap()
+            tree.container(&[metrics_grid, table_card], column(12.0))
+                .unwrap()
         }
         1 => {
             // --- Tab 1: Sentinel Fleet (Autonomous Agents Matrix) ---
@@ -845,17 +927,32 @@ fn build_blade_runner_ui(
 
             for agent in &state.agents {
                 let title = tree
-                    .label(format!("⬡ {} [{}]", agent.codename, agent.model), leaf(card_w - 28.0, 18.0))
+                    .label(
+                        format!("⬡ {} [{}]", agent.codename, agent.model),
+                        leaf(card_w - 28.0, 18.0),
+                    )
                     .unwrap();
                 let sub = tree
-                    .label_muted(format!("Role: {} | Executed: {} tasks", agent.role, agent.tasks_executed), leaf(card_w - 28.0, 14.0))
+                    .label_muted(
+                        format!(
+                            "Role: {} | Executed: {} tasks",
+                            agent.role, agent.tasks_executed
+                        ),
+                        leaf(card_w - 28.0, 14.0),
+                    )
                     .unwrap();
 
                 let cpu_p = tree
                     .progress_bar(agent.cpu_usage / 100.0, leaf(card_w - 28.0, 6.0))
                     .unwrap();
                 let cpu_lbl = tree
-                    .label_muted(format!("CPU Utilization: {:.1}% | VRAM: {} MB", agent.cpu_usage, agent.vram_mb), leaf(card_w - 28.0, 14.0))
+                    .label_muted(
+                        format!(
+                            "CPU Utilization: {:.1}% | VRAM: {} MB",
+                            agent.cpu_usage, agent.vram_mb
+                        ),
+                        leaf(card_w - 28.0, 14.0),
+                    )
                     .unwrap();
 
                 let toggle = tree
@@ -866,7 +963,14 @@ fn build_blade_runner_ui(
                     )
                     .unwrap();
                 let toggle_lbl = tree
-                    .label(if agent.active { "Sentinel Operational (Active Ingress Defense)" } else { "Sentinel Offline (Standby Mode)" }, leaf(card_w - 80.0, 18.0))
+                    .label(
+                        if agent.active {
+                            "Sentinel Operational (Active Ingress Defense)"
+                        } else {
+                            "Sentinel Offline (Standby Mode)"
+                        },
+                        leaf(card_w - 80.0, 18.0),
+                    )
                     .unwrap();
                 let toggle_row = tree.container(&[toggle, toggle_lbl], row(8.0)).unwrap();
 
@@ -887,7 +991,10 @@ fn build_blade_runner_ui(
                 .unwrap();
 
             let banner_title = tree
-                .label("Autonomous Replicant Orchestration Policy", leaf(content_w - 28.0, 18.0))
+                .label(
+                    "Autonomous Replicant Orchestration Policy",
+                    leaf(content_w - 28.0, 18.0),
+                )
                 .unwrap();
             let banner_sub = tree
                 .label_muted("All autonomous agents operate under Zero-Trust human confirmation protocols. Escalation requires master key approval.", leaf(content_w - 28.0, 14.0))
@@ -902,7 +1009,8 @@ fn build_blade_runner_ui(
                 )
                 .unwrap();
 
-            tree.container(&[agents_grid, banner_card], column(12.0)).unwrap()
+            tree.container(&[agents_grid, banner_card], column(12.0))
+                .unwrap()
         }
         2 => {
             // --- Tab 2: Tactical Radar (2D CustomPaint Vector Map) ---
@@ -919,8 +1027,18 @@ fn build_blade_runner_ui(
             }
 
             // 2. Axis Crosshairs
-            painter.line([cx - 150.0, cy], [cx + 150.0, cy], 1.0, [0.0, 0.85, 1.0, 0.2]);
-            painter.line([cx, cy - 150.0], [cx, cy + 150.0], 1.0, [0.0, 0.85, 1.0, 0.2]);
+            painter.line(
+                [cx - 150.0, cy],
+                [cx + 150.0, cy],
+                1.0,
+                [0.0, 0.85, 1.0, 0.2],
+            );
+            painter.line(
+                [cx, cy - 150.0],
+                [cx, cy + 150.0],
+                1.0,
+                [0.0, 0.85, 1.0, 0.2],
+            );
 
             // 3. Rotating Sweep Radar Line
             let sweep_rad = state.radar_sweep_angle.to_radians();
@@ -931,9 +1049,21 @@ fn build_blade_runner_ui(
             // 4. Sector Node Blips
             let nodes = [
                 ([cx + 60.0, cy - 40.0], "Tokyo Core", [0.0, 0.85, 1.0, 1.0]),
-                ([cx - 80.0, cy - 30.0], "Paris Gateway", [0.55, 0.36, 0.96, 1.0]),
-                ([cx - 40.0, cy + 90.0], "Frankfurt Relay", [0.06, 0.72, 0.51, 1.0]),
-                ([cx + 100.0, cy + 60.0], "Sydney Edge", [0.96, 0.62, 0.04, 1.0]),
+                (
+                    [cx - 80.0, cy - 30.0],
+                    "Paris Gateway",
+                    [0.55, 0.36, 0.96, 1.0],
+                ),
+                (
+                    [cx - 40.0, cy + 90.0],
+                    "Frankfurt Relay",
+                    [0.06, 0.72, 0.51, 1.0],
+                ),
+                (
+                    [cx + 100.0, cy + 60.0],
+                    "Sydney Edge",
+                    [0.96, 0.62, 0.04, 1.0],
+                ),
             ];
 
             for (pos, name, col) in nodes {
@@ -952,11 +1082,29 @@ fn build_blade_runner_ui(
             );
 
             // 6. HUD Overlay
-            painter.text([12.0, 16.0], "TACTICAL SECTOR RADAR // 360° SURVEILLANCE".to_string(), 12.0, [0.0, 0.85, 1.0, 0.8]);
-            painter.text([12.0, radar_h - 18.0], format!("SWEEP: {:.0}° | ACTIVE TARGETS: 4 | DEFCON: {}", state.radar_sweep_angle, state.defcon.name()), 11.0, [0.6, 0.7, 0.8, 0.8]);
+            painter.text(
+                [12.0, 16.0],
+                "TACTICAL SECTOR RADAR // 360° SURVEILLANCE".to_string(),
+                12.0,
+                [0.0, 0.85, 1.0, 0.8],
+            );
+            painter.text(
+                [12.0, radar_h - 18.0],
+                format!(
+                    "SWEEP: {:.0}° | ACTIVE TARGETS: 4 | DEFCON: {}",
+                    state.radar_sweep_angle,
+                    state.defcon.name()
+                ),
+                11.0,
+                [0.6, 0.7, 0.8, 0.8],
+            );
 
             let radar_widget = tree
-                .custom_paint("tactical_radar_canvas", painter.finish(), leaf(radar_w, radar_h))
+                .custom_paint(
+                    "tactical_radar_canvas",
+                    painter.finish(),
+                    leaf(radar_w, radar_h),
+                )
                 .unwrap();
 
             let radar_card = tree
@@ -974,7 +1122,10 @@ fn build_blade_runner_ui(
         3 => {
             // --- Tab 3: Forensic Signals (GPU Spline Chart & 32-Band FFT Audio Spectrum) ---
             let left_title = tree
-                .label("Realtime Ingress Telemetry (Area / Spline Dataviz)", leaf(half_col_w - 28.0, 18.0))
+                .label(
+                    "Realtime Ingress Telemetry (Area / Spline Dataviz)",
+                    leaf(half_col_w - 28.0, 18.0),
+                )
                 .unwrap();
 
             let pts1: Vec<[f32; 2]> = state
@@ -984,14 +1135,12 @@ fn build_blade_runner_ui(
                 .map(|(i, v)| [i as f32, *v])
                 .collect();
 
-            let chart_series = vec![
-                ui_widgets::ChartSeries {
-                    name: "Ingress Anomaly Rate".to_string(),
-                    color: [0.0, 0.85, 1.0, 1.0],
-                    points: pts1,
-                    filled: true,
-                },
-            ];
+            let chart_series = vec![ui_widgets::ChartSeries {
+                name: "Ingress Anomaly Rate".to_string(),
+                color: [0.0, 0.85, 1.0, 1.0],
+                points: pts1,
+                filled: true,
+            }];
 
             let chart_w = tree
                 .time_series_chart(
@@ -1018,14 +1167,25 @@ fn build_blade_runner_ui(
                 .unwrap();
 
             let right_title = tree
-                .label("Covert Ultrasonic Signal Spectrogram (32 Band FFT)", leaf(half_col_w - 28.0, 18.0))
+                .label(
+                    "Covert Ultrasonic Signal Spectrogram (32 Band FFT)",
+                    leaf(half_col_w - 28.0, 18.0),
+                )
                 .unwrap();
             let right_sub = tree
-                .label_muted("Hardware audio buffer DSP analysis for acoustic air-gap exfiltration probes", leaf(half_col_w - 28.0, 14.0))
+                .label_muted(
+                    "Hardware audio buffer DSP analysis for acoustic air-gap exfiltration probes",
+                    leaf(half_col_w - 28.0, 14.0),
+                )
                 .unwrap();
 
             let visualizer = tree
-                .audio_visualizer("covert_audio_fft", &state.audio_spectrum, 1.0, leaf(half_col_w - 28.0, 136.0))
+                .audio_visualizer(
+                    "covert_audio_fft",
+                    &state.audio_spectrum,
+                    1.0,
+                    leaf(half_col_w - 28.0, 136.0),
+                )
                 .unwrap();
 
             let card_right = tree
@@ -1043,7 +1203,10 @@ fn build_blade_runner_ui(
         _ => {
             // --- Tab 4: Cyber Terminal (Live Forensic Log & Interactive Command Shell) ---
             let term_title = tree
-                .label("Cybernetic Forensic Console // root@blade-runner", leaf(content_w - 28.0, 18.0))
+                .label(
+                    "Cybernetic Forensic Console // root@blade-runner",
+                    leaf(content_w - 28.0, 18.0),
+                )
                 .unwrap();
 
             let mut log_nodes = Vec::new();
@@ -1054,9 +1217,7 @@ fn build_blade_runner_ui(
                 log_nodes.push(lbl);
             }
 
-            let logs_container = tree
-                .container(&log_nodes, column(2.0))
-                .unwrap();
+            let logs_container = tree.container(&log_nodes, column(2.0)).unwrap();
 
             let div_term = tree.divider(false, leaf(content_w - 28.0, 1.0)).unwrap();
 
@@ -1160,9 +1321,7 @@ fn build_command_palette_ui(
         )
         .unwrap();
 
-    let esc_badge = tree
-        .kbd("Esc", leaf(34.0, 22.0))
-        .unwrap();
+    let esc_badge = tree.kbd("Esc", leaf(34.0, 22.0)).unwrap();
 
     let search_row = tree
         .container(&[search_input, esc_badge], row(6.0))
@@ -1171,11 +1330,31 @@ fn build_command_palette_ui(
     let div = tree.divider(false, leaf(dialog_w - 28.0, 1.0)).unwrap();
 
     let commands = [
-        ("cmd_action_quarantine_all", "Quarantine All Critical Threats", "Isolate all open threat vectors immediately"),
-        ("cmd_action_defcon_1", "Switch to DEFCON 1 // Max Alert", "Activate automated emergency countermeasures"),
-        ("cmd_action_scan", "Trigger Neural Memory Scan", "Audit all node buffers and TLS keys"),
-        ("cmd_action_toggle_deckard", "Toggle Deckard-07 Sentinel", "Activate / Standby primary hunter"),
-        ("cmd_action_clear_terminal", "Purge Forensic Terminal Logs", "Reset console memory buffer"),
+        (
+            "cmd_action_quarantine_all",
+            "Quarantine All Critical Threats",
+            "Isolate all open threat vectors immediately",
+        ),
+        (
+            "cmd_action_defcon_1",
+            "Switch to DEFCON 1 // Max Alert",
+            "Activate automated emergency countermeasures",
+        ),
+        (
+            "cmd_action_scan",
+            "Trigger Neural Memory Scan",
+            "Audit all node buffers and TLS keys",
+        ),
+        (
+            "cmd_action_toggle_deckard",
+            "Toggle Deckard-07 Sentinel",
+            "Activate / Standby primary hunter",
+        ),
+        (
+            "cmd_action_clear_terminal",
+            "Purge Forensic Terminal Logs",
+            "Reset console memory buffer",
+        ),
     ];
 
     let mut action_nodes = Vec::new();
@@ -1276,20 +1455,30 @@ fn build_notifications_drawer_ui(
 
     let mut notif_items = Vec::new();
     for (title, msg, kind, time) in &state.notifications_history {
-        let t_lbl = tree.label(format!("{} [{}]", title, time), leaf(drawer_w - 28.0, 16.0)).unwrap();
-        let m_lbl = tree.label_muted(msg.as_str(), leaf(drawer_w - 28.0, 14.0)).unwrap();
+        let t_lbl = tree
+            .label(format!("{} [{}]", title, time), leaf(drawer_w - 28.0, 16.0))
+            .unwrap();
+        let m_lbl = tree
+            .label_muted(msg.as_str(), leaf(drawer_w - 28.0, 14.0))
+            .unwrap();
         let b_kind = match kind {
             ToastKind::Success => ListItemBadge::Success,
             ToastKind::Warning => ListItemBadge::Warning,
             ToastKind::Info => ListItemBadge::None,
             ToastKind::Error => ListItemBadge::Active("ERROR".to_string()),
         };
-        let badge = tree.badge(match kind {
-            ToastKind::Success => "RESOLVED",
-            ToastKind::Warning => "ALERT",
-            ToastKind::Info => "TELEMETRY",
-            ToastKind::Error => "CRITICAL",
-        }, b_kind, leaf(80.0, 20.0)).unwrap();
+        let badge = tree
+            .badge(
+                match kind {
+                    ToastKind::Success => "RESOLVED",
+                    ToastKind::Warning => "ALERT",
+                    ToastKind::Info => "TELEMETRY",
+                    ToastKind::Error => "CRITICAL",
+                },
+                b_kind,
+                leaf(80.0, 20.0),
+            )
+            .unwrap();
 
         let n_card = tree.container(&[t_lbl, m_lbl, badge], column(4.0)).unwrap();
         notif_items.push(n_card);
@@ -1375,7 +1564,9 @@ impl App {
         match event {
             UiEvent::TabSelected { tab_index, .. } => {
                 self.state.active_tab = tab_index;
-                self.state.tab_transition_animated.set_target(tab_index as f32);
+                self.state
+                    .tab_transition_animated
+                    .set_target(tab_index as f32);
             }
             UiEvent::TableRowSelected { row_index, .. } => {
                 self.state.selected_incident = Some(row_index);
@@ -1391,21 +1582,43 @@ impl App {
             UiEvent::PageSelected { page, .. } => {
                 self.state.table_page = page;
             }
-            UiEvent::ToggleSwitched { widget_id, active, .. } => {
+            UiEvent::ToggleSwitched {
+                widget_id, active, ..
+            } => {
                 if widget_id == "toggle_sentinel_deckard" {
-                    if let Some(a) = self.state.agents.iter_mut().find(|a| a.id == "sentinel_deckard") {
+                    if let Some(a) = self
+                        .state
+                        .agents
+                        .iter_mut()
+                        .find(|a| a.id == "sentinel_deckard")
+                    {
                         a.active = active;
                     }
                 } else if widget_id == "toggle_sentinel_rachael" {
-                    if let Some(a) = self.state.agents.iter_mut().find(|a| a.id == "sentinel_rachael") {
+                    if let Some(a) = self
+                        .state
+                        .agents
+                        .iter_mut()
+                        .find(|a| a.id == "sentinel_rachael")
+                    {
                         a.active = active;
                     }
                 } else if widget_id == "toggle_sentinel_roy" {
-                    if let Some(a) = self.state.agents.iter_mut().find(|a| a.id == "sentinel_roy") {
+                    if let Some(a) = self
+                        .state
+                        .agents
+                        .iter_mut()
+                        .find(|a| a.id == "sentinel_roy")
+                    {
                         a.active = active;
                     }
                 } else if widget_id == "toggle_sentinel_pris" {
-                    if let Some(a) = self.state.agents.iter_mut().find(|a| a.id == "sentinel_pris") {
+                    if let Some(a) = self
+                        .state
+                        .agents
+                        .iter_mut()
+                        .find(|a| a.id == "sentinel_pris")
+                    {
                         a.active = active;
                     }
                 }
@@ -1478,7 +1691,12 @@ impl App {
                         }
                         "scan" => self.state.execute_terminal_cmd("scan"),
                         "toggle_deckard" => {
-                            if let Some(a) = self.state.agents.iter_mut().find(|a| a.id == "sentinel_deckard") {
+                            if let Some(a) = self
+                                .state
+                                .agents
+                                .iter_mut()
+                                .find(|a| a.id == "sentinel_deckard")
+                            {
                                 a.active = !a.active;
                             }
                         }
@@ -1509,7 +1727,10 @@ impl App {
         }
 
         let Some(root) = self.root else { return };
-        self.pressed = self.tree.interaction_key_at(root, self.cursor_pos).unwrap_or(None);
+        self.pressed = self
+            .tree
+            .interaction_key_at(root, self.cursor_pos)
+            .unwrap_or(None);
 
         if self.cursor_pos.1 <= 44.0 && self.pressed.is_none() {
             if let Some(w) = &self.window {
@@ -1520,7 +1741,9 @@ impl App {
 
     fn handle_release(&mut self) {
         if let (Some(o_tree), Some(o_root)) = (&self.overlay_tree, self.overlay_root) {
-            let released_on = o_tree.interaction_key_at(o_root, self.cursor_pos).unwrap_or(None);
+            let released_on = o_tree
+                .interaction_key_at(o_root, self.cursor_pos)
+                .unwrap_or(None);
             if self.pressed.is_some() && self.pressed == released_on {
                 if let Ok(Some(ev)) = o_tree.dispatch_click(o_root, self.cursor_pos) {
                     self.handle_ui_event(ev);
@@ -1531,7 +1754,10 @@ impl App {
         }
 
         if let Some(root) = self.root {
-            let released_on = self.tree.interaction_key_at(root, self.cursor_pos).unwrap_or(None);
+            let released_on = self
+                .tree
+                .interaction_key_at(root, self.cursor_pos)
+                .unwrap_or(None);
             if self.pressed.is_some() && self.pressed == released_on {
                 if let Ok(Some(ev)) = self.tree.dispatch_click(root, self.cursor_pos) {
                     self.handle_ui_event(ev);
@@ -1543,7 +1769,9 @@ impl App {
 
     fn redraw(&mut self) {
         let Some(window) = &self.window else { return };
-        let Some(renderer) = &mut self.renderer else { return };
+        let Some(renderer) = &mut self.renderer else {
+            return;
+        };
 
         let elapsed = self.state.start_time.elapsed().as_secs_f32();
         self.state.radar_sweep_angle = (elapsed * 80.0) % 360.0;
@@ -1589,7 +1817,9 @@ impl App {
             return;
         }
 
-        let base_hovered = base_tree.interaction_key_at(base_root, self.cursor_pos).unwrap_or(None);
+        let base_hovered = base_tree
+            .interaction_key_at(base_root, self.cursor_pos)
+            .unwrap_or(None);
         let base_interaction = InteractionState {
             hovered: base_hovered.as_ref(),
             pressed: self.pressed.as_ref(),
@@ -1667,20 +1897,26 @@ impl App {
             let mut overlay_tree = WidgetTree::new();
             let overlay_root = build_command_palette_ui(&mut overlay_tree, &self.state, w, h);
             if overlay_tree.compute(overlay_root, available).is_ok() {
-                let pop_hovered = overlay_tree.interaction_key_at(overlay_root, self.cursor_pos).unwrap_or(None);
+                let pop_hovered = overlay_tree
+                    .interaction_key_at(overlay_root, self.cursor_pos)
+                    .unwrap_or(None);
                 let pop_interaction = InteractionState {
                     hovered: pop_hovered.as_ref(),
                     pressed: self.pressed.as_ref(),
                     measure: Some(&measure),
                 };
-                if let Ok(pop_frame) = overlay_tree.build_frame(overlay_root, &current_theme, pop_interaction) {
+                if let Ok(pop_frame) =
+                    overlay_tree.build_frame(overlay_root, &current_theme, pop_interaction)
+                {
                     let pop_text_runs: Vec<_> = pop_frame
                         .texts
                         .iter()
                         .map(|spec| {
                             let align = match spec.align {
                                 ui_widgets::TextAlign::Left => glyphon::cosmic_text::Align::Left,
-                                ui_widgets::TextAlign::Center => glyphon::cosmic_text::Align::Center,
+                                ui_widgets::TextAlign::Center => {
+                                    glyphon::cosmic_text::Align::Center
+                                }
                                 ui_widgets::TextAlign::Right => glyphon::cosmic_text::Align::Right,
                             };
                             let weight = match spec.weight {
@@ -1719,20 +1955,26 @@ impl App {
             let mut overlay_tree = WidgetTree::new();
             let overlay_root = build_notifications_drawer_ui(&mut overlay_tree, &self.state, w, h);
             if overlay_tree.compute(overlay_root, available).is_ok() {
-                let pop_hovered = overlay_tree.interaction_key_at(overlay_root, self.cursor_pos).unwrap_or(None);
+                let pop_hovered = overlay_tree
+                    .interaction_key_at(overlay_root, self.cursor_pos)
+                    .unwrap_or(None);
                 let pop_interaction = InteractionState {
                     hovered: pop_hovered.as_ref(),
                     pressed: self.pressed.as_ref(),
                     measure: Some(&measure),
                 };
-                if let Ok(pop_frame) = overlay_tree.build_frame(overlay_root, &current_theme, pop_interaction) {
+                if let Ok(pop_frame) =
+                    overlay_tree.build_frame(overlay_root, &current_theme, pop_interaction)
+                {
                     let pop_text_runs: Vec<_> = pop_frame
                         .texts
                         .iter()
                         .map(|spec| {
                             let align = match spec.align {
                                 ui_widgets::TextAlign::Left => glyphon::cosmic_text::Align::Left,
-                                ui_widgets::TextAlign::Center => glyphon::cosmic_text::Align::Center,
+                                ui_widgets::TextAlign::Center => {
+                                    glyphon::cosmic_text::Align::Center
+                                }
                                 ui_widgets::TextAlign::Right => glyphon::cosmic_text::Align::Right,
                             };
                             let weight = match spec.weight {
@@ -1763,7 +2005,8 @@ impl App {
                         &media,
                         &self.resources,
                     );
-                    if let Err(wgpu::SurfaceError::Lost | wgpu::SurfaceError::Outdated) = render_res {
+                    if let Err(wgpu::SurfaceError::Lost | wgpu::SurfaceError::Outdated) = render_res
+                    {
                         renderer.resize(size);
                     }
                 }
@@ -1771,12 +2014,8 @@ impl App {
             self.overlay_tree = Some(overlay_tree);
             self.overlay_root = Some(overlay_root);
         } else {
-            let render_res = renderer.render_layers(
-                background,
-                &[base_layer],
-                &media,
-                &self.resources,
-            );
+            let render_res =
+                renderer.render_layers(background, &[base_layer], &media, &self.resources);
             if let Err(wgpu::SurfaceError::Lost | wgpu::SurfaceError::Outdated) = render_res {
                 renderer.resize(size);
             }
@@ -1804,10 +2043,7 @@ impl ApplicationHandler for App {
             ));
         let window = Arc::new(event_loop.create_window(attrs).unwrap());
         let mut renderer = GpuRenderer::new(window.clone());
-        let mut bg_params = BackgroundParams::aether_os(
-            WINDOW_WIDTH,
-            WINDOW_HEIGHT,
-        );
+        let mut bg_params = BackgroundParams::aether_os(WINDOW_WIDTH, WINDOW_HEIGHT);
         // Remove white micro-grid dots
         bg_params.grid_dot_size = 0.0;
         bg_params.grid_opacity = 0.0;
@@ -1934,7 +2170,8 @@ impl ApplicationHandler for App {
                                 self.state.show_command_palette = !self.state.show_command_palette;
                             }
                             "toggle_notifications" => {
-                                self.state.show_notifications_drawer = !self.state.show_notifications_drawer;
+                                self.state.show_notifications_drawer =
+                                    !self.state.show_notifications_drawer;
                             }
                             "tab_0" => {
                                 self.state.active_tab = 0;
@@ -1982,7 +2219,9 @@ impl ApplicationHandler for App {
                             }
                         }
                         Key::Named(NamedKey::Enter) => {
-                            if self.state.focused_input.as_deref() == Some("terminal_input_field") && !self.state.terminal_input.is_empty() {
+                            if self.state.focused_input.as_deref() == Some("terminal_input_field")
+                                && !self.state.terminal_input.is_empty()
+                            {
                                 let cmd = self.state.terminal_input.clone();
                                 self.state.terminal_input.clear();
                                 self.state.terminal_cursor = 0;
@@ -1990,14 +2229,18 @@ impl ApplicationHandler for App {
                             }
                         }
                         Key::Named(NamedKey::Backspace) => {
-                            if self.state.focused_input.as_deref() == Some("terminal_input_field") && self.state.terminal_cursor > 0 {
+                            if self.state.focused_input.as_deref() == Some("terminal_input_field")
+                                && self.state.terminal_cursor > 0
+                            {
                                 self.state.terminal_cursor -= 1;
                                 self.state.terminal_input.remove(self.state.terminal_cursor);
                             }
                         }
                         Key::Character(s) => {
                             if self.state.focused_input.as_deref() == Some("terminal_input_field") {
-                                self.state.terminal_input.insert_str(self.state.terminal_cursor, s.as_str());
+                                self.state
+                                    .terminal_input
+                                    .insert_str(self.state.terminal_cursor, s.as_str());
                                 self.state.terminal_cursor += s.len();
                             }
                         }
@@ -2054,7 +2297,14 @@ mod tests {
         assert_eq!(state.defcon, DefconLevel::Defcon1);
 
         state.execute_terminal_cmd("quarantine INC-8891");
-        assert!(state.incidents.iter().find(|i| i.id == "INC-8891").unwrap().quarantined);
+        assert!(
+            state
+                .incidents
+                .iter()
+                .find(|i| i.id == "INC-8891")
+                .unwrap()
+                .quarantined
+        );
 
         state.execute_terminal_cmd("mitigate all");
         for inc in &state.incidents {

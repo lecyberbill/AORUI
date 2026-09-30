@@ -1,8 +1,8 @@
 // [WFGY] Zone: SAFE | λ: 0.2 | Fallbacks: 0 | Action: Automatic Widget State Transitions & Micro-Animations Engine
-use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
 use crate::id::WidgetId;
 use crate::motion::{AnimatedValue, Spring};
+use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 
 /// Per-widget micro-animation tracker for smooth visual state transitions.
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -109,7 +109,10 @@ impl TransitionEngine {
 
     /// Gets current interpolated elevation value.
     pub fn elevation_value(&self, id: &WidgetId) -> f32 {
-        self.states.get(id).map(|s| s.elevation.value()).unwrap_or(0.0)
+        self.states
+            .get(id)
+            .map(|s| s.elevation.value())
+            .unwrap_or(0.0)
     }
 
     /// Cleans up settled idle states to prevent unbound map growth.

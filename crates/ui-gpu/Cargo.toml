@@ -18,3 +18,6 @@ image = { workspace = true }
 
 [dev-dependencies]
 naga = { version = "0.19", features = ["wgsl-in"] }
+
+[lints]
+workspace = true

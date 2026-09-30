@@ -67,50 +67,44 @@ impl McpHandler {
         let method = req.method.as_str();
 
         match method {
-            "initialize" => {
-                McpResponse {
-                    jsonrpc: "2.0".to_string(),
-                    id,
-                    result: Some(json!({
-                        "protocolVersion": "2024-11-05",
-                        "serverInfo": {
-                            "name": "aorui-mcp-server",
-                            "version": "0.1.0"
+            "initialize" => McpResponse {
+                jsonrpc: "2.0".to_string(),
+                id,
+                result: Some(json!({
+                    "protocolVersion": "2024-11-05",
+                    "serverInfo": {
+                        "name": "aorui-mcp-server",
+                        "version": "0.1.0"
+                    },
+                    "capabilities": {
+                        "tools": {
+                            "listChanged": false
                         },
-                        "capabilities": {
-                            "tools": {
-                                "listChanged": false
-                            },
-                            "resources": {
-                                "subscribe": false,
-                                "listChanged": false
-                            },
-                            "prompts": {
-                                "listChanged": false
-                            }
+                        "resources": {
+                            "subscribe": false,
+                            "listChanged": false
+                        },
+                        "prompts": {
+                            "listChanged": false
                         }
-                    })),
-                    error: None,
-                }
-            }
+                    }
+                })),
+                error: None,
+            },
 
-            "notifications/initialized" | "initialized" => {
-                McpResponse {
-                    jsonrpc: "2.0".to_string(),
-                    id,
-                    result: Some(json!({})),
-                    error: None,
-                }
-            }
+            "notifications/initialized" | "initialized" => McpResponse {
+                jsonrpc: "2.0".to_string(),
+                id,
+                result: Some(json!({})),
+                error: None,
+            },
 
-            "ping" => {
-                McpResponse {
-                    jsonrpc: "2.0".to_string(),
-                    id,
-                    result: Some(json!({})),
-                    error: None,
-                }
-            }
+            "ping" => McpResponse {
+                jsonrpc: "2.0".to_string(),
+                id,
+                result: Some(json!({})),
+                error: None,
+            },
 
             "tools/list" => {
                 let tools = registry.list_tools();
@@ -184,29 +178,27 @@ impl McpHandler {
                 }
             }
 
-            "resources/list" => {
-                McpResponse {
-                    jsonrpc: "2.0".to_string(),
-                    id,
-                    result: Some(json!({
-                        "resources": [
-                            {
-                                "uri": "aorui://ui/state",
-                                "name": "Current UI State",
-                                "description": "Live JSON snapshot of active widgets and telemetry values",
-                                "mimeType": "application/json"
-                            },
-                            {
-                                "uri": "aorui://telemetry/live",
-                                "name": "Live Performance Gauges",
-                                "description": "CPU, RAM, GPU, and network throughput metrics",
-                                "mimeType": "application/json"
-                            }
-                        ]
-                    })),
-                    error: None,
-                }
-            }
+            "resources/list" => McpResponse {
+                jsonrpc: "2.0".to_string(),
+                id,
+                result: Some(json!({
+                    "resources": [
+                        {
+                            "uri": "aorui://ui/state",
+                            "name": "Current UI State",
+                            "description": "Live JSON snapshot of active widgets and telemetry values",
+                            "mimeType": "application/json"
+                        },
+                        {
+                            "uri": "aorui://telemetry/live",
+                            "name": "Live Performance Gauges",
+                            "description": "CPU, RAM, GPU, and network throughput metrics",
+                            "mimeType": "application/json"
+                        }
+                    ]
+                })),
+                error: None,
+            },
 
             "resources/read" => {
                 let params = req.params.unwrap_or_default();
@@ -247,52 +239,56 @@ impl McpHandler {
                 }
             }
 
-            "prompts/list" => {
-                McpResponse {
-                    jsonrpc: "2.0".to_string(),
-                    id,
-                    result: Some(json!({
-                        "prompts": [
-                            {
-                                "name": "purge_caches",
-                                "description": "Purge memory and network telemetry caches",
-                                "arguments": []
-                            },
-                            {
-                                "name": "filter_processes",
-                                "description": "Filter process table by container name or PID",
-                                "arguments": [
-                                    {
-                                        "name": "query",
-                                        "description": "Process name search query",
-                                        "required": true
-                                    }
-                                ]
-                            },
-                            {
-                                "name": "switch_horizon",
-                                "description": "Switch telemetry observation time range (15m, 1h, 24h, 7j)",
-                                "arguments": [
-                                    {
-                                        "name": "range",
-                                        "description": "Target range string",
-                                        "required": true
-                                    }
-                                ]
-                            }
-                        ]
-                    })),
-                    error: None,
-                }
-            }
+            "prompts/list" => McpResponse {
+                jsonrpc: "2.0".to_string(),
+                id,
+                result: Some(json!({
+                    "prompts": [
+                        {
+                            "name": "purge_caches",
+                            "description": "Purge memory and network telemetry caches",
+                            "arguments": []
+                        },
+                        {
+                            "name": "filter_processes",
+                            "description": "Filter process table by container name or PID",
+                            "arguments": [
+                                {
+                                    "name": "query",
+                                    "description": "Process name search query",
+                                    "required": true
+                                }
+                            ]
+                        },
+                        {
+                            "name": "switch_horizon",
+                            "description": "Switch telemetry observation time range (15m, 1h, 24h, 7j)",
+                            "arguments": [
+                                {
+                                    "name": "range",
+                                    "description": "Target range string",
+                                    "required": true
+                                }
+                            ]
+                        }
+                    ]
+                })),
+                error: None,
+            },
 
             "prompts/get" => {
                 let params = req.params.unwrap_or_default();
                 let name = params.get("name").and_then(|v| v.as_str()).unwrap_or("");
                 let prompt_desc = match name {
-                    "purge_caches" => "Please purge all memory and network caches to stabilize latency.",
-                    "filter_processes" => "Filter the process table for the specified container query.",
-                    "switch_horizon" => "Adjust the telemetry observation window to the requested duration.",
+                    "purge_caches" => {
+                        "Please purge all memory and network caches to stabilize latency."
+                    }
+                    "filter_processes" => {
+                        "Filter the process table for the specified container query."
+                    }
+                    "switch_horizon" => {
+                        "Adjust the telemetry observation window to the requested duration."
+                    }
                     _ => "Execute standard system performance inspection.",
                 };
 
@@ -333,14 +329,18 @@ impl McpHandler {
 
 #[cfg(test)]
 mod tests {
-    use std::sync::Arc;
     use super::*;
     use crate::tool::{BoxFuture, Tool};
+    use std::sync::Arc;
 
     struct TestEchoTool;
     impl Tool for TestEchoTool {
-        fn name(&self) -> &str { "echo" }
-        fn schema(&self) -> Value { json!({ "type": "object", "properties": { "msg": { "type": "string" } }, "required": ["msg"] }) }
+        fn name(&self) -> &str {
+            "echo"
+        }
+        fn schema(&self) -> Value {
+            json!({ "type": "object", "properties": { "msg": { "type": "string" } }, "required": ["msg"] })
+        }
         fn execute<'a>(&'a self, args: Value) -> BoxFuture<'a, Result<Value, ToolError>> {
             Box::pin(async move { Ok(args) })
         }
@@ -358,7 +358,8 @@ mod tests {
             "id": 1,
             "method": "initialize",
             "params": {}
-        }).to_string();
+        })
+        .to_string();
 
         let resp_str = McpHandler::handle(&init_req, &registry, &tx).await;
         let resp: McpResponse = serde_json::from_str(&resp_str).unwrap();
@@ -370,7 +371,8 @@ mod tests {
             "jsonrpc": "2.0",
             "id": 2,
             "method": "tools/list"
-        }).to_string();
+        })
+        .to_string();
 
         let resp_str = McpHandler::handle(&tools_req, &registry, &tx).await;
         let resp: McpResponse = serde_json::from_str(&resp_str).unwrap();
@@ -387,11 +389,15 @@ mod tests {
                 "name": "echo",
                 "arguments": { "msg": "Hello AORUI MCP" }
             }
-        }).to_string();
+        })
+        .to_string();
 
         let resp_str = McpHandler::handle(&call_req, &registry, &tx).await;
         let resp: McpResponse = serde_json::from_str(&resp_str).unwrap();
         assert!(resp.error.is_none());
-        assert!(resp.result.unwrap()["content"][0]["text"].as_str().unwrap().contains("Hello AORUI MCP"));
+        assert!(resp.result.unwrap()["content"][0]["text"]
+            .as_str()
+            .unwrap()
+            .contains("Hello AORUI MCP"));
     }
 }

@@ -440,11 +440,7 @@ impl WidgetTree {
                 })
             }
             WidgetKind::Knob {
-                id,
-                min,
-                max,
-                step,
-                ..
+                id, min, max, step, ..
             } => {
                 let effective = self.effective_bounds(root)?;
                 let bounds = effective[&node].visual;
@@ -453,8 +449,9 @@ impl WidgetTree {
                 let dx = point.0 - cx;
                 let dy = point.1 - cy;
                 let angle = dy.atan2(dx); // [-pi, pi]
-                // Convert angle from dial domain (-135 to +135 deg, or -3pi/4 to +3pi/4)
-                let norm_angle = (angle + std::f32::consts::PI * 0.75).rem_euclid(std::f32::consts::PI * 2.0);
+                                          // Convert angle from dial domain (-135 to +135 deg, or -3pi/4 to +3pi/4)
+                let norm_angle =
+                    (angle + std::f32::consts::PI * 0.75).rem_euclid(std::f32::consts::PI * 2.0);
                 let total_sweep = std::f32::consts::PI * 1.5;
                 let ratio = (norm_angle / total_sweep).clamp(0.0, 1.0);
                 let mut val = *min + ratio * (*max - *min);
@@ -485,7 +482,11 @@ impl WidgetTree {
                 let plot_w = (bounds[2] - pad_left - 16.0).max(10.0);
                 let plot_h = (bounds[3] - pad_top - 24.0).max(10.0);
 
-                if point.0 >= plot_x && point.0 <= plot_x + plot_w && point.1 >= plot_y && point.1 <= plot_y + plot_h {
+                if point.0 >= plot_x
+                    && point.0 <= plot_x + plot_w
+                    && point.1 >= plot_y
+                    && point.1 <= plot_y + plot_h
+                {
                     let click_norm_x = (point.0 - plot_x) / plot_w;
                     let target_x = *x_min + click_norm_x * (*x_max - *x_min);
 
@@ -521,12 +522,7 @@ impl WidgetTree {
                     None
                 }
             }
-            WidgetKind::NodeGraph {
-                id,
-                nodes,
-                pan,
-                ..
-            } => {
+            WidgetKind::NodeGraph { id, nodes, pan, .. } => {
                 let effective = self.effective_bounds(root)?;
                 let bounds = effective[&node].visual;
                 let origin_x = bounds[0] + pan[0];
@@ -537,7 +533,11 @@ impl WidgetTree {
                 for n in nodes.iter().rev() {
                     let nx = origin_x + n.pos[0];
                     let ny = origin_y + n.pos[1];
-                    if point.0 >= nx && point.0 <= nx + n.size[0] && point.1 >= ny && point.1 <= ny + n.size[1] {
+                    if point.0 >= nx
+                        && point.0 <= nx + n.size[0]
+                        && point.1 >= ny
+                        && point.1 <= ny + n.size[1]
+                    {
                         hit_node = Some(n.id.clone());
                         break;
                     }
@@ -548,11 +548,7 @@ impl WidgetTree {
                     node_id: hit_node,
                 })
             }
-            WidgetKind::TagInput {
-                id,
-                tags,
-                ..
-            } => {
+            WidgetKind::TagInput { id, tags, .. } => {
                 let effective = self.effective_bounds(root)?;
                 let bounds = effective[&node].visual;
                 let mut cur_x = bounds[0] + 6.0;
@@ -561,7 +557,11 @@ impl WidgetTree {
 
                 for (idx, tag) in tags.iter().enumerate() {
                     let tag_text_w = tag.len() as f32 * 7.0 + 20.0;
-                    if point.0 >= cur_x && point.0 <= cur_x + tag_text_w && point.1 >= tag_y && point.1 <= tag_y + tag_h {
+                    if point.0 >= cur_x
+                        && point.0 <= cur_x + tag_text_w
+                        && point.1 >= tag_y
+                        && point.1 <= tag_y + tag_h
+                    {
                         return Ok(Some(UiEvent::TagRemoved {
                             widget_id: id.to_string(),
                             index: idx,
@@ -594,7 +594,9 @@ impl WidgetTree {
                     None
                 }
             }
-            WidgetKind::Chip { id, dismissible, .. } => {
+            WidgetKind::Chip {
+                id, dismissible, ..
+            } => {
                 let effective = self.effective_bounds(root)?;
                 let bounds = effective[&node].visual;
                 if *dismissible && point.0 >= bounds[0] + bounds[2] - 22.0 {
@@ -607,7 +609,9 @@ impl WidgetTree {
                     })
                 }
             }
-            WidgetKind::Rating { id, max, readonly, .. } => {
+            WidgetKind::Rating {
+                id, max, readonly, ..
+            } => {
                 if *readonly {
                     None
                 } else {
@@ -650,7 +654,7 @@ impl WidgetTree {
         prev_point: (f32, f32),
     ) -> Result<Option<UiEvent>, ui_layout::LayoutError> {
         let effective = self.effective_bounds(root)?;
-        for (node, _) in &effective {
+        for node in effective.keys() {
             if let Some(WidgetKind::CustomPaint { id, .. }) = self.layout().payload(*node) {
                 if id.as_str() == target_id {
                     let bounds = effective[node].visual;
@@ -677,7 +681,7 @@ impl WidgetTree {
         point: (f32, f32),
     ) -> Result<Option<f32>, ui_layout::LayoutError> {
         let effective = self.effective_bounds(root)?;
-        for (node, _) in &effective {
+        for node in effective.keys() {
             if let Some(WidgetKind::Splitter { owner, orientation }) = self.layout().payload(*node)
             {
                 if owner.as_str() == splitter_owner {
@@ -809,11 +813,7 @@ impl WidgetTree {
         let effective = self.effective_bounds(root)?;
         for (node, entry) in effective.iter() {
             if let Some(WidgetKind::Knob {
-                id,
-                min,
-                max,
-                step,
-                ..
+                id, min, max, step, ..
             }) = self.layout().payload(*node)
             {
                 if id.as_str() == target_id {
@@ -823,7 +823,8 @@ impl WidgetTree {
                     let dx = point.0 - cx;
                     let dy = point.1 - cy;
                     let angle = dy.atan2(dx);
-                    let norm_angle = (angle + std::f32::consts::PI * 0.75).rem_euclid(std::f32::consts::PI * 2.0);
+                    let norm_angle = (angle + std::f32::consts::PI * 0.75)
+                        .rem_euclid(std::f32::consts::PI * 2.0);
                     let total_sweep = std::f32::consts::PI * 1.5;
                     let ratio = (norm_angle / total_sweep).clamp(0.0, 1.0);
                     let mut val = *min + ratio * (*max - *min);
@@ -846,12 +847,7 @@ impl WidgetTree {
     ) -> Result<Option<(String, [f32; 2])>, ui_layout::LayoutError> {
         let effective = self.effective_bounds(root)?;
         for (node, entry) in effective.iter() {
-            if let Some(WidgetKind::NodeGraph {
-                id,
-                nodes,
-                pan,
-                ..
-            }) = self.layout().payload(*node)
+            if let Some(WidgetKind::NodeGraph { id, nodes, pan, .. }) = self.layout().payload(*node)
             {
                 if id.as_str() == target_graph_id {
                     let bounds = entry.visual;
@@ -860,7 +856,11 @@ impl WidgetTree {
                     for n in nodes.iter().rev() {
                         let nx = origin_x + n.pos[0];
                         let ny = origin_y + n.pos[1];
-                        if point.0 >= nx && point.0 <= nx + n.size[0] && point.1 >= ny && point.1 <= ny + n.size[1] {
+                        if point.0 >= nx
+                            && point.0 <= nx + n.size[0]
+                            && point.1 >= ny
+                            && point.1 <= ny + n.size[1]
+                        {
                             let offset_in_node = [point.0 - nx, point.1 - ny];
                             return Ok(Some((n.id.clone(), offset_in_node)));
                         }
@@ -880,12 +880,7 @@ impl WidgetTree {
     ) -> Result<Option<(String, usize, bool)>, ui_layout::LayoutError> {
         let effective = self.effective_bounds(root)?;
         for (node, entry) in effective.iter() {
-            if let Some(WidgetKind::NodeGraph {
-                id,
-                nodes,
-                pan,
-                ..
-            }) = self.layout().payload(*node)
+            if let Some(WidgetKind::NodeGraph { id, nodes, pan, .. }) = self.layout().payload(*node)
             {
                 if id.as_str() == target_graph_id {
                     let bounds = entry.visual;
@@ -900,7 +895,8 @@ impl WidgetTree {
                         for (i, _) in n.outputs.iter().enumerate() {
                             let sy = ny + 32.0 + (i as f32 * 20.0) + 4.0;
                             let pin_x = nx + nw;
-                            let dist_sq = (point.0 - pin_x).powi(2) + (point.1 - (sy + 4.0)).powi(2);
+                            let dist_sq =
+                                (point.0 - pin_x).powi(2) + (point.1 - (sy + 4.0)).powi(2);
                             if dist_sq <= 144.0 {
                                 return Ok(Some((n.id.clone(), i, true))); // true = is_output
                             }
@@ -910,7 +906,8 @@ impl WidgetTree {
                         for (i, _) in n.inputs.iter().enumerate() {
                             let sy = ny + 32.0 + (i as f32 * 20.0) + 4.0;
                             let pin_x = nx;
-                            let dist_sq = (point.0 - pin_x).powi(2) + (point.1 - (sy + 4.0)).powi(2);
+                            let dist_sq =
+                                (point.0 - pin_x).powi(2) + (point.1 - (sy + 4.0)).powi(2);
                             if dist_sq <= 144.0 {
                                 return Ok(Some((n.id.clone(), i, false))); // false = is_input
                             }
@@ -1292,9 +1289,13 @@ impl WidgetTree {
             return Ok(None);
         };
         match kind {
-            WidgetKind::DropZone { id, .. } => Ok(Some((id.to_string(), Some("DropZone".to_string())))),
+            WidgetKind::DropZone { id, .. } => {
+                Ok(Some((id.to_string(), Some("DropZone".to_string()))))
+            }
             WidgetKind::Media { id, .. } => Ok(Some((id.to_string(), Some("Media".to_string())))),
-            WidgetKind::CodeEditor { id, .. } => Ok(Some((id.to_string(), Some("CodeEditor".to_string())))),
+            WidgetKind::CodeEditor { id, .. } => {
+                Ok(Some((id.to_string(), Some("CodeEditor".to_string()))))
+            }
             WidgetKind::Button { id, .. } => Ok(Some((id.to_string(), Some("Button".to_string())))),
             WidgetKind::Container => Ok(None),
             _ => {

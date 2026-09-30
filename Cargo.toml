@@ -33,3 +33,14 @@ serde_json = "1"
 thiserror = "1"
 pollster = "0.3"
 image = { version = "0.25", default-features = false, features = ["png", "jpeg", "webp", "bmp"] }
+
+[workspace.lints.clippy]
+too_many_arguments = "allow"
+type_complexity = "allow"
+collapsible_match = "allow"
+collapsible_if = "allow"
+needless_range_loop = "allow"
+needless_borrows_for_generic_args = "allow"
+unnecessary_cast = "allow"
+field_reassign_with_default = "allow"
+excessive_precision = "allow"

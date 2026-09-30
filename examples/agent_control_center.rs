@@ -8,12 +8,11 @@ use tokio::sync::mpsc;
 use ui_core::{StepStatus, UiEvent, UiPatch};
 use ui_gpu::GpuRenderer;
 use ui_layout::{
-    auto, length, AlignItems, AvailableSpace, FlexDirection,
-    NodeId, Position, Rect, Size, Style,
+    auto, length, AlignItems, AvailableSpace, FlexDirection, NodeId, Position, Rect, Size, Style,
 };
 use ui_widgets::{
-    FontFamily, InteractionKey, InteractionState, ListItemBadge, Theme, ThemeWatcher,
-    WidgetId, WidgetTree,
+    FontFamily, InteractionKey, InteractionState, ListItemBadge, Theme, ThemeWatcher, WidgetId,
+    WidgetTree,
 };
 
 use agent_runtime::{
@@ -105,8 +104,12 @@ impl Tool for SetFieldTool {
 
     fn execute<'a>(&'a self, args: Value) -> BoxFuture<'a, Result<Value, ToolError>> {
         Box::pin(async move {
-            let widget_id = args["widget_id"].as_str().ok_or_else(|| ToolError("Missing widget_id".into()))?;
-            let text = args["text"].as_str().ok_or_else(|| ToolError("Missing text".into()))?;
+            let widget_id = args["widget_id"]
+                .as_str()
+                .ok_or_else(|| ToolError("Missing widget_id".into()))?;
+            let text = args["text"]
+                .as_str()
+                .ok_or_else(|| ToolError("Missing text".into()))?;
 
             tokio::time::sleep(Duration::from_millis(250)).await;
 
@@ -141,7 +144,10 @@ impl Tool for SwitchTabTool {
 
     fn execute<'a>(&'a self, args: Value) -> BoxFuture<'a, Result<Value, ToolError>> {
         Box::pin(async move {
-            let tab_index = args["tab_index"].as_u64().ok_or_else(|| ToolError("Missing tab_index".into()))? as usize;
+            let tab_index = args["tab_index"]
+                .as_u64()
+                .ok_or_else(|| ToolError("Missing tab_index".into()))?
+                as usize;
 
             tokio::time::sleep(Duration::from_millis(200)).await;
 
@@ -177,8 +183,12 @@ impl Tool for ToggleServiceTool {
 
     fn execute<'a>(&'a self, args: Value) -> BoxFuture<'a, Result<Value, ToolError>> {
         Box::pin(async move {
-            let widget_id = args["widget_id"].as_str().ok_or_else(|| ToolError("Missing widget_id".into()))?;
-            let checked = args["checked"].as_bool().ok_or_else(|| ToolError("Missing checked".into()))?;
+            let widget_id = args["widget_id"]
+                .as_str()
+                .ok_or_else(|| ToolError("Missing widget_id".into()))?;
+            let checked = args["checked"]
+                .as_bool()
+                .ok_or_else(|| ToolError("Missing checked".into()))?;
 
             tokio::time::sleep(Duration::from_millis(200)).await;
 
@@ -214,8 +224,12 @@ impl Tool for UpdateMetricTool {
 
     fn execute<'a>(&'a self, args: Value) -> BoxFuture<'a, Result<Value, ToolError>> {
         Box::pin(async move {
-            let key = args["key"].as_str().ok_or_else(|| ToolError("Missing key".into()))?;
-            let value = args["value"].as_f64().ok_or_else(|| ToolError("Missing value".into()))? as f32;
+            let key = args["key"]
+                .as_str()
+                .ok_or_else(|| ToolError("Missing key".into()))?;
+            let value = args["value"]
+                .as_f64()
+                .ok_or_else(|| ToolError("Missing value".into()))? as f32;
 
             tokio::time::sleep(Duration::from_millis(150)).await;
 
@@ -251,8 +265,12 @@ impl Tool for NotifyModalTool {
 
     fn execute<'a>(&'a self, args: Value) -> BoxFuture<'a, Result<Value, ToolError>> {
         Box::pin(async move {
-            let title = args["title"].as_str().ok_or_else(|| ToolError("Missing title".into()))?;
-            let content = args["content"].as_str().ok_or_else(|| ToolError("Missing content".into()))?;
+            let title = args["title"]
+                .as_str()
+                .ok_or_else(|| ToolError("Missing title".into()))?;
+            let content = args["content"]
+                .as_str()
+                .ok_or_else(|| ToolError("Missing content".into()))?;
 
             tokio::time::sleep(Duration::from_millis(200)).await;
 
@@ -317,7 +335,11 @@ impl DynamicAgentPlanner {
                     "content": "L'agent a configuré le cluster PostgreSQL, activé le chiffrement TLS 1.3 et validé la réplication à 99.9%."
                 }),
             });
-        } else if p.contains("audit") || p.contains("securite") || p.contains("security") || p.contains("sante") {
+        } else if p.contains("audit")
+            || p.contains("securite")
+            || p.contains("security")
+            || p.contains("sante")
+        {
             self.pending_plan.push_back(PlanDecision::CallTool {
                 tool: "switch_tab".into(),
                 args: json!({ "tab_index": 0 }),
@@ -387,13 +409,17 @@ impl Planner for DynamicAgentPlanner {
     fn plan<'a>(&'a mut self, scratchpad: &'a [String]) -> BoxFuture<'a, PlanDecision> {
         Box::pin(async move {
             if self.pending_plan.is_empty() {
-                if let Some(last_prompt_entry) = scratchpad.iter().rev().find(|s| s.starts_with("prompt: ")) {
+                if let Some(last_prompt_entry) =
+                    scratchpad.iter().rev().find(|s| s.starts_with("prompt: "))
+                {
                     let prompt = last_prompt_entry.trim_start_matches("prompt: ");
                     self.compile_plan_for_prompt(prompt);
                 }
             }
 
-            self.pending_plan.pop_front().unwrap_or(PlanDecision::Complete)
+            self.pending_plan
+                .pop_front()
+                .unwrap_or(PlanDecision::Complete)
         })
     }
 }
@@ -472,7 +498,9 @@ impl Default for WorkstationState {
     fn default() -> Self {
         Self {
             active_tab: 0,
-            prompt_editor: TextEditorState::new("Configurer le cluster de production et valider la réplication"),
+            prompt_editor: TextEditorState::new(
+                "Configurer le cluster de production et valider la réplication",
+            ),
             host_editor: TextEditorState::new("127.0.0.1"),
             password_editor: TextEditorState::new("sk_prod_live_998348271049"),
             password_revealed: false,
@@ -534,8 +562,13 @@ impl WorkstationState {
                 self.agent_status = state.to_uppercase();
                 self.agent_glow = glow_hue;
             }
-            UiPatch::StepLogged { step_id, tool, status } => {
-                if let Some(existing) = self.step_logs.iter_mut().find(|(id, _, _)| id == &step_id) {
+            UiPatch::StepLogged {
+                step_id,
+                tool,
+                status,
+            } => {
+                if let Some(existing) = self.step_logs.iter_mut().find(|(id, _, _)| id == &step_id)
+                {
                     existing.2 = status;
                 } else {
                     self.step_logs.push((step_id, tool, status));
@@ -571,8 +604,20 @@ impl WorkstationState {
 
 fn build_workstation_ui(tree: &mut WidgetTree, state: &WorkstationState) -> NodeId {
     // 1. Top Window Header
-    let app_icon = tree.icon(ui_widgets::IconKind::Cpu, 18.0, Some([0.0, 0.85, 1.0, 1.0]), leaf(20.0, 20.0)).unwrap();
-    let title_label = tree.label("AORUI — Enterprise Autonomous Agent Workstation", leaf(420.0, 22.0)).unwrap();
+    let app_icon = tree
+        .icon(
+            ui_widgets::IconKind::Cpu,
+            18.0,
+            Some([0.0, 0.85, 1.0, 1.0]),
+            leaf(20.0, 20.0),
+        )
+        .unwrap();
+    let title_label = tree
+        .label(
+            "AORUI — Enterprise Autonomous Agent Workstation",
+            leaf(420.0, 22.0),
+        )
+        .unwrap();
     let header_left = tree.container(&[app_icon, title_label], row(8.0)).unwrap();
 
     let crumbs = [
@@ -580,97 +625,140 @@ fn build_workstation_ui(tree: &mut WidgetTree, state: &WorkstationState) -> Node
         ("nav_cluster", "US-East-01"),
         ("nav_agent", "Autonomous Runtime"),
     ];
-    let breadcrumb_node = tree.breadcrumb("main_breadcrumb", &crumbs, leaf(90.0, 20.0), row(2.0)).unwrap();
+    let breadcrumb_node = tree
+        .breadcrumb("main_breadcrumb", &crumbs, leaf(90.0, 20.0), row(2.0))
+        .unwrap();
 
-    let status_badge = tree.badge(
-        &format!("AGENT: {}", state.agent_status),
-        if state.agent_status == "IDLE" {
-            ListItemBadge::Success
-        } else {
-            ListItemBadge::Warning
-        },
-        leaf(140.0, 26.0),
-    ).unwrap();
+    let status_badge = tree
+        .badge(
+            &format!("AGENT: {}", state.agent_status),
+            if state.agent_status == "IDLE" {
+                ListItemBadge::Success
+            } else {
+                ListItemBadge::Warning
+            },
+            leaf(140.0, 26.0),
+        )
+        .unwrap();
 
-    let top_header = tree.container(
-        &[header_left, breadcrumb_node, status_badge],
-        Style {
-            flex_direction: FlexDirection::Row,
-            align_items: Some(AlignItems::Center),
-            justify_content: Some(ui_layout::JustifyContent::SpaceBetween),
-            size: Size { width: length(1072.0), height: length(32.0) },
-            margin: rect_margin_b(8.0),
-            ..Default::default()
-        },
-    ).unwrap();
+    let top_header = tree
+        .container(
+            &[header_left, breadcrumb_node, status_badge],
+            Style {
+                flex_direction: FlexDirection::Row,
+                align_items: Some(AlignItems::Center),
+                justify_content: Some(ui_layout::JustifyContent::SpaceBetween),
+                size: Size {
+                    width: length(1072.0),
+                    height: length(32.0),
+                },
+                margin: rect_margin_b(8.0),
+                ..Default::default()
+            },
+        )
+        .unwrap();
 
     // 2. Master Command Hub (Input + Execution + Preset Badges)
     let prompt_focused = state.focused_input.as_deref() == Some("prompt_input");
-    let prompt_input = tree.text_input_with_cursor(
-        WidgetId::new("prompt_input"),
-        &state.prompt_editor.text,
-        "Enter natural language instruction for the autonomous agent...",
-        prompt_focused,
-        state.prompt_editor.cursor,
-        state.prompt_editor.selection,
-        leaf(860.0, 34.0),
-    ).unwrap();
+    let prompt_input = tree
+        .text_input_with_cursor(
+            WidgetId::new("prompt_input"),
+            &state.prompt_editor.text,
+            "Enter natural language instruction for the autonomous agent...",
+            prompt_focused,
+            state.prompt_editor.cursor,
+            state.prompt_editor.selection,
+            leaf(860.0, 34.0),
+        )
+        .unwrap();
 
-    let execute_btn = tree.button_variant(
-        WidgetId::new("btn_send_prompt"),
-        "⚡ EXECUTE INTENT",
-        ui_widgets::ButtonVariant::Primary,
-        true,
-        leaf(188.0, 34.0),
-    ).unwrap();
+    let execute_btn = tree
+        .button_variant(
+            WidgetId::new("btn_send_prompt"),
+            "⚡ EXECUTE INTENT",
+            ui_widgets::ButtonVariant::Primary,
+            true,
+            leaf(188.0, 34.0),
+        )
+        .unwrap();
 
-    let prompt_row = tree.container(&[prompt_input, execute_btn], row(8.0)).unwrap();
+    let prompt_row = tree
+        .container(&[prompt_input, execute_btn], row(8.0))
+        .unwrap();
 
-    let p_lbl = tree.label_muted("Scenario Presets:", leaf(120.0, 24.0)).unwrap();
-    let btn_sc_prod = tree.button_variant(
-        WidgetId::new("btn_sc_prod"),
-        "⚡ Auto-Config Prod DB",
-        ui_widgets::ButtonVariant::Secondary,
-        true,
-        leaf(190.0, 26.0),
-    ).unwrap();
-    let btn_sc_sec = tree.button_variant(
-        WidgetId::new("btn_sc_sec"),
-        "🛡️ Zero-Trust Security Audit",
-        ui_widgets::ButtonVariant::Secondary,
-        true,
-        leaf(210.0, 26.0),
-    ).unwrap();
-    let btn_sc_opt = tree.button_variant(
-        WidgetId::new("btn_sc_opt"),
-        "🚀 RAM Cache Optimizer",
-        ui_widgets::ButtonVariant::Secondary,
-        true,
-        leaf(190.0, 26.0),
-    ).unwrap();
+    let p_lbl = tree
+        .label_muted("Scenario Presets:", leaf(120.0, 24.0))
+        .unwrap();
+    let btn_sc_prod = tree
+        .button_variant(
+            WidgetId::new("btn_sc_prod"),
+            "⚡ Auto-Config Prod DB",
+            ui_widgets::ButtonVariant::Secondary,
+            true,
+            leaf(190.0, 26.0),
+        )
+        .unwrap();
+    let btn_sc_sec = tree
+        .button_variant(
+            WidgetId::new("btn_sc_sec"),
+            "🛡️ Zero-Trust Security Audit",
+            ui_widgets::ButtonVariant::Secondary,
+            true,
+            leaf(210.0, 26.0),
+        )
+        .unwrap();
+    let btn_sc_opt = tree
+        .button_variant(
+            WidgetId::new("btn_sc_opt"),
+            "🚀 RAM Cache Optimizer",
+            ui_widgets::ButtonVariant::Secondary,
+            true,
+            leaf(190.0, 26.0),
+        )
+        .unwrap();
 
-    let presets_row = tree.container(&[p_lbl, btn_sc_prod, btn_sc_sec, btn_sc_opt], row(8.0)).unwrap();
+    let presets_row = tree
+        .container(&[p_lbl, btn_sc_prod, btn_sc_sec, btn_sc_opt], row(8.0))
+        .unwrap();
 
-    let command_card = tree.card(
-        &[prompt_row, presets_row],
-        None,
-        None,
-        Some(6.0),
-        Style {
-            size: Size { width: length(1072.0), height: length(100.0) },
-            flex_direction: FlexDirection::Column,
-            gap: Size { width: length(0.0), height: length(8.0) },
-            padding: Rect { left: length(14.0), right: length(14.0), top: length(10.0), bottom: length(10.0) },
-            margin: rect_margin_b(12.0),
-            ..Default::default()
-        },
-    ).unwrap();
+    let command_card = tree
+        .card(
+            &[prompt_row, presets_row],
+            None,
+            None,
+            Some(6.0),
+            Style {
+                size: Size {
+                    width: length(1072.0),
+                    height: length(100.0),
+                },
+                flex_direction: FlexDirection::Column,
+                gap: Size {
+                    width: length(0.0),
+                    height: length(8.0),
+                },
+                padding: Rect {
+                    left: length(14.0),
+                    right: length(14.0),
+                    top: length(10.0),
+                    bottom: length(10.0),
+                },
+                margin: rect_margin_b(12.0),
+                ..Default::default()
+            },
+        )
+        .unwrap();
 
     // 3. Left Panel : Cognitive Execution Stream & Memory
-    let timeline_title = tree.label("Cognitive Tool Timeline (Live Tokio Loop):", leaf(480.0, 20.0)).unwrap();
+    let timeline_title = tree
+        .label(
+            "Cognitive Tool Timeline (Live Tokio Loop):",
+            leaf(480.0, 20.0),
+        )
+        .unwrap();
 
     let mut step_nodes = Vec::new();
-    for (_idx, (id, tool, status)) in state.step_logs.iter().enumerate() {
+    for (id, tool, status) in state.step_logs.iter() {
         let status_badge = match status {
             StepStatus::Pending => ListItemBadge::None,
             StepStatus::Running => ListItemBadge::Warning,
@@ -683,255 +771,496 @@ fn build_workstation_ui(tree: &mut WidgetTree, state: &WorkstationState) -> Node
             StepStatus::Success => "SUCCESS",
             StepStatus::Failed(e) => e.as_str(),
         };
-        let b = tree.badge(&format!("[{}] {} -> {}", id, tool, status_str), status_badge, leaf(480.0, 22.0)).unwrap();
+        let b = tree
+            .badge(
+                &format!("[{}] {} -> {}", id, tool, status_str),
+                status_badge,
+                leaf(480.0, 22.0),
+            )
+            .unwrap();
         step_nodes.push(b);
     }
 
     if step_nodes.is_empty() {
-        let empty_lbl = tree.label_muted("No actions executed yet. Submit a prompt or click a preset.", leaf(480.0, 20.0)).unwrap();
+        let empty_lbl = tree
+            .label_muted(
+                "No actions executed yet. Submit a prompt or click a preset.",
+                leaf(480.0, 20.0),
+            )
+            .unwrap();
         step_nodes.push(empty_lbl);
     }
 
     let timeline_box = tree.container(&step_nodes, column(4.0)).unwrap();
 
-    let mem_title = tree.label("Agent Scratchpad Deductions:", leaf(480.0, 20.0)).unwrap();
+    let mem_title = tree
+        .label("Agent Scratchpad Deductions:", leaf(480.0, 20.0))
+        .unwrap();
     let mut mem_nodes = Vec::new();
-    for (_idx, mem) in state.scratchpad.iter().rev().take(6).enumerate() {
-        let m = tree.label_muted(&format!("• {}", mem), leaf(480.0, 18.0)).unwrap();
+    for mem in state.scratchpad.iter().rev().take(6) {
+        let m = tree
+            .label_muted(&format!("• {}", mem), leaf(480.0, 18.0))
+            .unwrap();
         mem_nodes.push(m);
     }
     if mem_nodes.is_empty() {
-        let m_empty = tree.label_muted("• Agent FSM is initialized in IDLE state.", leaf(480.0, 18.0)).unwrap();
+        let m_empty = tree
+            .label_muted(
+                "• Agent FSM is initialized in IDLE state.",
+                leaf(480.0, 18.0),
+            )
+            .unwrap();
         mem_nodes.push(m_empty);
     }
     let mem_box = tree.container(&mem_nodes, column(2.0)).unwrap();
 
-    let left_panel = tree.card(
-        &[timeline_title, timeline_box, mem_title, mem_box],
-        None,
-        None,
-        Some(6.0),
-        Style {
-            size: Size { width: length(516.0), height: length(550.0) },
-            flex_direction: FlexDirection::Column,
-            gap: Size { width: length(0.0), height: length(8.0) },
-            padding: Rect { left: length(14.0), right: length(14.0), top: length(10.0), bottom: length(10.0) },
-            ..Default::default()
-        },
-    ).unwrap();
+    let left_panel = tree
+        .card(
+            &[timeline_title, timeline_box, mem_title, mem_box],
+            None,
+            None,
+            Some(6.0),
+            Style {
+                size: Size {
+                    width: length(516.0),
+                    height: length(550.0),
+                },
+                flex_direction: FlexDirection::Column,
+                gap: Size {
+                    width: length(0.0),
+                    height: length(8.0),
+                },
+                padding: Rect {
+                    left: length(14.0),
+                    right: length(14.0),
+                    top: length(10.0),
+                    bottom: length(10.0),
+                },
+                ..Default::default()
+            },
+        )
+        .unwrap();
 
     // 4. Right Panel : Multi-Tab Target Cluster System
     let tabs = ["📊 Telemetry", "⚙️ Service Config", "🛡️ Security Policy"];
-    let tabbar = tree.tabbar(
-        WidgetId::new("cluster_tabs"),
-        &tabs,
-        state.active_tab,
-        leaf(160.0, 30.0),
-        row(4.0),
-    ).unwrap();
+    let tabbar = tree
+        .tabbar(
+            WidgetId::new("cluster_tabs"),
+            &tabs,
+            state.active_tab,
+            leaf(160.0, 30.0),
+            row(4.0),
+        )
+        .unwrap();
 
     let tab_content = match state.active_tab {
         0 => {
             // Tab 0: Telemetry & Gauges
-            let c1 = tree.metric_card(
-                "CPU Core Load",
-                &format!("{:.1}%", state.cpu_load),
-                Some((if state.cpu_load > 75.0 { "- Surcharge" } else { "+ Nominal" }, state.cpu_load <= 75.0)),
-                leaf(164.0, 80.0),
-            ).unwrap();
+            let c1 = tree
+                .metric_card(
+                    "CPU Core Load",
+                    &format!("{:.1}%", state.cpu_load),
+                    Some((
+                        if state.cpu_load > 75.0 {
+                            "- Surcharge"
+                        } else {
+                            "+ Nominal"
+                        },
+                        state.cpu_load <= 75.0,
+                    )),
+                    leaf(164.0, 80.0),
+                )
+                .unwrap();
 
-            let c2 = tree.metric_card(
-                "Memory RAM Used",
-                &format!("{:.1}%", state.memory_used),
-                Some((if state.memory_used > 70.0 { "High Load" } else { "+ Optimal" }, state.memory_used <= 70.0)),
-                leaf(164.0, 80.0),
-            ).unwrap();
+            let c2 = tree
+                .metric_card(
+                    "Memory RAM Used",
+                    &format!("{:.1}%", state.memory_used),
+                    Some((
+                        if state.memory_used > 70.0 {
+                            "High Load"
+                        } else {
+                            "+ Optimal"
+                        },
+                        state.memory_used <= 70.0,
+                    )),
+                    leaf(164.0, 80.0),
+                )
+                .unwrap();
 
-            let c3 = tree.metric_card(
-                "Database Sync",
-                &format!("{:.1}%", state.db_sync),
-                Some(("+ Realtime", true)),
-                leaf(164.0, 80.0),
-            ).unwrap();
+            let c3 = tree
+                .metric_card(
+                    "Database Sync",
+                    &format!("{:.1}%", state.db_sync),
+                    Some(("+ Realtime", true)),
+                    leaf(164.0, 80.0),
+                )
+                .unwrap();
 
-            let metrics_grid = tree.grid(3, 8.0, 0.0, &[c1, c2, c3], leaf(516.0, 80.0)).unwrap();
+            let metrics_grid = tree
+                .grid(3, 8.0, 0.0, &[c1, c2, c3], leaf(516.0, 80.0))
+                .unwrap();
 
-            let f1 = tree.slider_vertical(WidgetId::new("fader_low"), 0.0, 100.0, state.fader_low, leaf(20.0, 48.0)).unwrap();
+            let f1 = tree
+                .slider_vertical(
+                    WidgetId::new("fader_low"),
+                    0.0,
+                    100.0,
+                    state.fader_low,
+                    leaf(20.0, 48.0),
+                )
+                .unwrap();
             let f1_lbl = tree.label_muted("Lo", leaf(20.0, 12.0)).unwrap();
             let f1_box = tree.container(&[f1, f1_lbl], column(2.0)).unwrap();
 
-            let f2 = tree.slider_vertical(WidgetId::new("fader_mid"), 0.0, 100.0, state.fader_mid, leaf(20.0, 48.0)).unwrap();
+            let f2 = tree
+                .slider_vertical(
+                    WidgetId::new("fader_mid"),
+                    0.0,
+                    100.0,
+                    state.fader_mid,
+                    leaf(20.0, 48.0),
+                )
+                .unwrap();
             let f2_lbl = tree.label_muted("Mid", leaf(20.0, 12.0)).unwrap();
             let f2_box = tree.container(&[f2, f2_lbl], column(2.0)).unwrap();
 
-            let f3 = tree.slider_vertical(WidgetId::new("fader_high"), 0.0, 100.0, state.fader_high, leaf(20.0, 48.0)).unwrap();
+            let f3 = tree
+                .slider_vertical(
+                    WidgetId::new("fader_high"),
+                    0.0,
+                    100.0,
+                    state.fader_high,
+                    leaf(20.0, 48.0),
+                )
+                .unwrap();
             let f3_lbl = tree.label_muted("Hi", leaf(20.0, 12.0)).unwrap();
             let f3_box = tree.container(&[f3, f3_lbl], column(2.0)).unwrap();
 
             let faders_row = tree.container(&[f1_box, f2_box, f3_box], row(6.0)).unwrap();
 
-            let ring_gauge = tree.progress_ring(state.cpu_load / 100.0, Some("CPU"), leaf(52.0, 52.0)).unwrap();
-            let pie_disc = tree.progress_pie(state.memory_used / 100.0, Some("RAM"), leaf(52.0, 52.0)).unwrap();
+            let ring_gauge = tree
+                .progress_ring(state.cpu_load / 100.0, Some("CPU"), leaf(52.0, 52.0))
+                .unwrap();
+            let pie_disc = tree
+                .progress_pie(state.memory_used / 100.0, Some("RAM"), leaf(52.0, 52.0))
+                .unwrap();
 
-            let slider_h = tree.slider(WidgetId::new("net_slider"), 0.0, 100.0, state.network_intensity, leaf(190.0, 20.0)).unwrap();
-            let slider_lbl = tree.label_muted("Network Bandwidth Throttle (Mbps)", leaf(190.0, 16.0)).unwrap();
-            let slider_box = tree.container(&[slider_lbl, slider_h], column(4.0)).unwrap();
+            let slider_h = tree
+                .slider(
+                    WidgetId::new("net_slider"),
+                    0.0,
+                    100.0,
+                    state.network_intensity,
+                    leaf(190.0, 20.0),
+                )
+                .unwrap();
+            let slider_lbl = tree
+                .label_muted("Network Bandwidth Throttle (Mbps)", leaf(190.0, 16.0))
+                .unwrap();
+            let slider_box = tree
+                .container(&[slider_lbl, slider_h], column(4.0))
+                .unwrap();
 
-            let gauges_row = tree.container(&[faders_row, ring_gauge, pie_disc, slider_box], row(14.0)).unwrap();
+            let gauges_row = tree
+                .container(&[faders_row, ring_gauge, pie_disc, slider_box], row(14.0))
+                .unwrap();
 
-            let t1 = tree.toggle(WidgetId::new("chk_firewall"), state.chk_firewall, leaf(42.0, 22.0)).unwrap();
-            let t1_lbl = tree.label("Core WAF Firewall & Anti-DDoS Filter", leaf(440.0, 22.0)).unwrap();
+            let t1 = tree
+                .toggle(
+                    WidgetId::new("chk_firewall"),
+                    state.chk_firewall,
+                    leaf(42.0, 22.0),
+                )
+                .unwrap();
+            let t1_lbl = tree
+                .label("Core WAF Firewall & Anti-DDoS Filter", leaf(440.0, 22.0))
+                .unwrap();
             let t1_row = tree.container(&[t1, t1_lbl], row(8.0)).unwrap();
 
-            let t2 = tree.toggle(WidgetId::new("chk_ssl"), state.chk_ssl, leaf(42.0, 22.0)).unwrap();
-            let t2_lbl = tree.label("TLS 1.3 Strict End-to-End Encryption", leaf(440.0, 22.0)).unwrap();
+            let t2 = tree
+                .toggle(WidgetId::new("chk_ssl"), state.chk_ssl, leaf(42.0, 22.0))
+                .unwrap();
+            let t2_lbl = tree
+                .label("TLS 1.3 Strict End-to-End Encryption", leaf(440.0, 22.0))
+                .unwrap();
             let t2_row = tree.container(&[t2, t2_lbl], row(8.0)).unwrap();
 
-            let t3 = tree.toggle(WidgetId::new("chk_backup"), state.chk_backup, leaf(42.0, 22.0)).unwrap();
-            let t3_lbl = tree.label("Continuous Cluster Snapshot Replication", leaf(440.0, 22.0)).unwrap();
+            let t3 = tree
+                .toggle(
+                    WidgetId::new("chk_backup"),
+                    state.chk_backup,
+                    leaf(42.0, 22.0),
+                )
+                .unwrap();
+            let t3_lbl = tree
+                .label("Continuous Cluster Snapshot Replication", leaf(440.0, 22.0))
+                .unwrap();
             let t3_row = tree.container(&[t3, t3_lbl], row(8.0)).unwrap();
 
-            let t4 = tree.toggle(WidgetId::new("chk_turbo"), state.chk_turbo, leaf(42.0, 22.0)).unwrap();
-            let t4_lbl = tree.label("GPU Turbo Hardware Graphics Pipeline Acceleration", leaf(440.0, 22.0)).unwrap();
+            let t4 = tree
+                .toggle(
+                    WidgetId::new("chk_turbo"),
+                    state.chk_turbo,
+                    leaf(42.0, 22.0),
+                )
+                .unwrap();
+            let t4_lbl = tree
+                .label(
+                    "GPU Turbo Hardware Graphics Pipeline Acceleration",
+                    leaf(440.0, 22.0),
+                )
+                .unwrap();
             let t4_row = tree.container(&[t4, t4_lbl], row(8.0)).unwrap();
 
             tree.container(
                 &[metrics_grid, gauges_row, t1_row, t2_row, t3_row, t4_row],
                 Style {
                     flex_direction: FlexDirection::Column,
-                    gap: Size { width: length(0.0), height: length(12.0) },
+                    gap: Size {
+                        width: length(0.0),
+                        height: length(12.0),
+                    },
                     margin: rect_margin_t(8.0),
                     ..Default::default()
                 },
-            ).unwrap()
+            )
+            .unwrap()
         }
         1 => {
             // Tab 1: Configuration Form
-            let env_lbl = tree.label_muted("Target Cluster Environment:", leaf(516.0, 18.0)).unwrap();
-            let env_dropdown = tree.dropdown(
-                WidgetId::new("env_dropdown"),
-                "Cluster",
-                &state.selected_env,
-                state.dropdown_open,
-                leaf(516.0, 30.0),
-            ).unwrap();
+            let env_lbl = tree
+                .label_muted("Target Cluster Environment:", leaf(516.0, 18.0))
+                .unwrap();
+            let env_dropdown = tree
+                .dropdown(
+                    WidgetId::new("env_dropdown"),
+                    "Cluster",
+                    &state.selected_env,
+                    state.dropdown_open,
+                    leaf(516.0, 30.0),
+                )
+                .unwrap();
 
-            let host_lbl = tree.label_muted("Database Connection Hostname:", leaf(516.0, 18.0)).unwrap();
+            let host_lbl = tree
+                .label_muted("Database Connection Hostname:", leaf(516.0, 18.0))
+                .unwrap();
             let host_focused = state.focused_input.as_deref() == Some("input_host");
-            let host_input = tree.text_input_with_cursor(
-                WidgetId::new("input_host"),
-                &state.host_editor.text,
-                "db.prod.internal...",
-                host_focused,
-                state.host_editor.cursor,
-                state.host_editor.selection,
-                leaf(516.0, 30.0),
-            ).unwrap();
+            let host_input = tree
+                .text_input_with_cursor(
+                    WidgetId::new("input_host"),
+                    &state.host_editor.text,
+                    "db.prod.internal...",
+                    host_focused,
+                    state.host_editor.cursor,
+                    state.host_editor.selection,
+                    leaf(516.0, 30.0),
+                )
+                .unwrap();
 
-            let port_lbl = tree.label_muted("Service Port (1024-65535):", leaf(250.0, 18.0)).unwrap();
-            let port_spin = tree.number_input_state(
-                WidgetId::new("input_port"),
-                state.port_spin,
-                1024.0,
-                65535.0,
-                1.0,
-                0,
-                false,
-                true,
-                leaf(250.0, 30.0),
-            ).unwrap();
+            let port_lbl = tree
+                .label_muted("Service Port (1024-65535):", leaf(250.0, 18.0))
+                .unwrap();
+            let port_spin = tree
+                .number_input_state(
+                    WidgetId::new("input_port"),
+                    state.port_spin,
+                    1024.0,
+                    65535.0,
+                    1.0,
+                    0,
+                    false,
+                    true,
+                    leaf(250.0, 30.0),
+                )
+                .unwrap();
             let port_box = tree.container(&[port_lbl, port_spin], column(4.0)).unwrap();
 
-            let pwd_lbl = tree.label_muted("Master Cluster Access Token:", leaf(250.0, 18.0)).unwrap();
+            let pwd_lbl = tree
+                .label_muted("Master Cluster Access Token:", leaf(250.0, 18.0))
+                .unwrap();
             let pwd_focused = state.focused_input.as_deref() == Some("master_token_pwd");
-            let pwd_input = tree.password_input_with_cursor(
-                WidgetId::new("master_token_pwd"),
-                &state.password_editor.text,
-                "Master Token...",
-                pwd_focused,
-                state.password_revealed,
-                state.password_editor.cursor,
-                leaf(250.0, 30.0),
-            ).unwrap();
+            let pwd_input = tree
+                .password_input_with_cursor(
+                    WidgetId::new("master_token_pwd"),
+                    &state.password_editor.text,
+                    "Master Token...",
+                    pwd_focused,
+                    state.password_revealed,
+                    state.password_editor.cursor,
+                    leaf(250.0, 30.0),
+                )
+                .unwrap();
             let pwd_box = tree.container(&[pwd_lbl, pwd_input], column(4.0)).unwrap();
 
             let creds_row = tree.container(&[port_box, pwd_box], row(16.0)).unwrap();
 
-            let save_btn = tree.button_variant(
-                WidgetId::new("btn_save_config"),
-                "💾 Save Cluster Configuration",
-                ui_widgets::ButtonVariant::Primary,
-                true,
-                leaf(260.0, 34.0),
-            ).unwrap();
+            let save_btn = tree
+                .button_variant(
+                    WidgetId::new("btn_save_config"),
+                    "💾 Save Cluster Configuration",
+                    ui_widgets::ButtonVariant::Primary,
+                    true,
+                    leaf(260.0, 34.0),
+                )
+                .unwrap();
 
             tree.container(
-                &[env_lbl, env_dropdown, host_lbl, host_input, creds_row, save_btn],
+                &[
+                    env_lbl,
+                    env_dropdown,
+                    host_lbl,
+                    host_input,
+                    creds_row,
+                    save_btn,
+                ],
                 Style {
                     flex_direction: FlexDirection::Column,
-                    gap: Size { width: length(0.0), height: length(12.0) },
+                    gap: Size {
+                        width: length(0.0),
+                        height: length(12.0),
+                    },
                     margin: rect_margin_t(8.0),
                     ..Default::default()
                 },
-            ).unwrap()
+            )
+            .unwrap()
         }
         _ => {
             // Tab 2: Security Policies
-            let pol_lbl = tree.label_muted("Cluster Security Enforcement Mode:", leaf(516.0, 18.0)).unwrap();
-            let r1 = tree.radio(WidgetId::new("strict"), "sec_policy", "Strict (Zero-Trust)", state.security_policy == "strict", leaf(164.0, 22.0)).unwrap();
-            let r2 = tree.radio(WidgetId::new("adaptive"), "sec_policy", "Adaptive (AI Shield)", state.security_policy == "adaptive", leaf(164.0, 22.0)).unwrap();
-            let r3 = tree.radio(WidgetId::new("audit"), "sec_policy", "Audit Logging Only", state.security_policy == "audit", leaf(164.0, 22.0)).unwrap();
-            let radio_grid = tree.grid(3, 8.0, 0.0, &[r1, r2, r3], leaf(516.0, 24.0)).unwrap();
+            let pol_lbl = tree
+                .label_muted("Cluster Security Enforcement Mode:", leaf(516.0, 18.0))
+                .unwrap();
+            let r1 = tree
+                .radio(
+                    WidgetId::new("strict"),
+                    "sec_policy",
+                    "Strict (Zero-Trust)",
+                    state.security_policy == "strict",
+                    leaf(164.0, 22.0),
+                )
+                .unwrap();
+            let r2 = tree
+                .radio(
+                    WidgetId::new("adaptive"),
+                    "sec_policy",
+                    "Adaptive (AI Shield)",
+                    state.security_policy == "adaptive",
+                    leaf(164.0, 22.0),
+                )
+                .unwrap();
+            let r3 = tree
+                .radio(
+                    WidgetId::new("audit"),
+                    "sec_policy",
+                    "Audit Logging Only",
+                    state.security_policy == "audit",
+                    leaf(164.0, 22.0),
+                )
+                .unwrap();
+            let radio_grid = tree
+                .grid(3, 8.0, 0.0, &[r1, r2, r3], leaf(516.0, 24.0))
+                .unwrap();
 
             let divider = tree.divider(false, leaf(516.0, 1.0)).unwrap();
 
-            let lock_btn = tree.icon_button("lock_btn", ui_widgets::IconKind::Lock, true, leaf(36.0, 36.0)).unwrap();
-            let shield_btn = tree.icon_button("shield_btn", ui_widgets::IconKind::Eye, true, leaf(36.0, 36.0)).unwrap();
-            let term_btn = tree.icon_button("term_btn", ui_widgets::IconKind::Terminal, true, leaf(36.0, 36.0)).unwrap();
-            let icons_row = tree.container(&[lock_btn, shield_btn, term_btn], row(10.0)).unwrap();
+            let lock_btn = tree
+                .icon_button(
+                    "lock_btn",
+                    ui_widgets::IconKind::Lock,
+                    true,
+                    leaf(36.0, 36.0),
+                )
+                .unwrap();
+            let shield_btn = tree
+                .icon_button(
+                    "shield_btn",
+                    ui_widgets::IconKind::Eye,
+                    true,
+                    leaf(36.0, 36.0),
+                )
+                .unwrap();
+            let term_btn = tree
+                .icon_button(
+                    "term_btn",
+                    ui_widgets::IconKind::Terminal,
+                    true,
+                    leaf(36.0, 36.0),
+                )
+                .unwrap();
+            let icons_row = tree
+                .container(&[lock_btn, shield_btn, term_btn], row(10.0))
+                .unwrap();
 
-            let sec_desc = tree.label_muted("All ingress and egress traffic is inspected by the neural filter.", leaf(516.0, 20.0)).unwrap();
+            let sec_desc = tree
+                .label_muted(
+                    "All ingress and egress traffic is inspected by the neural filter.",
+                    leaf(516.0, 20.0),
+                )
+                .unwrap();
 
             tree.container(
                 &[pol_lbl, radio_grid, divider, icons_row, sec_desc],
                 Style {
                     flex_direction: FlexDirection::Column,
-                    gap: Size { width: length(0.0), height: length(12.0) },
+                    gap: Size {
+                        width: length(0.0),
+                        height: length(12.0),
+                    },
                     margin: rect_margin_t(8.0),
                     ..Default::default()
                 },
-            ).unwrap()
+            )
+            .unwrap()
         }
     };
 
-    let right_panel = tree.card(
-        &[tabbar, tab_content],
-        None,
-        None,
-        Some(6.0),
-        Style {
-            size: Size { width: length(540.0), height: length(550.0) },
-            flex_direction: FlexDirection::Column,
-            padding: Rect { left: length(14.0), right: length(14.0), top: length(10.0), bottom: length(10.0) },
-            ..Default::default()
-        },
-    ).unwrap();
+    let right_panel = tree
+        .card(
+            &[tabbar, tab_content],
+            None,
+            None,
+            Some(6.0),
+            Style {
+                size: Size {
+                    width: length(540.0),
+                    height: length(550.0),
+                },
+                flex_direction: FlexDirection::Column,
+                padding: Rect {
+                    left: length(14.0),
+                    right: length(14.0),
+                    top: length(10.0),
+                    bottom: length(10.0),
+                },
+                ..Default::default()
+            },
+        )
+        .unwrap();
 
-    let split_workstation = tree.container(
-        &[left_panel, right_panel],
-        Style {
-            flex_direction: FlexDirection::Row,
-            gap: Size { width: length(16.0), height: length(0.0) },
-            ..Default::default()
-        },
-    ).unwrap();
+    let split_workstation = tree
+        .container(
+            &[left_panel, right_panel],
+            Style {
+                flex_direction: FlexDirection::Row,
+                gap: Size {
+                    width: length(16.0),
+                    height: length(0.0),
+                },
+                ..Default::default()
+            },
+        )
+        .unwrap();
 
     // Outer Window Wrapper
     tree.container(
         &[top_header, command_card, split_workstation],
         Style {
             flex_direction: FlexDirection::Column,
-            size: Size { width: length(WINDOW_WIDTH), height: length(WINDOW_HEIGHT) },
+            size: Size {
+                width: length(WINDOW_WIDTH),
+                height: length(WINDOW_HEIGHT),
+            },
             padding: Rect {
                 left: length(24.0),
                 right: length(24.0),
@@ -940,19 +1269,22 @@ fn build_workstation_ui(tree: &mut WidgetTree, state: &WorkstationState) -> Node
             },
             ..Default::default()
         },
-    ).unwrap()
+    )
+    .unwrap()
 }
 
 fn build_modal_ui(tree: &mut WidgetTree, title: &str, content: &str) -> NodeId {
     let title_lbl = tree.label(title, leaf(440.0, 26.0)).unwrap();
     let content_lbl = tree.label(content, leaf(440.0, 60.0)).unwrap();
-    let dismiss_btn = tree.button_variant(
-        WidgetId::new("modal_dismiss_btn"),
-        "COMPRIS / DISMISS",
-        ui_widgets::ButtonVariant::Primary,
-        true,
-        leaf(180.0, 34.0),
-    ).unwrap();
+    let dismiss_btn = tree
+        .button_variant(
+            WidgetId::new("modal_dismiss_btn"),
+            "COMPRIS / DISMISS",
+            ui_widgets::ButtonVariant::Primary,
+            true,
+            leaf(180.0, 34.0),
+        )
+        .unwrap();
 
     let dialog_style = Style {
         position: Position::Absolute,
@@ -962,18 +1294,34 @@ fn build_modal_ui(tree: &mut WidgetTree, title: &str, content: &str) -> NodeId {
             right: auto(),
             bottom: auto(),
         },
-        size: Size { width: length(480.0), height: length(220.0) },
+        size: Size {
+            width: length(480.0),
+            height: length(220.0),
+        },
         flex_direction: FlexDirection::Column,
         align_items: Some(AlignItems::Center),
         justify_content: Some(ui_layout::JustifyContent::SpaceBetween),
-        padding: Rect { left: length(20.0), right: length(20.0), top: length(18.0), bottom: length(18.0) },
+        padding: Rect {
+            left: length(20.0),
+            right: length(20.0),
+            top: length(18.0),
+            bottom: length(18.0),
+        },
         ..Default::default()
     };
 
     let backdrop_style = Style {
         position: Position::Absolute,
-        inset: Rect { left: length(0.0), top: length(0.0), right: length(0.0), bottom: length(0.0) },
-        size: Size { width: length(WINDOW_WIDTH), height: length(WINDOW_HEIGHT) },
+        inset: Rect {
+            left: length(0.0),
+            top: length(0.0),
+            right: length(0.0),
+            bottom: length(0.0),
+        },
+        size: Size {
+            width: length(WINDOW_WIDTH),
+            height: length(WINDOW_HEIGHT),
+        },
         ..Default::default()
     };
 
@@ -983,7 +1331,8 @@ fn build_modal_ui(tree: &mut WidgetTree, title: &str, content: &str) -> NodeId {
         &[title_lbl, content_lbl, dismiss_btn],
         dialog_style,
         backdrop_style,
-    ).unwrap()
+    )
+    .unwrap()
 }
 
 // ============================================================================
@@ -1008,7 +1357,10 @@ struct AgentControlCenterApp {
 }
 
 impl AgentControlCenterApp {
-    pub fn new(tx_events: mpsc::Sender<UiEvent>, rx_patches: crossbeam_channel::Receiver<UiPatch>) -> Self {
+    pub fn new(
+        tx_events: mpsc::Sender<UiEvent>,
+        rx_patches: crossbeam_channel::Receiver<UiPatch>,
+    ) -> Self {
         let theme_path = "themes/enterprise_dark.toml";
         let initial_theme = Theme::from_file(theme_path).unwrap_or_else(|_| Theme::studio_pro());
         let theme = Arc::new(RwLock::new(initial_theme));
@@ -1044,7 +1396,9 @@ impl AgentControlCenterApp {
             self.state.apply_patch(patch);
         }
 
-        let Some(renderer) = self.renderer.as_mut() else { return };
+        let Some(renderer) = self.renderer.as_mut() else {
+            return;
+        };
 
         let (width_f, height_f) = (WINDOW_WIDTH, WINDOW_HEIGHT);
         let available = Size {
@@ -1061,14 +1415,20 @@ impl AgentControlCenterApp {
         let _ = base_tree.compute(base_root, available);
 
         let base_hovered = if self.state.active_modal.is_none() {
-            base_tree.interaction_key_at(base_root, self.cursor_pos).unwrap_or(None)
+            base_tree
+                .interaction_key_at(base_root, self.cursor_pos)
+                .unwrap_or(None)
         } else {
             None
         };
 
         let base_interaction = InteractionState {
             hovered: base_hovered.as_ref(),
-            pressed: if self.state.active_modal.is_none() { self.pressed.as_ref() } else { None },
+            pressed: if self.state.active_modal.is_none() {
+                self.pressed.as_ref()
+            } else {
+                None
+            },
             measure: Some(&measure),
         };
 
@@ -1120,14 +1480,18 @@ impl AgentControlCenterApp {
             let modal_root = build_modal_ui(&mut modal_tree, title, content);
             let _ = modal_tree.compute(modal_root, available);
 
-            let modal_hovered = modal_tree.interaction_key_at(modal_root, self.cursor_pos).unwrap_or(None);
+            let modal_hovered = modal_tree
+                .interaction_key_at(modal_root, self.cursor_pos)
+                .unwrap_or(None);
             let modal_interaction = InteractionState {
                 hovered: modal_hovered.as_ref(),
                 pressed: self.pressed.as_ref(),
                 measure: Some(&measure),
             };
 
-            if let Ok(modal_frame) = modal_tree.build_frame(modal_root, &current_theme, modal_interaction) {
+            if let Ok(modal_frame) =
+                modal_tree.build_frame(modal_root, &current_theme, modal_interaction)
+            {
                 let modal_text_runs: Vec<_> = modal_frame
                     .texts
                     .iter()
@@ -1159,7 +1523,12 @@ impl AgentControlCenterApp {
                     texts: &modal_text_runs,
                 };
 
-                let _ = renderer.render_layers(background, &[base_layer, modal_layer], &[], &self.resources);
+                let _ = renderer.render_layers(
+                    background,
+                    &[base_layer, modal_layer],
+                    &[],
+                    &self.resources,
+                );
             }
             self.overlay_root = Some(modal_root);
         } else {
@@ -1171,8 +1540,13 @@ impl AgentControlCenterApp {
     }
 
     fn submit_agent_prompt(&mut self, prompt: String) {
-        println!("🤖 [AgentControlCenter] Transmission de l'instruction à l'Agent : '{}'", prompt);
-        let _ = self.tx_events.try_send(UiEvent::UserPromptSubmitted(prompt));
+        println!(
+            "🤖 [AgentControlCenter] Transmission de l'instruction à l'Agent : '{}'",
+            prompt
+        );
+        let _ = self
+            .tx_events
+            .try_send(UiEvent::UserPromptSubmitted(prompt));
     }
 }
 
@@ -1204,7 +1578,8 @@ impl ApplicationHandler for AgentControlCenterApp {
             move |_| {
                 window_clone.request_redraw();
             },
-        ).ok();
+        )
+        .ok();
         self._theme_watcher = watcher;
 
         event_loop.set_control_flow(ControlFlow::Poll);
@@ -1224,53 +1599,68 @@ impl ApplicationHandler for AgentControlCenterApp {
                 self.redraw();
             }
             WindowEvent::KeyboardInput {
-                event: KeyEvent { state: ElementState::Pressed, logical_key, .. },
+                event:
+                    KeyEvent {
+                        state: ElementState::Pressed,
+                        logical_key,
+                        ..
+                    },
+                ..
+            } => match logical_key {
+                Key::Named(NamedKey::Enter) => {
+                    let prompt = self.state.prompt_editor.text.clone();
+                    if !prompt.trim().is_empty() {
+                        self.submit_agent_prompt(prompt);
+                    }
+                }
+                Key::Named(NamedKey::Backspace) => {
+                    if self.state.focused_input.as_deref() == Some("prompt_input") {
+                        self.state.prompt_editor.backspace();
+                    } else if self.state.focused_input.as_deref() == Some("input_host") {
+                        self.state.host_editor.backspace();
+                    }
+                    self.redraw();
+                }
+                Key::Named(NamedKey::Space) => {
+                    if self.state.focused_input.as_deref() == Some("prompt_input") {
+                        self.state.prompt_editor.insert_char(' ');
+                    } else if self.state.focused_input.as_deref() == Some("input_host") {
+                        self.state.host_editor.insert_char(' ');
+                    }
+                    self.redraw();
+                }
+                Key::Character(s) => {
+                    for c in s.chars() {
+                        if self.state.focused_input.as_deref() == Some("prompt_input") {
+                            self.state.prompt_editor.insert_char(c);
+                        } else if self.state.focused_input.as_deref() == Some("input_host") {
+                            self.state.host_editor.insert_char(c);
+                        }
+                    }
+                    self.redraw();
+                }
+                _ => {}
+            },
+            WindowEvent::MouseInput {
+                state: ElementState::Pressed,
+                button: MouseButton::Left,
                 ..
             } => {
-                match logical_key {
-                    Key::Named(NamedKey::Enter) => {
-                        let prompt = self.state.prompt_editor.text.clone();
-                        if !prompt.trim().is_empty() {
-                            self.submit_agent_prompt(prompt);
-                        }
-                    }
-                    Key::Named(NamedKey::Backspace) => {
-                        if self.state.focused_input.as_deref() == Some("prompt_input") {
-                            self.state.prompt_editor.backspace();
-                        } else if self.state.focused_input.as_deref() == Some("input_host") {
-                            self.state.host_editor.backspace();
-                        }
-                        self.redraw();
-                    }
-                    Key::Named(NamedKey::Space) => {
-                        if self.state.focused_input.as_deref() == Some("prompt_input") {
-                            self.state.prompt_editor.insert_char(' ');
-                        } else if self.state.focused_input.as_deref() == Some("input_host") {
-                            self.state.host_editor.insert_char(' ');
-                        }
-                        self.redraw();
-                    }
-                    Key::Character(s) => {
-                        for c in s.chars() {
-                            if self.state.focused_input.as_deref() == Some("prompt_input") {
-                                self.state.prompt_editor.insert_char(c);
-                            } else if self.state.focused_input.as_deref() == Some("input_host") {
-                                self.state.host_editor.insert_char(c);
-                            }
-                        }
-                        self.redraw();
-                    }
-                    _ => {}
-                }
-            }
-            WindowEvent::MouseInput { state: ElementState::Pressed, button: MouseButton::Left, .. } => {
                 if self.state.active_modal.is_some() {
                     let mut modal_tree = WidgetTree::new();
                     let (title, content) = self.state.active_modal.clone().unwrap();
                     let m_root = build_modal_ui(&mut modal_tree, &title, &content);
-                    let _ = modal_tree.compute(m_root, Size { width: AvailableSpace::Definite(WINDOW_WIDTH), height: AvailableSpace::Definite(WINDOW_HEIGHT) });
+                    let _ = modal_tree.compute(
+                        m_root,
+                        Size {
+                            width: AvailableSpace::Definite(WINDOW_WIDTH),
+                            height: AvailableSpace::Definite(WINDOW_HEIGHT),
+                        },
+                    );
                     if let Ok(Some(hit)) = modal_tree.interaction_key_at(m_root, self.cursor_pos) {
-                        if hit.widget_id.as_str() == "modal_dismiss_btn" || hit.widget_id.as_str() == "modal_dialog" {
+                        if hit.widget_id.as_str() == "modal_dismiss_btn"
+                            || hit.widget_id.as_str() == "modal_dialog"
+                        {
                             self.state.active_modal = None;
                         }
                     }
@@ -1280,7 +1670,13 @@ impl ApplicationHandler for AgentControlCenterApp {
 
                 let mut tree = WidgetTree::new();
                 let root = build_workstation_ui(&mut tree, &self.state);
-                let _ = tree.compute(root, Size { width: AvailableSpace::Definite(WINDOW_WIDTH), height: AvailableSpace::Definite(WINDOW_HEIGHT) });
+                let _ = tree.compute(
+                    root,
+                    Size {
+                        width: AvailableSpace::Definite(WINDOW_WIDTH),
+                        height: AvailableSpace::Definite(WINDOW_HEIGHT),
+                    },
+                );
 
                 if let Ok(Some(hit_key)) = tree.interaction_key_at(root, self.cursor_pos) {
                     let hit_str = hit_key.widget_id.as_str();
@@ -1294,13 +1690,19 @@ impl ApplicationHandler for AgentControlCenterApp {
                         let prompt = self.state.prompt_editor.text.clone();
                         self.submit_agent_prompt(prompt);
                     } else if hit_str == "btn_sc_prod" {
-                        self.state.prompt_editor = TextEditorState::new("Configurer le cluster de production et valider la réplication");
+                        self.state.prompt_editor = TextEditorState::new(
+                            "Configurer le cluster de production et valider la réplication",
+                        );
                         self.submit_agent_prompt(self.state.prompt_editor.text.clone());
                     } else if hit_str == "btn_sc_sec" {
-                        self.state.prompt_editor = TextEditorState::new("Lancer un audit de sécurité complet et vérifier le pare-feu");
+                        self.state.prompt_editor = TextEditorState::new(
+                            "Lancer un audit de sécurité complet et vérifier le pare-feu",
+                        );
                         self.submit_agent_prompt(self.state.prompt_editor.text.clone());
                     } else if hit_str == "btn_sc_opt" {
-                        self.state.prompt_editor = TextEditorState::new("Optimiser l'utilisation de la mémoire RAM et purger les caches");
+                        self.state.prompt_editor = TextEditorState::new(
+                            "Optimiser l'utilisation de la mémoire RAM et purger les caches",
+                        );
                         self.submit_agent_prompt(self.state.prompt_editor.text.clone());
                     } else if hit_str == "chk_ssl" {
                         self.state.chk_ssl = !self.state.chk_ssl;
@@ -1317,7 +1719,10 @@ impl ApplicationHandler for AgentControlCenterApp {
                     } else if hit_str == "btn_save_config" {
                         self.state.active_modal = Some((
                             "💾 Cluster Configuration Saved".to_string(),
-                            format!("Host: {} | Port: {} | TLS 1.3: Active", self.state.host_editor.text, self.state.port_spin as u32)
+                            format!(
+                                "Host: {} | Port: {} | TLS 1.3: Active",
+                                self.state.host_editor.text, self.state.port_spin as u32
+                            ),
                         ));
                     } else if hit_str == "strict" {
                         self.state.security_policy = "strict".to_string();
@@ -1352,11 +1757,21 @@ fn main() {
     let (tx_patches, rx_patches) = crossbeam_channel::unbounded::<UiPatch>();
 
     let mut tools = ToolRegistry::new();
-    tools.register(Arc::new(SetFieldTool { tx_patches: tx_patches.clone() }));
-    tools.register(Arc::new(SwitchTabTool { tx_patches: tx_patches.clone() }));
-    tools.register(Arc::new(ToggleServiceTool { tx_patches: tx_patches.clone() }));
-    tools.register(Arc::new(UpdateMetricTool { tx_patches: tx_patches.clone() }));
-    tools.register(Arc::new(NotifyModalTool { tx_patches: tx_patches.clone() }));
+    tools.register(Arc::new(SetFieldTool {
+        tx_patches: tx_patches.clone(),
+    }));
+    tools.register(Arc::new(SwitchTabTool {
+        tx_patches: tx_patches.clone(),
+    }));
+    tools.register(Arc::new(ToggleServiceTool {
+        tx_patches: tx_patches.clone(),
+    }));
+    tools.register(Arc::new(UpdateMetricTool {
+        tx_patches: tx_patches.clone(),
+    }));
+    tools.register(Arc::new(NotifyModalTool {
+        tx_patches: tx_patches.clone(),
+    }));
 
     let agent_config = AgentConfig {
         max_steps: 16,

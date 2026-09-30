@@ -64,9 +64,15 @@ impl GpuContext {
             .unwrap_or(surface_caps.alpha_modes[0]);
 
         // Sélectionner le mode de présentation le plus fluide (Mailbox pour triple-buffering ultra réactif sans tearing, sinon Fifo)
-        let present_mode = if surface_caps.present_modes.contains(&wgpu::PresentMode::Mailbox) {
+        let present_mode = if surface_caps
+            .present_modes
+            .contains(&wgpu::PresentMode::Mailbox)
+        {
             wgpu::PresentMode::Mailbox
-        } else if surface_caps.present_modes.contains(&wgpu::PresentMode::Immediate) {
+        } else if surface_caps
+            .present_modes
+            .contains(&wgpu::PresentMode::Immediate)
+        {
             wgpu::PresentMode::Immediate
         } else {
             wgpu::PresentMode::Fifo

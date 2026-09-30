@@ -356,53 +356,193 @@ fn render_kind(
             ));
         }
 
-        WidgetKind::Button { label, enabled, variant, .. } => {
+        WidgetKind::Button {
+            label,
+            enabled,
+            variant,
+            ..
+        } => {
             let (bg, border_color, glow_mult, text_color, radius) = match variant {
                 crate::kind::ButtonVariant::Primary => {
                     if hovered && *enabled {
-                        ([theme.accent[0] * 0.95, theme.accent[1] * 0.95, theme.accent[2] * 0.95, 1.0], [1.0, 1.0, 1.0, 1.0], 0.35, [0.06, 0.08, 0.13, 1.0], 6.0)
+                        (
+                            [
+                                theme.accent[0] * 0.95,
+                                theme.accent[1] * 0.95,
+                                theme.accent[2] * 0.95,
+                                1.0,
+                            ],
+                            [1.0, 1.0, 1.0, 1.0],
+                            0.35,
+                            [0.06, 0.08, 0.13, 1.0],
+                            6.0,
+                        )
                     } else if *enabled {
-                        (theme.accent, [theme.accent[0] * 1.1, theme.accent[1] * 1.1, theme.accent[2] * 1.1, 1.0], 0.20, [0.06, 0.08, 0.13, 1.0], 6.0)
+                        (
+                            theme.accent,
+                            [
+                                theme.accent[0] * 1.1,
+                                theme.accent[1] * 1.1,
+                                theme.accent[2] * 1.1,
+                                1.0,
+                            ],
+                            0.20,
+                            [0.06, 0.08, 0.13, 1.0],
+                            6.0,
+                        )
                     } else {
-                        ([theme.accent[0] * 0.25, theme.accent[1] * 0.25, theme.accent[2] * 0.25, 0.4], [0.2, 0.2, 0.25, 0.3], 0.0, theme.text_muted, 6.0)
+                        (
+                            [
+                                theme.accent[0] * 0.25,
+                                theme.accent[1] * 0.25,
+                                theme.accent[2] * 0.25,
+                                0.4,
+                            ],
+                            [0.2, 0.2, 0.25, 0.3],
+                            0.0,
+                            theme.text_muted,
+                            6.0,
+                        )
                     }
                 }
                 crate::kind::ButtonVariant::Secondary => {
                     if hovered && *enabled {
-                        ([theme.accent_secondary[0] * 0.25, theme.accent_secondary[1] * 0.25, theme.accent_secondary[2] * 0.25, 0.95], theme.accent_secondary, 0.30, [1.0, 1.0, 1.0, 1.0], 6.0)
+                        (
+                            [
+                                theme.accent_secondary[0] * 0.25,
+                                theme.accent_secondary[1] * 0.25,
+                                theme.accent_secondary[2] * 0.25,
+                                0.95,
+                            ],
+                            theme.accent_secondary,
+                            0.30,
+                            [1.0, 1.0, 1.0, 1.0],
+                            6.0,
+                        )
                     } else if *enabled {
-                        ([theme.accent_secondary[0] * 0.16, theme.accent_secondary[1] * 0.16, theme.accent_secondary[2] * 0.16, 0.85], [theme.accent_secondary[0] * 0.6, theme.accent_secondary[1] * 0.6, theme.accent_secondary[2] * 0.6, 0.7], 0.10, theme.accent_secondary, 6.0)
+                        (
+                            [
+                                theme.accent_secondary[0] * 0.16,
+                                theme.accent_secondary[1] * 0.16,
+                                theme.accent_secondary[2] * 0.16,
+                                0.85,
+                            ],
+                            [
+                                theme.accent_secondary[0] * 0.6,
+                                theme.accent_secondary[1] * 0.6,
+                                theme.accent_secondary[2] * 0.6,
+                                0.7,
+                            ],
+                            0.10,
+                            theme.accent_secondary,
+                            6.0,
+                        )
                     } else {
-                        ([0.06, 0.09, 0.14, 0.40], [0.12, 0.16, 0.22, 0.3], 0.0, theme.text_muted, 6.0)
+                        (
+                            [0.06, 0.09, 0.14, 0.40],
+                            [0.12, 0.16, 0.22, 0.3],
+                            0.0,
+                            theme.text_muted,
+                            6.0,
+                        )
                     }
                 }
                 crate::kind::ButtonVariant::Danger => {
                     if hovered && *enabled {
-                        ([theme.danger[0] * 0.35, theme.danger[1] * 0.35, theme.danger[2] * 0.35, 0.95], theme.danger, 0.35, [1.0, 1.0, 1.0, 1.0], 6.0)
+                        (
+                            [
+                                theme.danger[0] * 0.35,
+                                theme.danger[1] * 0.35,
+                                theme.danger[2] * 0.35,
+                                0.95,
+                            ],
+                            theme.danger,
+                            0.35,
+                            [1.0, 1.0, 1.0, 1.0],
+                            6.0,
+                        )
                     } else if *enabled {
-                        ([theme.danger[0] * 0.20, theme.danger[1] * 0.20, theme.danger[2] * 0.20, 0.85], [theme.danger[0] * 0.7, theme.danger[1] * 0.7, theme.danger[2] * 0.7, 0.7], 0.12, theme.danger, 6.0)
+                        (
+                            [
+                                theme.danger[0] * 0.20,
+                                theme.danger[1] * 0.20,
+                                theme.danger[2] * 0.20,
+                                0.85,
+                            ],
+                            [
+                                theme.danger[0] * 0.7,
+                                theme.danger[1] * 0.7,
+                                theme.danger[2] * 0.7,
+                                0.7,
+                            ],
+                            0.12,
+                            theme.danger,
+                            6.0,
+                        )
                     } else {
-                        ([0.06, 0.09, 0.14, 0.40], [0.12, 0.16, 0.22, 0.3], 0.0, theme.text_muted, 6.0)
+                        (
+                            [0.06, 0.09, 0.14, 0.40],
+                            [0.12, 0.16, 0.22, 0.3],
+                            0.0,
+                            theme.text_muted,
+                            6.0,
+                        )
                     }
                 }
                 crate::kind::ButtonVariant::Ghost => {
                     if hovered && *enabled {
-                        ([0.14, 0.18, 0.28, 0.70], [0.25, 0.32, 0.45, 0.60], 0.10, [1.0, 1.0, 1.0, 1.0], 6.0)
+                        (
+                            [0.14, 0.18, 0.28, 0.70],
+                            [0.25, 0.32, 0.45, 0.60],
+                            0.10,
+                            [1.0, 1.0, 1.0, 1.0],
+                            6.0,
+                        )
                     } else if *enabled {
-                        ([0.0, 0.0, 0.0, 0.0], [0.0, 0.0, 0.0, 0.0], 0.0, theme.text_muted, 6.0)
+                        (
+                            [0.0, 0.0, 0.0, 0.0],
+                            [0.0, 0.0, 0.0, 0.0],
+                            0.0,
+                            theme.text_muted,
+                            6.0,
+                        )
                     } else {
-                        ([0.0, 0.0, 0.0, 0.0], [0.0, 0.0, 0.0, 0.0], 0.0, [0.35, 0.40, 0.50, 0.5], 6.0)
+                        (
+                            [0.0, 0.0, 0.0, 0.0],
+                            [0.0, 0.0, 0.0, 0.0],
+                            0.0,
+                            [0.35, 0.40, 0.50, 0.5],
+                            6.0,
+                        )
                     }
                 }
                 crate::kind::ButtonVariant::Default => {
                     if hovered && *enabled {
                         // High-contrast midnight navy solid fill with luminous cyan/periwinkle outline
-                        ([0.14, 0.18, 0.28, 0.96], [0.48, 0.82, 1.0, 0.85], 0.20, [1.0, 1.0, 1.0, 1.0], 6.0)
+                        (
+                            [0.14, 0.18, 0.28, 0.96],
+                            [0.48, 0.82, 1.0, 0.85],
+                            0.20,
+                            [1.0, 1.0, 1.0, 1.0],
+                            6.0,
+                        )
                     } else if *enabled {
                         // Solid distinct midnight navy container with crisp subtle structural border
-                        ([0.08, 0.11, 0.18, 0.92], [0.18, 0.24, 0.36, 0.65], 0.04, theme.text_color, 6.0)
+                        (
+                            [0.08, 0.11, 0.18, 0.92],
+                            [0.18, 0.24, 0.36, 0.65],
+                            0.04,
+                            theme.text_color,
+                            6.0,
+                        )
                     } else {
-                        ([0.05, 0.07, 0.11, 0.40], [0.10, 0.13, 0.20, 0.3], 0.0, [0.35, 0.45, 0.60, 0.6], 6.0)
+                        (
+                            [0.05, 0.07, 0.11, 0.40],
+                            [0.10, 0.13, 0.20, 0.3],
+                            0.0,
+                            [0.35, 0.45, 0.60, 0.6],
+                            6.0,
+                        )
                     }
                 }
             };
@@ -441,25 +581,40 @@ fn render_kind(
 
         WidgetKind::IconButton { icon, enabled, .. } => {
             let (bg, border, glow_mult, icon_color) = if hovered && *enabled {
-                ([0.14, 0.18, 0.28, 0.96], [0.48, 0.82, 1.0, 0.85], 0.22, [1.0, 1.0, 1.0, 1.0])
+                (
+                    [0.14, 0.18, 0.28, 0.96],
+                    [0.48, 0.82, 1.0, 0.85],
+                    0.22,
+                    [1.0, 1.0, 1.0, 1.0],
+                )
             } else if *enabled {
-                ([0.08, 0.11, 0.18, 0.92], [0.18, 0.24, 0.36, 0.65], 0.04, theme.text_color)
+                (
+                    [0.08, 0.11, 0.18, 0.92],
+                    [0.18, 0.24, 0.36, 0.65],
+                    0.04,
+                    theme.text_color,
+                )
             } else {
-                ([0.05, 0.07, 0.11, 0.40], [0.10, 0.13, 0.20, 0.3], 0.0, theme.text_muted)
+                (
+                    [0.05, 0.07, 0.11, 0.40],
+                    [0.10, 0.13, 0.20, 0.3],
+                    0.0,
+                    theme.text_muted,
+                )
             };
             let intensity = if *enabled {
-                if pressed { 0.40 } else if hovered { glow_mult } else { 0.05 }
+                if pressed {
+                    0.40
+                } else if hovered {
+                    glow_mult
+                } else {
+                    0.05
+                }
             } else {
                 0.0
             };
             frame.instances.push(custom_glass_instance(
-                bounds,
-                clip,
-                bg,
-                border,
-                6.0,
-                1.0,
-                intensity,
+                bounds, clip, bg, border, 6.0, 1.0, intensity,
             ));
             let glyph = icon.glyph();
             frame.texts.push(text_spec(
@@ -907,7 +1062,13 @@ fn render_kind(
                     let thumb_x = bounds[0] + ratio * bounds[2] - thumb_w * 0.5;
                     let thumb_y = bounds[1] + (bounds[3] - thumb_h) * 0.5;
                     let thumb_bounds = [thumb_x, thumb_y, thumb_w, thumb_h];
-                    let thumb_glow = if pressed { 0.20 } else if hovered { 0.12 } else { 0.04 };
+                    let thumb_glow = if pressed {
+                        0.20
+                    } else if hovered {
+                        0.12
+                    } else {
+                        0.04
+                    };
                     frame.instances.push(glass_instance(
                         thumb_bounds,
                         clip,
@@ -949,7 +1110,13 @@ fn render_kind(
                     let thumb_x = bounds[0] + (bounds[2] - thumb_w) * 0.5;
                     let thumb_y = bounds[1] + (1.0 - ratio) * bounds[3] - thumb_h * 0.5;
                     let thumb_bounds = [thumb_x, thumb_y, thumb_w, thumb_h];
-                    let thumb_glow = if pressed { 0.20 } else if hovered { 0.12 } else { 0.04 };
+                    let thumb_glow = if pressed {
+                        0.20
+                    } else if hovered {
+                        0.12
+                    } else {
+                        0.04
+                    };
                     frame.instances.push(glass_instance(
                         thumb_bounds,
                         clip,
@@ -1870,33 +2037,34 @@ fn render_kind(
             label, selected, ..
         } => {
             let radius = (bounds[3] * 0.5).min(bounds[2] * 0.5);
-            let (bg, border_color, glow_mult, text_color): ([f32; 4], [f32; 4], f32, [f32; 4]) = if *selected {
-                (
-                    [
-                        theme.accent[0] * 0.22,
-                        theme.accent[1] * 0.22,
-                        theme.accent[2] * 0.22,
-                        0.95,
-                    ],
-                    theme.accent,
-                    0.25f32,
-                    theme.accent,
-                )
-            } else if hovered {
-                (
-                    [0.14, 0.18, 0.28, 0.85],
-                    [0.30, 0.40, 0.55, 0.60],
-                    0.10f32,
-                    theme.text_color,
-                )
-            } else {
-                (
-                    [0.08, 0.11, 0.18, 0.65],
-                    [0.16, 0.22, 0.32, 0.45],
-                    0.0f32,
-                    theme.text_muted,
-                )
-            };
+            let (bg, border_color, glow_mult, text_color): ([f32; 4], [f32; 4], f32, [f32; 4]) =
+                if *selected {
+                    (
+                        [
+                            theme.accent[0] * 0.22,
+                            theme.accent[1] * 0.22,
+                            theme.accent[2] * 0.22,
+                            0.95,
+                        ],
+                        theme.accent,
+                        0.25f32,
+                        theme.accent,
+                    )
+                } else if hovered {
+                    (
+                        [0.14, 0.18, 0.28, 0.85],
+                        [0.30, 0.40, 0.55, 0.60],
+                        0.10f32,
+                        theme.text_color,
+                    )
+                } else {
+                    (
+                        [0.08, 0.11, 0.18, 0.65],
+                        [0.16, 0.22, 0.32, 0.45],
+                        0.0f32,
+                        theme.text_muted,
+                    )
+                };
 
             let intensity = if pressed {
                 0.35
@@ -2499,12 +2667,15 @@ fn render_kind(
             };
 
             // Strict inner clip: ensures text and indicators never overflow outside card borders
-            let toast_clip = crate::effective::intersect(clip, [
-                bounds[0] + 2.0,
-                bounds[1] + 2.0,
-                (bounds[2] - 4.0).max(10.0),
-                (bounds[3] - 4.0).max(10.0),
-            ]);
+            let toast_clip = crate::effective::intersect(
+                clip,
+                [
+                    bounds[0] + 2.0,
+                    bounds[1] + 2.0,
+                    (bounds[2] - 4.0).max(10.0),
+                    (bounds[3] - 4.0).max(10.0),
+                ],
+            );
 
             // High-contrast solid cyber-glass toast card
             let bg = [0.04, 0.07, 0.13, 0.98];
@@ -2584,15 +2755,22 @@ fn render_kind(
             });
         }
 
-        WidgetKind::Tooltip { text, shortcut, placement: _ } => {
+        WidgetKind::Tooltip {
+            text,
+            shortcut,
+            placement: _,
+        } => {
             let bg = [0.03, 0.06, 0.11, 0.98];
             let border_col = theme.accent;
-            let tooltip_clip = crate::effective::intersect(clip, [
-                bounds[0] + 1.0,
-                bounds[1] + 1.0,
-                (bounds[2] - 2.0).max(4.0),
-                (bounds[3] - 2.0).max(4.0),
-            ]);
+            let tooltip_clip = crate::effective::intersect(
+                clip,
+                [
+                    bounds[0] + 1.0,
+                    bounds[1] + 1.0,
+                    (bounds[2] - 2.0).max(4.0),
+                    (bounds[3] - 2.0).max(4.0),
+                ],
+            );
 
             // High-contrast cyber-glass tooltip bubble
             frame.instances.push(custom_glass_instance(
@@ -2630,7 +2808,12 @@ fn render_kind(
                     badge_bounds,
                     tooltip_clip,
                     [0.10, 0.18, 0.28, 0.90],
-                    [theme.accent[0] * 0.7, theme.accent[1] * 0.7, theme.accent[2] * 0.7, 0.60],
+                    [
+                        theme.accent[0] * 0.7,
+                        theme.accent[1] * 0.7,
+                        theme.accent[2] * 0.7,
+                        0.60,
+                    ],
                     4.0,
                     1.0,
                     0.1,
@@ -2648,7 +2831,12 @@ fn render_kind(
             } else {
                 frame.texts.push(TextSpec {
                     text: text.clone(),
-                    bounds: [bounds[0] + 8.0, bounds[1], (bounds[2] - 16.0).max(10.0), bounds[3]],
+                    bounds: [
+                        bounds[0] + 8.0,
+                        bounds[1],
+                        (bounds[2] - 16.0).max(10.0),
+                        bounds[3],
+                    ],
                     font_size: 11.0,
                     color: [0.95, 0.97, 1.0, 1.0],
                     align: TextAlign::Center,
@@ -3180,8 +3368,16 @@ fn render_kind(
                 bg_tint,
                 accent_color,
                 theme.corner_radius.min(6.0),
-                if matches!(badge, crate::kind::ListItemBadge::None) { 0.5 } else { theme.border_width },
-                if matches!(badge, crate::kind::ListItemBadge::None) { 0.0 } else { 0.15 },
+                if matches!(badge, crate::kind::ListItemBadge::None) {
+                    0.5
+                } else {
+                    theme.border_width
+                },
+                if matches!(badge, crate::kind::ListItemBadge::None) {
+                    0.0
+                } else {
+                    0.15
+                },
             ));
             frame.texts.push(text_spec(
                 label.clone(),
@@ -3202,7 +3398,7 @@ fn render_kind(
                 theme.accent_secondary
             };
 
-            let (box_bounds, text_bounds) = if let Some(_) = label {
+            let (box_bounds, text_bounds) = if label.is_some() {
                 let box_h = (bounds[3] - 18.0).max(12.0);
                 (
                     [bounds[0], bounds[1], bounds[2], box_h],
@@ -3934,7 +4130,11 @@ fn render_kind(
                 cap_bounds,
                 clip,
                 cap_bg,
-                if is_hovered { theme.accent } else { theme.border_subtle() },
+                if is_hovered {
+                    theme.accent
+                } else {
+                    theme.border_subtle()
+                },
                 inner_radius,
                 1.0,
                 0.0,
@@ -4196,7 +4396,8 @@ fn render_kind(
                     let mut prev = p_start;
                     for i in 1..=subdivisions {
                         let t = i as f32 / subdivisions as f32;
-                        let pt = crate::paint::eval_cubic_bezier(p_start, p_ctrl1, p_ctrl2, p_end, t);
+                        let pt =
+                            crate::paint::eval_cubic_bezier(p_start, p_ctrl1, p_ctrl2, p_end, t);
                         render_custom_paint_line(prev, pt, 1.8, cable_color, graph_clip, frame);
                         prev = pt;
                     }
@@ -4251,7 +4452,9 @@ fn render_kind(
                 // Input Sockets (Left side)
                 for (i, sock) in node.inputs.iter().enumerate() {
                     let sy = ny + 32.0 + (i as f32 * 20.0);
-                    let scol = sock.color.unwrap_or_else(|| sock.socket_type.default_color());
+                    let scol = sock
+                        .color
+                        .unwrap_or_else(|| sock.socket_type.default_color());
                     // Pin dot
                     frame.instances.push(custom_glass_instance(
                         [nx - 4.0, sy + 4.0, 8.0, 8.0],
@@ -4277,7 +4480,9 @@ fn render_kind(
                 // Output Sockets (Right side)
                 for (i, sock) in node.outputs.iter().enumerate() {
                     let sy = ny + 32.0 + (i as f32 * 20.0);
-                    let scol = sock.color.unwrap_or_else(|| sock.socket_type.default_color());
+                    let scol = sock
+                        .color
+                        .unwrap_or_else(|| sock.socket_type.default_color());
                     // Pin dot
                     frame.instances.push(custom_glass_instance(
                         [nx + nw - 4.0, sy + 4.0, 8.0, 8.0],
@@ -4529,11 +4734,13 @@ fn render_kind(
                 });
             }
 
-            let max_val = max_value.unwrap_or_else(|| {
-                bars.iter()
-                    .map(|b| b.value)
-                    .fold(1.0f32, |acc, v| acc.max(v))
-            }).max(0.001);
+            let max_val = max_value
+                .unwrap_or_else(|| {
+                    bars.iter()
+                        .map(|b| b.value)
+                        .fold(1.0f32, |acc, v| acc.max(v))
+                })
+                .max(0.001);
 
             if *horizontal {
                 let avail_h = bounds[3] - pad_top - 8.0;
@@ -4731,7 +4938,12 @@ fn render_kind(
 
             // Background container
             let bg_color = if is_active {
-                [theme.accent[0] * 0.15, theme.accent[1] * 0.15, theme.accent[2] * 0.15, 0.90]
+                [
+                    theme.accent[0] * 0.15,
+                    theme.accent[1] * 0.15,
+                    theme.accent[2] * 0.15,
+                    0.90,
+                ]
             } else if dropped_file.is_some() {
                 [0.05, 0.12, 0.08, 0.85] // Subtle success tint
             } else {
@@ -4836,7 +5048,12 @@ fn render_kind(
                     .join(" ");
                 frame.texts.push(TextSpec {
                     text: badges_str,
-                    bounds: [bounds[0] + 8.0, bounds[1] + bounds[3] - 18.0, bounds[2] - 16.0, 12.0],
+                    bounds: [
+                        bounds[0] + 8.0,
+                        bounds[1] + bounds[3] - 18.0,
+                        bounds[2] - 16.0,
+                        12.0,
+                    ],
                     font_size: 9.0,
                     color: theme.text_muted,
                     align: TextAlign::Center,
@@ -4913,7 +5130,12 @@ fn render_kind(
                 // Dark Cutout Bezel
                 let cutout_r = dot_r + 1.5;
                 frame.instances.push(custom_glass_instance(
-                    [dot_cx - cutout_r, dot_cy - cutout_r, cutout_r * 2.0, cutout_r * 2.0],
+                    [
+                        dot_cx - cutout_r,
+                        dot_cy - cutout_r,
+                        cutout_r * 2.0,
+                        cutout_r * 2.0,
+                    ],
                     clip,
                     [0.02, 0.04, 0.08, 1.0],
                     [0.02, 0.04, 0.08, 1.0],
@@ -4973,7 +5195,8 @@ fn render_kind(
             for (idx, step) in steps.iter().enumerate() {
                 let cx = bounds[0] + (idx as f32 + 0.5) * step_w;
                 let is_current = idx == *current_step;
-                let is_done = idx < *current_step || step.state == crate::kind::StepState::Completed;
+                let is_done =
+                    idx < *current_step || step.state == crate::kind::StepState::Completed;
                 let is_error = step.state == crate::kind::StepState::Error;
 
                 let (bg_col, ring_col, glow_val) = if is_error {
@@ -5010,7 +5233,13 @@ fn render_kind(
                     text: glyph_text,
                     bounds: [cx - node_r, line_y - 7.0, node_r * 2.0, 14.0],
                     font_size: 11.0,
-                    color: if is_done { [0.15, 0.92, 0.45, 1.0] } else if is_current { [1.0, 1.0, 1.0, 1.0] } else { theme.text_muted },
+                    color: if is_done {
+                        [0.15, 0.92, 0.45, 1.0]
+                    } else if is_current {
+                        [1.0, 1.0, 1.0, 1.0]
+                    } else {
+                        theme.text_muted
+                    },
                     align: TextAlign::Center,
                     weight: FontWeight::Bold,
                     clip,
@@ -5022,9 +5251,17 @@ fn render_kind(
                     text: step.label.clone(),
                     bounds: [cx - label_w * 0.5, line_y + node_r + 4.0, label_w, 14.0],
                     font_size: 10.0,
-                    color: if is_current { [1.0, 1.0, 1.0, 1.0] } else { theme.text_muted },
+                    color: if is_current {
+                        [1.0, 1.0, 1.0, 1.0]
+                    } else {
+                        theme.text_muted
+                    },
                     align: TextAlign::Center,
-                    weight: if is_current { FontWeight::Bold } else { FontWeight::Normal },
+                    weight: if is_current {
+                        FontWeight::Bold
+                    } else {
+                        FontWeight::Normal
+                    },
                     clip,
                 });
 
@@ -5045,7 +5282,12 @@ fn render_kind(
         WidgetKind::Kbd { text } => {
             let kbd_clip = crate::effective::intersect(clip, bounds);
             let bg = [0.06, 0.10, 0.16, 0.95];
-            let border_col = [theme.accent[0] * 0.5, theme.accent[1] * 0.5, theme.accent[2] * 0.5, 0.70];
+            let border_col = [
+                theme.accent[0] * 0.5,
+                theme.accent[1] * 0.5,
+                theme.accent[2] * 0.5,
+                0.70,
+            ];
 
             // 3D Shadow Bottom Line
             frame.instances.push(custom_glass_instance(
@@ -5071,7 +5313,12 @@ fn render_kind(
 
             frame.texts.push(TextSpec {
                 text: text.clone(),
-                bounds: [bounds[0] + 4.0, bounds[1], (bounds[2] - 8.0).max(4.0), bounds[3] - 2.0],
+                bounds: [
+                    bounds[0] + 4.0,
+                    bounds[1],
+                    (bounds[2] - 8.0).max(4.0),
+                    bounds[3] - 2.0,
+                ],
                 font_size: 10.0,
                 color: [0.90, 0.94, 1.0, 1.0],
                 align: TextAlign::Center,
@@ -5095,28 +5342,65 @@ fn render_kind(
             let (bg_col, border_col, text_col, glow_val) = match variant {
                 crate::kind::ChipVariant::Primary => {
                     if *selected || hovered {
-                        ([0.08, 0.25, 0.35, 0.95], theme.accent, [1.0, 1.0, 1.0, 1.0], 0.35)
+                        (
+                            [0.08, 0.25, 0.35, 0.95],
+                            theme.accent,
+                            [1.0, 1.0, 1.0, 1.0],
+                            0.35,
+                        )
                     } else {
-                        ([0.05, 0.12, 0.20, 0.85], [theme.accent[0] * 0.6, theme.accent[1] * 0.6, theme.accent[2] * 0.6, 0.6], [0.85, 0.93, 1.0, 0.9], 0.08)
+                        (
+                            [0.05, 0.12, 0.20, 0.85],
+                            [
+                                theme.accent[0] * 0.6,
+                                theme.accent[1] * 0.6,
+                                theme.accent[2] * 0.6,
+                                0.6,
+                            ],
+                            [0.85, 0.93, 1.0, 0.9],
+                            0.08,
+                        )
                     }
                 }
-                crate::kind::ChipVariant::Success => {
-                    ([0.06, 0.20, 0.12, 0.90], [0.15, 0.92, 0.45, 0.85], [0.20, 0.95, 0.50, 1.0], if *selected { 0.35 } else { 0.08 })
-                }
-                crate::kind::ChipVariant::Warning => {
-                    ([0.22, 0.16, 0.05, 0.90], [1.0, 0.78, 0.12, 0.85], [1.0, 0.82, 0.20, 1.0], if *selected { 0.35 } else { 0.08 })
-                }
-                crate::kind::ChipVariant::Danger => {
-                    ([0.22, 0.06, 0.08, 0.90], [1.0, 0.28, 0.32, 0.85], [1.0, 0.40, 0.45, 1.0], if *selected { 0.35 } else { 0.08 })
-                }
-                crate::kind::ChipVariant::Outline => {
-                    ([0.03, 0.05, 0.08, 0.60], theme.accent_secondary, theme.text_color, if *selected { 0.3 } else { 0.0 })
-                }
+                crate::kind::ChipVariant::Success => (
+                    [0.06, 0.20, 0.12, 0.90],
+                    [0.15, 0.92, 0.45, 0.85],
+                    [0.20, 0.95, 0.50, 1.0],
+                    if *selected { 0.35 } else { 0.08 },
+                ),
+                crate::kind::ChipVariant::Warning => (
+                    [0.22, 0.16, 0.05, 0.90],
+                    [1.0, 0.78, 0.12, 0.85],
+                    [1.0, 0.82, 0.20, 1.0],
+                    if *selected { 0.35 } else { 0.08 },
+                ),
+                crate::kind::ChipVariant::Danger => (
+                    [0.22, 0.06, 0.08, 0.90],
+                    [1.0, 0.28, 0.32, 0.85],
+                    [1.0, 0.40, 0.45, 1.0],
+                    if *selected { 0.35 } else { 0.08 },
+                ),
+                crate::kind::ChipVariant::Outline => (
+                    [0.03, 0.05, 0.08, 0.60],
+                    theme.accent_secondary,
+                    theme.text_color,
+                    if *selected { 0.3 } else { 0.0 },
+                ),
                 crate::kind::ChipVariant::Default => {
                     if *selected || hovered {
-                        ([0.12, 0.18, 0.28, 0.95], theme.accent, [1.0, 1.0, 1.0, 1.0], 0.25)
+                        (
+                            [0.12, 0.18, 0.28, 0.95],
+                            theme.accent,
+                            [1.0, 1.0, 1.0, 1.0],
+                            0.25,
+                        )
                     } else {
-                        ([0.06, 0.09, 0.15, 0.88], [0.18, 0.25, 0.36, 0.60], theme.text_muted, 0.02)
+                        (
+                            [0.06, 0.09, 0.15, 0.88],
+                            [0.18, 0.25, 0.36, 0.60],
+                            theme.text_muted,
+                            0.02,
+                        )
                     }
                 }
             };
@@ -5160,7 +5444,11 @@ fn render_kind(
                 cur_x += 16.0;
             }
 
-            let text_w = if *dismissible { (bounds[2] - (cur_x - bounds[0]) - 20.0).max(10.0) } else { (bounds[2] - (cur_x - bounds[0]) - 8.0).max(10.0) };
+            let text_w = if *dismissible {
+                (bounds[2] - (cur_x - bounds[0]) - 20.0).max(10.0)
+            } else {
+                (bounds[2] - (cur_x - bounds[0]) - 8.0).max(10.0)
+            };
 
             frame.texts.push(TextSpec {
                 text: label.clone(),
@@ -5168,7 +5456,11 @@ fn render_kind(
                 font_size: 10.5,
                 color: text_col,
                 align: TextAlign::Left,
-                weight: if *selected { FontWeight::Bold } else { FontWeight::Normal },
+                weight: if *selected {
+                    FontWeight::Bold
+                } else {
+                    FontWeight::Normal
+                },
                 clip: chip_clip,
             });
 
@@ -5178,7 +5470,11 @@ fn render_kind(
                     text: "✕".to_string(),
                     bounds: [close_x, bounds[1], 12.0, bounds[3]],
                     font_size: 9.0,
-                    color: if hovered { [1.0, 0.4, 0.45, 1.0] } else { theme.text_muted },
+                    color: if hovered {
+                        [1.0, 0.4, 0.45, 1.0]
+                    } else {
+                        theme.text_muted
+                    },
                     align: TextAlign::Center,
                     weight: FontWeight::Bold,
                     clip: chip_clip,
@@ -5190,7 +5486,12 @@ fn render_kind(
             let r = radius.unwrap_or(theme.corner_radius.min(6.0));
             let bg = [0.08, 0.13, 0.20, 0.75];
             let border_col = if *shimmer {
-                [theme.accent[0] * 0.4, theme.accent[1] * 0.4, theme.accent[2] * 0.4, 0.40]
+                [
+                    theme.accent[0] * 0.4,
+                    theme.accent[1] * 0.4,
+                    theme.accent[2] * 0.4,
+                    0.40,
+                ]
             } else {
                 [0.10, 0.15, 0.22, 0.30]
             };
@@ -5211,8 +5512,13 @@ fn render_kind(
             show_labels,
         } => {
             let total: f32 = segments.iter().map(|s| s.value).sum();
-            let bar_h = if *show_labels { (bounds[3] - 16.0).max(6.0) } else { bounds[3] };
-            let bar_clip = crate::effective::intersect(clip, [bounds[0], bounds[1], bounds[2], bar_h]);
+            let bar_h = if *show_labels {
+                (bounds[3] - 16.0).max(6.0)
+            } else {
+                bounds[3]
+            };
+            let bar_clip =
+                crate::effective::intersect(clip, [bounds[0], bounds[1], bounds[2], bar_h]);
 
             // Background Track
             frame.instances.push(custom_glass_instance(
@@ -5260,7 +5566,15 @@ fn render_kind(
                     ));
                     leg_x += dot_r * 2.0 + 4.0;
 
-                    let txt = format!("{}: {:.0}%", seg.label, if total > 0.0 { (seg.value / total) * 100.0 } else { 0.0 });
+                    let txt = format!(
+                        "{}: {:.0}%",
+                        seg.label,
+                        if total > 0.0 {
+                            (seg.value / total) * 100.0
+                        } else {
+                            0.0
+                        }
+                    );
                     let txt_w = txt.len() as f32 * 6.0 + 8.0;
                     frame.texts.push(TextSpec {
                         text: txt,
@@ -5299,7 +5613,12 @@ fn render_kind(
 
                 frame.texts.push(TextSpec {
                     text: glyph_str.to_string(),
-                    bounds: [cx - font_size * 0.6, bounds[1] + (bounds[3] - font_size) * 0.5, font_size * 1.2, font_size],
+                    bounds: [
+                        cx - font_size * 0.6,
+                        bounds[1] + (bounds[3] - font_size) * 0.5,
+                        font_size * 1.2,
+                        font_size,
+                    ],
                     font_size,
                     color: col,
                     align: TextAlign::Center,
@@ -5316,7 +5635,12 @@ fn render_kind(
             // Vertical Connecting Track
             if !items.is_empty() {
                 frame.instances.push(custom_glass_instance(
-                    [line_x - 1.0, bounds[1] + 10.0, 2.0, (bounds[3] - 20.0).max(4.0)],
+                    [
+                        line_x - 1.0,
+                        bounds[1] + 10.0,
+                        2.0,
+                        (bounds[3] - 20.0).max(4.0),
+                    ],
                     line_clip,
                     [0.12, 0.18, 0.28, 0.70],
                     [0.12, 0.18, 0.28, 0.70],

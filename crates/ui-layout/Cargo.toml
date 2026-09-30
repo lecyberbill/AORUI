@@ -8,3 +8,6 @@ description = "Integration Taffy : arbre declaratif, resolution Flexbox/Grid, hi
 [dependencies]
 taffy.workspace = true
 thiserror.workspace = true
+
+[lints]
+workspace = true

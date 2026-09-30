@@ -1,11 +1,11 @@
 // [WFGY] Zone: TRANSIT | λ: 0.25 | Fallbacks: 0 | Action: Declarative TOML UI schema, layout deserializer, and WidgetTree generator
+use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::path::Path;
-use serde::{Deserialize, Serialize};
 
 use ui_layout::{
-    auto, length, percent, AlignItems, AlignSelf, Display,
-    FlexDirection, FlexWrap, JustifyContent, NodeId, Position, Rect, Size, Style,
+    auto, length, percent, AlignItems, AlignSelf, Display, FlexDirection, FlexWrap, JustifyContent,
+    NodeId, Position, Rect, Size, Style,
 };
 
 use crate::kind::{ButtonVariant, ListItemBadge};
@@ -235,9 +235,15 @@ pub struct WindowMetaSpec {
     pub theme: Option<String>,
 }
 
-fn default_title() -> String { "AORUI App".to_string() }
-fn default_width() -> f32 { 1280.0 }
-fn default_height() -> f32 { 800.0 }
+fn default_title() -> String {
+    "AORUI App".to_string()
+}
+fn default_width() -> f32 {
+    1280.0
+}
+fn default_height() -> f32 {
+    800.0
+}
 
 /// Declarative specification of a single Widget node.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
@@ -311,8 +317,8 @@ pub struct WidgetNodeSpec {
 }
 
 pub mod color_serde_opt {
-    use serde::{de::Error, Deserialize, Deserializer, Serializer};
     use crate::theme::color_serde::parse_hex_color;
+    use serde::{de::Error, Deserialize, Deserializer, Serializer};
 
     pub fn serialize<S>(color: &Option<[f32; 4]>, serializer: S) -> Result<S::Ok, S::Error>
     where
@@ -386,29 +392,51 @@ impl DeclarativeUiDoc {
         out.push_str("    pub status_message: String,\n");
         out.push_str("    pub is_busy: bool,\n");
         out.push_str("}\n\n");
-        out.push_str("/// Registers all business logic handlers for actions bound in the TOML layout.\n");
+        out.push_str(
+            "/// Registers all business logic handlers for actions bound in the TOML layout.\n",
+        );
         out.push_str("pub fn register_app_handlers(router: &mut EventRouter<AppState>) {\n");
 
         let mut registered_actions = std::collections::HashSet::new();
         for node in &self.nodes {
             if let Some(action) = &node.on_click {
                 if registered_actions.insert(action.clone()) {
-                    let fn_name = action.replace(':', "_").replace('-', "_").replace('.', "_");
-                    out.push_str(&format!("    // Action triggered by widget '{}' (on_click)\n", node.id));
-                    out.push_str(&format!("    router.on(\"{}\", |state: &mut AppState, widget_id: &str| {{\n", action));
+                    let fn_name = action.replace([':', '-', '.'], "_");
+                    out.push_str(&format!(
+                        "    // Action triggered by widget '{}' (on_click)\n",
+                        node.id
+                    ));
+                    out.push_str(&format!(
+                        "    router.on(\"{}\", |state: &mut AppState, widget_id: &str| {{\n",
+                        action
+                    ));
                     out.push_str(&format!("        println!(\"🚀 Action '{}' triggered by widget: '{{}}'\", widget_id);\n", action));
-                    out.push_str(&format!("        state.status_message = format!(\"Action {} exécutée !\");\n", fn_name));
-                    out.push_str("        // TODO: Implémenter la logique métier ici (LLM / Agent / Dev)\n");
+                    out.push_str(&format!(
+                        "        state.status_message = format!(\"Action {} exécutée !\");\n",
+                        fn_name
+                    ));
+                    out.push_str(
+                        "        // TODO: Implémenter la logique métier ici (LLM / Agent / Dev)\n",
+                    );
                     out.push_str("    });\n\n");
                 }
             }
             if let Some(action) = &node.on_change {
                 if registered_actions.insert(action.clone()) {
-                    let fn_name = action.replace(':', "_").replace('-', "_").replace('.', "_");
-                    out.push_str(&format!("    // Action triggered by widget '{}' (on_change)\n", node.id));
-                    out.push_str(&format!("    router.on(\"{}\", |state: &mut AppState, widget_id: &str| {{\n", action));
+                    let fn_name = action.replace([':', '-', '.'], "_");
+                    out.push_str(&format!(
+                        "    // Action triggered by widget '{}' (on_change)\n",
+                        node.id
+                    ));
+                    out.push_str(&format!(
+                        "    router.on(\"{}\", |state: &mut AppState, widget_id: &str| {{\n",
+                        action
+                    ));
                     out.push_str(&format!("        println!(\"🔄 Action '{}' triggered by widget: '{{}}'\", widget_id);\n", action));
-                    out.push_str(&format!("        state.status_message = format!(\"Valeur modifiée dans {}\");\n", fn_name));
+                    out.push_str(&format!(
+                        "        state.status_message = format!(\"Valeur modifiée dans {}\");\n",
+                        fn_name
+                    ));
                     out.push_str("        // TODO: Implémenter la logique métier ici\n");
                     out.push_str("    });\n\n");
                 }
@@ -481,11 +509,17 @@ impl DeclarativeUiDoc {
         }
 
         let nid = match node.widget_type.to_lowercase().as_str() {
-            "container" | "hbox" | "vbox" | "row" | "col" => tree.container(&child_node_ids, style)?,
+            "container" | "hbox" | "vbox" | "row" | "col" => {
+                tree.container(&child_node_ids, style)?
+            }
             "panel" => tree.panel(&child_node_ids, node.bg, node.border, style)?,
             "card" => tree.card(&child_node_ids, node.bg, node.border, node.radius, style)?,
             "window" => {
-                let title = node.title.as_deref().or(node.label.as_deref()).unwrap_or("Fenêtre");
+                let title = node
+                    .title
+                    .as_deref()
+                    .or(node.label.as_deref())
+                    .unwrap_or("Fenêtre");
                 tree.window(node.id.as_str(), title, &child_node_ids, style)?
             }
             "label" => {
@@ -497,7 +531,11 @@ impl DeclarativeUiDoc {
                 }
             }
             "button" => {
-                let label = node.label.as_deref().or(node.text.as_deref()).unwrap_or(&node.id);
+                let label = node
+                    .label
+                    .as_deref()
+                    .or(node.text.as_deref())
+                    .unwrap_or(&node.id);
                 let variant = match node.variant.as_deref() {
                     Some("Primary") | Some("primary") => ButtonVariant::Primary,
                     Some("Secondary") | Some("secondary") => ButtonVariant::Secondary,
@@ -505,11 +543,22 @@ impl DeclarativeUiDoc {
                     Some("Danger") | Some("danger") => ButtonVariant::Danger,
                     _ => ButtonVariant::Default,
                 };
-                tree.button_variant(node.id.as_str(), label, variant, node.enabled.unwrap_or(true), style)?
+                tree.button_variant(
+                    node.id.as_str(),
+                    label,
+                    variant,
+                    node.enabled.unwrap_or(true),
+                    style,
+                )?
             }
             "iconbutton" | "icon_button" => {
                 let icon_kind = Self::parse_icon(node.icon.as_deref());
-                tree.icon_button(node.id.as_str(), icon_kind, node.enabled.unwrap_or(true), style)?
+                tree.icon_button(
+                    node.id.as_str(),
+                    icon_kind,
+                    node.enabled.unwrap_or(true),
+                    style,
+                )?
             }
             "icon" => {
                 let icon_kind = Self::parse_icon(node.icon.as_deref());
@@ -517,7 +566,11 @@ impl DeclarativeUiDoc {
                 tree.icon(icon_kind, size, node.color, style)?
             }
             "badge" => {
-                let text = node.text.as_deref().or(node.label.as_deref()).unwrap_or(&node.id);
+                let text = node
+                    .text
+                    .as_deref()
+                    .or(node.label.as_deref())
+                    .unwrap_or(&node.id);
                 let badge_type = match node.variant.as_deref() {
                     Some("Success") | Some("success") => ListItemBadge::Success,
                     Some("Warning") | Some("warning") => ListItemBadge::Warning,
@@ -525,9 +578,7 @@ impl DeclarativeUiDoc {
                 };
                 tree.badge(text, badge_type, style)?
             }
-            "checkbox" => {
-                tree.checkbox(node.id.as_str(), node.checked.unwrap_or(false), style)?
-            }
+            "checkbox" => tree.checkbox(node.id.as_str(), node.checked.unwrap_or(false), style)?,
             "textinput" | "text_input" => {
                 let val = node.text.as_deref().unwrap_or("");
                 let placeholder = node.placeholder.as_deref().unwrap_or("");
@@ -556,30 +607,52 @@ impl DeclarativeUiDoc {
                 let max = node.max.unwrap_or(1.0) as f32;
                 tree.slider(node.id.as_str(), min, max, val, style)?
             }
-            "toggle" => {
-                tree.toggle(node.id.as_str(), node.checked.unwrap_or(false), style)?
-            }
+            "toggle" => tree.toggle(node.id.as_str(), node.checked.unwrap_or(false), style)?,
             "radio" | "radiobutton" | "radio_button" => {
                 let group = node.group_id.as_deref().unwrap_or("default");
-                let label = node.label.as_deref().or(node.text.as_deref()).unwrap_or(&node.id);
-                tree.radio(node.id.as_str(), group, label, node.checked.unwrap_or(false), style)?
+                let label = node
+                    .label
+                    .as_deref()
+                    .or(node.text.as_deref())
+                    .unwrap_or(&node.id);
+                tree.radio(
+                    node.id.as_str(),
+                    group,
+                    label,
+                    node.checked.unwrap_or(false),
+                    style,
+                )?
             }
             "progressbar" | "progress_bar" => {
                 let progress = node.value.unwrap_or(0.5) as f32;
                 tree.progress_bar(progress, style)?
             }
             "metriccard" | "metric_card" => {
-                let title = node.title.as_deref().or(node.label.as_deref()).unwrap_or("Metric");
+                let title = node
+                    .title
+                    .as_deref()
+                    .or(node.label.as_deref())
+                    .unwrap_or("Metric");
                 let value = node.text.as_deref().unwrap_or("0");
-                let delta = node.delta.as_deref().map(|d| (d, node.delta_positive.unwrap_or(true)));
+                let delta = node
+                    .delta
+                    .as_deref()
+                    .map(|d| (d, node.delta_positive.unwrap_or(true)));
                 tree.metric_card(title, value, delta, style)?
             }
             "tabbar" | "tabs" => {
-                let default_tabs = vec!["Général".to_string(), "Paramètres".to_string(), "Avancé".to_string()];
+                let default_tabs = vec![
+                    "Général".to_string(),
+                    "Paramètres".to_string(),
+                    "Avancé".to_string(),
+                ];
                 let tabs_list = node.items.as_ref().unwrap_or(&default_tabs);
                 let active = node.active_index.unwrap_or(0);
                 let tab_style = Style {
-                    size: Size { width: length(90.0), height: length(28.0) },
+                    size: Size {
+                        width: length(90.0),
+                        height: length(28.0),
+                    },
                     ..Default::default()
                 };
                 tree.tabbar(node.id.as_str(), tabs_list, active, tab_style, style)?
@@ -589,7 +662,10 @@ impl DeclarativeUiDoc {
                 let opts = node.items.as_ref().unwrap_or(&default_opts);
                 let sel = node.active_index.unwrap_or(0);
                 let opt_style = Style {
-                    size: Size { width: length(80.0), height: length(26.0) },
+                    size: Size {
+                        width: length(80.0),
+                        height: length(26.0),
+                    },
                     ..Default::default()
                 };
                 tree.segmented_control(node.id.as_str(), opts, sel, opt_style, style)?
@@ -597,7 +673,13 @@ impl DeclarativeUiDoc {
             "dropdown" => {
                 let label = node.label.as_deref().unwrap_or("Sélectionnez");
                 let selected = node.text.as_deref().unwrap_or("Option Active");
-                tree.dropdown(node.id.as_str(), label, selected, node.checked.unwrap_or(false), style)?
+                tree.dropdown(
+                    node.id.as_str(),
+                    label,
+                    selected,
+                    node.checked.unwrap_or(false),
+                    style,
+                )?
             }
             "colorswatch" | "color_swatch" => {
                 let col = node.color.or(node.bg).unwrap_or([0.2, 0.6, 0.9, 1.0]);
@@ -610,17 +692,35 @@ impl DeclarativeUiDoc {
             "toast" => {
                 let title = node.title.as_deref().unwrap_or("Notification");
                 let message = node.text.as_deref().unwrap_or("Message");
-                tree.toast(node.id.as_str(), title, message, crate::kind::ToastKind::Info, style)?
+                tree.toast(
+                    node.id.as_str(),
+                    title,
+                    message,
+                    crate::kind::ToastKind::Info,
+                    style,
+                )?
             }
             "tooltip" => {
                 let text = node.text.as_deref().unwrap_or("Info-bulle");
                 tree.tooltip_simple(text, style)?
             }
             "table" => {
-                let cols = vec![("ID", 60.0, None), ("Nom", 140.0, Some(true)), ("Statut", 90.0, None)];
+                let cols = vec![
+                    ("ID", 60.0, None),
+                    ("Nom", 140.0, Some(true)),
+                    ("Statut", 90.0, None),
+                ];
                 let rows: Vec<Vec<(&str, ListItemBadge)>> = vec![
-                    vec![("001", ListItemBadge::None), ("Formulaire Client", ListItemBadge::None), ("Actif", ListItemBadge::Success)],
-                    vec![("002", ListItemBadge::None), ("Rapport Ventes", ListItemBadge::None), ("En attente", ListItemBadge::Warning)],
+                    vec![
+                        ("001", ListItemBadge::None),
+                        ("Formulaire Client", ListItemBadge::None),
+                        ("Actif", ListItemBadge::Success),
+                    ],
+                    vec![
+                        ("002", ListItemBadge::None),
+                        ("Rapport Ventes", ListItemBadge::None),
+                        ("En attente", ListItemBadge::Warning),
+                    ],
                 ];
                 tree.table(node.id.as_str(), &cols, &rows, Some(0), 24.0, style)?
             }
@@ -631,16 +731,21 @@ impl DeclarativeUiDoc {
                     ("n3", "⚙️ Config.toml", 1, false, false, false),
                 ];
                 let item_style = Style {
-                    size: Size { width: percent(1.0), height: length(22.0) },
+                    size: Size {
+                        width: percent(1.0),
+                        height: length(22.0),
+                    },
                     ..Default::default()
                 };
                 tree.tree_view(node.id.as_str(), &nodes_data, item_style, style)?
             }
-            "divider" => {
-                tree.divider(false, style)?
-            }
+            "divider" => tree.divider(false, style)?,
             other => {
-                tracing::warn!("Unknown declarative widget type '{}' for node '{}', falling back to container", other, node.id);
+                tracing::warn!(
+                    "Unknown declarative widget type '{}' for node '{}', falling back to container",
+                    other,
+                    node.id
+                );
                 tree.container(&child_node_ids, style)?
             }
         };
@@ -649,7 +754,12 @@ impl DeclarativeUiDoc {
     }
 
     /// Finds the action associated with a clicked widget_id, and dispatches it via the [`EventRouter`].
-    pub fn dispatch_click<T>(&self, event_router: &EventRouter<T>, state: &mut T, clicked_widget_id: &str) -> bool {
+    pub fn dispatch_click<T>(
+        &self,
+        event_router: &EventRouter<T>,
+        state: &mut T,
+        clicked_widget_id: &str,
+    ) -> bool {
         for node in &self.nodes {
             if node.id == clicked_widget_id {
                 if let Some(action) = &node.on_click {
@@ -738,7 +848,7 @@ mod tests {
 
         let mut tree = WidgetTree::new();
         let root_nid = doc.build_tree(&mut tree).expect("build tree from doc");
-        
+
         let space = Size {
             width: AvailableSpace::Definite(1920.0),
             height: AvailableSpace::Definite(1080.0),

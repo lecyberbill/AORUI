@@ -1,7 +1,7 @@
 // [WFGY] Zone: SAFE | λ: 0.2 | Fallbacks: 0 | Action: Global Keyboard Shortcuts, KeyChord Mapping and Tab Focus Ring Navigation Engine
+use crate::id::WidgetId;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-use crate::id::WidgetId;
 
 /// Represents a keyboard modifier combination.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, Default)]
@@ -268,9 +268,18 @@ mod tests {
         map.bind(KeyChord::ctrl(KeyCode::Char('s')), "save_file");
         map.bind(KeyChord::key(KeyCode::Escape), "dismiss_modal");
 
-        assert_eq!(map.resolve(&KeyChord::ctrl(KeyCode::Char('k'))), Some("open_spotlight"));
-        assert_eq!(map.resolve(&KeyChord::ctrl(KeyCode::Char('s'))), Some("save_file"));
-        assert_eq!(map.resolve(&KeyChord::key(KeyCode::Escape)), Some("dismiss_modal"));
+        assert_eq!(
+            map.resolve(&KeyChord::ctrl(KeyCode::Char('k'))),
+            Some("open_spotlight")
+        );
+        assert_eq!(
+            map.resolve(&KeyChord::ctrl(KeyCode::Char('s'))),
+            Some("save_file")
+        );
+        assert_eq!(
+            map.resolve(&KeyChord::key(KeyCode::Escape)),
+            Some("dismiss_modal")
+        );
         assert_eq!(map.resolve(&KeyChord::key(KeyCode::Char('k'))), None);
     }
 
@@ -286,9 +295,17 @@ mod tests {
         assert_eq!(fm.focus_next(), Some(&b1));
         assert_eq!(fm.focus_next(), Some(&b2));
         assert_eq!(fm.focus_next(), Some(&b3));
-        assert_eq!(fm.focus_next(), Some(&b1), "Should wrap around to first widget");
+        assert_eq!(
+            fm.focus_next(),
+            Some(&b1),
+            "Should wrap around to first widget"
+        );
 
-        assert_eq!(fm.focus_prev(), Some(&b3), "Should wrap backward to last widget");
+        assert_eq!(
+            fm.focus_prev(),
+            Some(&b3),
+            "Should wrap backward to last widget"
+        );
         assert_eq!(fm.focus_prev(), Some(&b2));
     }
 }

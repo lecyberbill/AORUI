@@ -81,9 +81,9 @@ impl DockNode {
     pub fn find_leaf(&self, leaf_id: &str) -> Option<&DockNode> {
         match self {
             DockNode::Leaf { id, .. } if id == leaf_id => Some(self),
-            DockNode::Split { first, second, .. } => {
-                first.find_leaf(leaf_id).or_else(|| second.find_leaf(leaf_id))
-            }
+            DockNode::Split { first, second, .. } => first
+                .find_leaf(leaf_id)
+                .or_else(|| second.find_leaf(leaf_id)),
             _ => None,
         }
     }
@@ -127,7 +127,13 @@ impl DockArea {
         new_leaf_id: impl Into<String>,
     ) -> bool {
         let new_leaf_id = new_leaf_id.into();
-        self.dock_node_internal(&mut self.root.clone(), target_leaf_id, tab, direction, new_leaf_id)
+        self.dock_node_internal(
+            &mut self.root.clone(),
+            target_leaf_id,
+            tab,
+            direction,
+            new_leaf_id,
+        )
     }
 
     fn dock_node_internal(
@@ -139,7 +145,10 @@ impl DockArea {
         new_leaf_id: String,
     ) -> bool {
         if direction == DockDirection::Center {
-            if let Some(DockNode::Leaf { tabs, active_tab, .. }) = self.root.find_leaf_mut(target_leaf_id) {
+            if let Some(DockNode::Leaf {
+                tabs, active_tab, ..
+            }) = self.root.find_leaf_mut(target_leaf_id)
+            {
                 tabs.push(tab);
                 *active_tab = tabs.len() - 1;
                 return true;
@@ -149,7 +158,12 @@ impl DockArea {
 
         // Split target leaf
         let mut replace_target = |node: &mut DockNode| -> bool {
-            if let DockNode::Leaf { id, tabs, active_tab } = node {
+            if let DockNode::Leaf {
+                id,
+                tabs,
+                active_tab,
+            } = node
+            {
                 if id == target_leaf_id {
                     let existing_leaf = DockNode::Leaf {
                         id: id.clone(),
@@ -163,10 +177,18 @@ impl DockArea {
                     };
 
                     let (orientation, first, second) = match direction {
-                        DockDirection::Left => (SplitOrientation::Horizontal, new_leaf, existing_leaf),
-                        DockDirection::Right => (SplitOrientation::Horizontal, existing_leaf, new_leaf),
-                        DockDirection::Above => (SplitOrientation::Vertical, new_leaf, existing_leaf),
-                        DockDirection::Below => (SplitOrientation::Vertical, existing_leaf, new_leaf),
+                        DockDirection::Left => {
+                            (SplitOrientation::Horizontal, new_leaf, existing_leaf)
+                        }
+                        DockDirection::Right => {
+                            (SplitOrientation::Horizontal, existing_leaf, new_leaf)
+                        }
+                        DockDirection::Above => {
+                            (SplitOrientation::Vertical, new_leaf, existing_leaf)
+                        }
+                        DockDirection::Below => {
+                            (SplitOrientation::Vertical, existing_leaf, new_leaf)
+                        }
                         DockDirection::Center => unreachable!(),
                     };
 
@@ -183,7 +205,11 @@ impl DockArea {
             false
         };
 
-        fn traverse(node: &mut DockNode, target_id: &str, replacer: &mut dyn FnMut(&mut DockNode) -> bool) -> bool {
+        fn traverse(
+            node: &mut DockNode,
+            target_id: &str,
+            replacer: &mut dyn FnMut(&mut DockNode) -> bool,
+        ) -> bool {
             match node {
                 DockNode::Leaf { id, .. } if id == target_id => replacer(node),
                 DockNode::Split { first, second, .. } => {
@@ -198,7 +224,10 @@ impl DockArea {
 
     /// Selects an active tab by index in a leaf.
     pub fn select_tab(&mut self, leaf_id: &str, tab_index: usize) -> bool {
-        if let Some(DockNode::Leaf { tabs, active_tab, .. }) = self.root.find_leaf_mut(leaf_id) {
+        if let Some(DockNode::Leaf {
+            tabs, active_tab, ..
+        }) = self.root.find_leaf_mut(leaf_id)
+        {
             if tab_index < tabs.len() {
                 *active_tab = tab_index;
                 return true;
@@ -214,12 +243,23 @@ mod tests {
 
     #[test]
     fn test_dock_area_creation_and_tab_addition() {
-        let mut dock = DockArea::new("main_panel", vec![DockTab::new("tab_editor", "Code Editor")]);
-        
-        let ok = dock.dock_tab("main_panel", DockTab::new("tab_terminal", "Terminal"), DockDirection::Center, "panel_term");
+        let mut dock = DockArea::new(
+            "main_panel",
+            vec![DockTab::new("tab_editor", "Code Editor")],
+        );
+
+        let ok = dock.dock_tab(
+            "main_panel",
+            DockTab::new("tab_terminal", "Terminal"),
+            DockDirection::Center,
+            "panel_term",
+        );
         assert!(ok);
 
-        if let Some(DockNode::Leaf { tabs, active_tab, .. }) = dock.root.find_leaf("main_panel") {
+        if let Some(DockNode::Leaf {
+            tabs, active_tab, ..
+        }) = dock.root.find_leaf("main_panel")
+        {
             assert_eq!(tabs.len(), 2);
             assert_eq!(*active_tab, 1);
         } else {
@@ -230,11 +270,22 @@ mod tests {
     #[test]
     fn test_dock_area_split_docking() {
         let mut dock = DockArea::new("editor_panel", vec![DockTab::new("tab_code", "Main.rs")]);
-        let ok = dock.dock_tab("editor_panel", DockTab::new("tab_radar", "Radar"), DockDirection::Right, "radar_panel");
+        let ok = dock.dock_tab(
+            "editor_panel",
+            DockTab::new("tab_radar", "Radar"),
+            DockDirection::Right,
+            "radar_panel",
+        );
         assert!(ok);
 
         match &dock.root {
-            DockNode::Split { orientation, ratio, first, second, .. } => {
+            DockNode::Split {
+                orientation,
+                ratio,
+                first,
+                second,
+                ..
+            } => {
                 assert_eq!(*orientation, SplitOrientation::Horizontal);
                 assert_eq!(*ratio, 0.5);
                 assert!(first.find_leaf("editor_panel").is_some());

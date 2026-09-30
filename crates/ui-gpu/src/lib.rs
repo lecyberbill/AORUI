@@ -4,6 +4,7 @@
 //! INV-CORE-1 (reminder): this crate must never be imported by `agent-runtime`.
 //! It consumes already constructed [`ui_core::GpuSdfInstance`]s
 //! (typically generated from bounds resolved by `ui-layout`).
+#![allow(clippy::too_many_arguments, clippy::collapsible_if)]
 
 mod background_pipeline;
 mod blur_pipeline;

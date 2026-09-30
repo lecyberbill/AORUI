@@ -1,8 +1,8 @@
 // [WFGY] Zone: SAFE | λ: 0.2 | Fallbacks: 0 | Action: High-level Agent HTTP/JSON Bridge & Ergonomic Hub for AORUI
-use std::sync::Arc;
-use std::time::Duration;
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
+use std::sync::Arc;
+use std::time::Duration;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::TcpListener;
 use tokio::sync::mpsc;
@@ -73,7 +73,10 @@ pub struct AgentBridge;
 
 impl AgentBridge {
     /// Starts the agent bridge HTTP listener in the current async Tokio context.
-    pub async fn start(config: BridgeConfig, tx_events: mpsc::Sender<UiEvent>) -> Option<BridgeStatus> {
+    pub async fn start(
+        config: BridgeConfig,
+        tx_events: mpsc::Sender<UiEvent>,
+    ) -> Option<BridgeStatus> {
         let mut listener_opt = None;
         let mut active_port = config.base_port;
 
@@ -124,11 +127,14 @@ impl AgentBridge {
                             full_req.extend_from_slice(&buf[..n]);
 
                             if content_length.is_none() {
-                                if let Some(pos) = full_req.windows(4).position(|w| w == b"\r\n\r\n") {
+                                if let Some(pos) =
+                                    full_req.windows(4).position(|w| w == b"\r\n\r\n")
+                                {
                                     header_len = pos + 4;
                                     let header_str = String::from_utf8_lossy(&full_req[..pos]);
                                     for line in header_str.lines() {
-                                        if line.to_ascii_lowercase().starts_with("content-length:") {
+                                        if line.to_ascii_lowercase().starts_with("content-length:")
+                                        {
                                             if let Some(val) = line.split(':').nth(1) {
                                                 content_length = val.trim().parse::<usize>().ok();
                                             }
@@ -147,77 +153,118 @@ impl AgentBridge {
                             }
                         }
 
-                        if full_req.is_empty() { return; }
+                        if full_req.is_empty() {
+                            return;
+                        }
                         let req = String::from_utf8_lossy(&full_req);
 
                         // 1. Authorization Verification (INV-SEC-3)
                         let mut authorized = true;
                         if let Some(expected_token) = &cfg.auth_token {
-                            let expected_header = format!("authorization: bearer {}", expected_token.to_lowercase());
+                            let expected_header =
+                                format!("authorization: bearer {}", expected_token.to_lowercase());
                             authorized = req.lines().any(|l| l.to_lowercase() == expected_header);
                         }
 
                         let (status_code, resp_json) = if !authorized {
-                            ("401 Unauthorized", json!({"error": "Jeton Bearer invalide ou manquant"}))
+                            (
+                                "401 Unauthorized",
+                                json!({"error": "Jeton Bearer invalide ou manquant"}),
+                            )
                         } else if req.starts_with("POST /mcp") || req.starts_with("POST /rpc") {
                             if let Some(body_start) = req.find("\r\n\r\n") {
                                 let body = req[body_start + 4..].trim();
                                 let reg = ToolRegistry::new();
-                                let mcp_resp = crate::mcp::McpHandler::handle(body, &reg, &tx).await;
-                                let parsed: Value = serde_json::from_str(&mcp_resp).unwrap_or(json!({}));
+                                let mcp_resp =
+                                    crate::mcp::McpHandler::handle(body, &reg, &tx).await;
+                                let parsed: Value =
+                                    serde_json::from_str(&mcp_resp).unwrap_or(json!({}));
                                 ("200 OK", parsed)
                             } else {
                                 ("400 Bad Request", json!({"error": "Malformed MCP request"}))
                             }
                         } else if req.starts_with("GET /mcp") {
-                            ("200 OK", json!({
-                                "mcp": "2024-11-05",
-                                "server": "aorui-mcp-server",
-                                "endpoint": "/mcp",
-                                "methods": ["initialize", "tools/list", "tools/call", "resources/list", "resources/read", "prompts/list", "prompts/get"]
-                            }))
-                        } else if req.starts_with("POST /ui/dynamic") || req.starts_with("POST /ui/declarative") {
+                            (
+                                "200 OK",
+                                json!({
+                                    "mcp": "2024-11-05",
+                                    "server": "aorui-mcp-server",
+                                    "endpoint": "/mcp",
+                                    "methods": ["initialize", "tools/list", "tools/call", "resources/list", "resources/read", "prompts/list", "prompts/get"]
+                                }),
+                            )
+                        } else if req.starts_with("POST /ui/dynamic")
+                            || req.starts_with("POST /ui/declarative")
+                        {
                             if let Some(body_start) = req.find("\r\n\r\n") {
                                 let body = req[body_start + 4..].trim();
                                 let parsed_opt: Result<Value, _> = serde_json::from_str(body);
                                 let (format, content) = if let Ok(parsed) = parsed_opt {
-                                    let fmt = parsed.get("format").and_then(|v| v.as_str()).unwrap_or("toml").to_string();
-                                    let cnt = parsed.get("content").and_then(|v| v.as_str()).unwrap_or("").to_string();
+                                    let fmt = parsed
+                                        .get("format")
+                                        .and_then(|v| v.as_str())
+                                        .unwrap_or("toml")
+                                        .to_string();
+                                    let cnt = parsed
+                                        .get("content")
+                                        .and_then(|v| v.as_str())
+                                        .unwrap_or("")
+                                        .to_string();
                                     (fmt, cnt)
                                 } else {
                                     ("toml".to_string(), body.to_string())
                                 };
 
-                                let _ = tx.send(UiEvent::UserPromptSubmitted(format!("Charger UI déclarative [{}]", format))).await;
-                                ("200 OK", json!({
-                                    "status": "ui_loaded",
-                                    "format": format,
-                                    "length_bytes": content.len()
-                                }))
+                                let _ = tx
+                                    .send(UiEvent::UserPromptSubmitted(format!(
+                                        "Charger UI déclarative [{}]",
+                                        format
+                                    )))
+                                    .await;
+                                (
+                                    "200 OK",
+                                    json!({
+                                        "status": "ui_loaded",
+                                        "format": format,
+                                        "length_bytes": content.len()
+                                    }),
+                                )
                             } else {
                                 ("400 Bad Request", json!({"error": "Empty UI payload"}))
                             }
-                        } else if req.starts_with("POST /prompt") || req.starts_with("POST /action") {
+                        } else if req.starts_with("POST /prompt") || req.starts_with("POST /action")
+                        {
                             if let Some(body_start) = req.find("\r\n\r\n") {
                                 let body = req[body_start + 4..].trim();
-                                let prompt_opt = if let Ok(parsed) = serde_json::from_str::<Value>(body) {
-                                    parsed.get("prompt").and_then(|v| v.as_str()).map(|s| s.to_string())
-                                } else if !body.is_empty() {
-                                    Some(body.to_string())
-                                } else {
-                                    None
-                                };
+                                let prompt_opt =
+                                    if let Ok(parsed) = serde_json::from_str::<Value>(body) {
+                                        parsed
+                                            .get("prompt")
+                                            .and_then(|v| v.as_str())
+                                            .map(|s| s.to_string())
+                                    } else if !body.is_empty() {
+                                        Some(body.to_string())
+                                    } else {
+                                        None
+                                    };
 
                                 if let Some(prompt) = prompt_opt {
-                                    let _ = tx.send(UiEvent::UserPromptSubmitted(prompt.clone())).await;
-                                    ("200 OK", json!({
-                                        "status": "dispatched",
-                                        "prompt": prompt,
-                                        "sandbox": cfg.sandbox_mode,
-                                        "app": cfg.app_name
-                                    }))
+                                    let _ =
+                                        tx.send(UiEvent::UserPromptSubmitted(prompt.clone())).await;
+                                    (
+                                        "200 OK",
+                                        json!({
+                                            "status": "dispatched",
+                                            "prompt": prompt,
+                                            "sandbox": cfg.sandbox_mode,
+                                            "app": cfg.app_name
+                                        }),
+                                    )
                                 } else {
-                                    ("400 Bad Request", json!({"error": "Champ 'prompt' manquant dans le corps JSON"}))
+                                    (
+                                        "400 Bad Request",
+                                        json!({"error": "Champ 'prompt' manquant dans le corps JSON"}),
+                                    )
                                 }
                             } else {
                                 ("400 Bad Request", json!({"error": "Headers malformés"}))
@@ -226,15 +273,18 @@ impl AgentBridge {
                             let _ = tx.send(UiEvent::AgentInterrupted).await;
                             ("200 OK", json!({"status": "interrupted"}))
                         } else if req.starts_with("GET /health") || req.starts_with("GET /status") {
-                            ("200 OK", json!({
-                                "status": "healthy",
-                                "app": cfg.app_name,
-                                "port": port,
-                                "sandbox": cfg.sandbox_mode,
-                                "auth_required": cfg.auth_token.is_some(),
-                                "mcp_endpoint": "/mcp",
-                                "stream_endpoint": "/events/stream"
-                            }))
+                            (
+                                "200 OK",
+                                json!({
+                                    "status": "healthy",
+                                    "app": cfg.app_name,
+                                    "port": port,
+                                    "sandbox": cfg.sandbox_mode,
+                                    "auth_required": cfg.auth_token.is_some(),
+                                    "mcp_endpoint": "/mcp",
+                                    "stream_endpoint": "/events/stream"
+                                }),
+                            )
                         } else if req.starts_with("OPTIONS") {
                             ("200 OK", json!({"status": "allowed"}))
                         } else {

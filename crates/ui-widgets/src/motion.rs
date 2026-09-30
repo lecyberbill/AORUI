@@ -65,7 +65,8 @@ impl Easing {
                 } else {
                     let p = 0.3;
                     let s = p / 4.0;
-                    2.0f32.powf(-10.0 * t) * ((t - s) * (2.0 * std::f32::consts::PI) / p).sin() + 1.0
+                    2.0f32.powf(-10.0 * t) * ((t - s) * (2.0 * std::f32::consts::PI) / p).sin()
+                        + 1.0
                 }
             }
             Easing::EaseOutBounce => {
@@ -220,7 +221,9 @@ impl AnimatedValue {
             return self.current;
         }
 
-        let (pos, vel) = self.spring.step(dt, self.current, self.target, self.velocity);
+        let (pos, vel) = self
+            .spring
+            .step(dt, self.current, self.target, self.velocity);
         self.current = pos;
         self.velocity = vel;
 
@@ -239,7 +242,8 @@ impl AnimatedValue {
 
     /// Returns true if the value has reached its target and velocity is negligible.
     pub fn is_settled(&self) -> bool {
-        self.spring.is_settled(self.current, self.target, self.velocity, self.tolerance)
+        self.spring
+            .is_settled(self.current, self.target, self.velocity, self.tolerance)
     }
 }
 
@@ -296,7 +300,10 @@ mod tests {
             anim.update(dt);
         }
 
-        assert!(anim.is_settled(), "Spring should converge to target within 2 seconds");
+        assert!(
+            anim.is_settled(),
+            "Spring should converge to target within 2 seconds"
+        );
         assert_eq!(anim.current, 100.0);
     }
 

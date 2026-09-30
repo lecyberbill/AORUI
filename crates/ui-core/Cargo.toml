@@ -8,3 +8,6 @@ description = "Protocole d'evenements/patches et types partages du framework UI 
 [dependencies]
 serde.workspace = true
 bytemuck.workspace = true
+
+[lints]
+workspace = true

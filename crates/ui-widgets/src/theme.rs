@@ -57,9 +57,12 @@ pub mod color_serde {
 
         match hex.len() {
             6 => {
-                let r = u8::from_str_radix(&hex[0..2], 16).map_err(|e| format!("Invalid hex red '{s}': {e}"))?;
-                let g = u8::from_str_radix(&hex[2..4], 16).map_err(|e| format!("Invalid hex green '{s}': {e}"))?;
-                let b = u8::from_str_radix(&hex[4..6], 16).map_err(|e| format!("Invalid hex blue '{s}': {e}"))?;
+                let r = u8::from_str_radix(&hex[0..2], 16)
+                    .map_err(|e| format!("Invalid hex red '{s}': {e}"))?;
+                let g = u8::from_str_radix(&hex[2..4], 16)
+                    .map_err(|e| format!("Invalid hex green '{s}': {e}"))?;
+                let b = u8::from_str_radix(&hex[4..6], 16)
+                    .map_err(|e| format!("Invalid hex blue '{s}': {e}"))?;
                 Ok([
                     srgb_to_linear(r as f32 / 255.0),
                     srgb_to_linear(g as f32 / 255.0),
@@ -68,10 +71,14 @@ pub mod color_serde {
                 ])
             }
             8 => {
-                let r = u8::from_str_radix(&hex[0..2], 16).map_err(|e| format!("Invalid hex red '{s}': {e}"))?;
-                let g = u8::from_str_radix(&hex[2..4], 16).map_err(|e| format!("Invalid hex green '{s}': {e}"))?;
-                let b = u8::from_str_radix(&hex[4..6], 16).map_err(|e| format!("Invalid hex blue '{s}': {e}"))?;
-                let a = u8::from_str_radix(&hex[6..8], 16).map_err(|e| format!("Invalid hex alpha '{s}': {e}"))?;
+                let r = u8::from_str_radix(&hex[0..2], 16)
+                    .map_err(|e| format!("Invalid hex red '{s}': {e}"))?;
+                let g = u8::from_str_radix(&hex[2..4], 16)
+                    .map_err(|e| format!("Invalid hex green '{s}': {e}"))?;
+                let b = u8::from_str_radix(&hex[4..6], 16)
+                    .map_err(|e| format!("Invalid hex blue '{s}': {e}"))?;
+                let a = u8::from_str_radix(&hex[6..8], 16)
+                    .map_err(|e| format!("Invalid hex alpha '{s}': {e}"))?;
                 Ok([
                     srgb_to_linear(r as f32 / 255.0),
                     srgb_to_linear(g as f32 / 255.0),
@@ -79,7 +86,9 @@ pub mod color_serde {
                     a as f32 / 255.0,
                 ])
             }
-            len => Err(format!("Expected 6 or 8 character hex color (got {len} characters in '{s}')")),
+            len => Err(format!(
+                "Expected 6 or 8 character hex color (got {len} characters in '{s}')"
+            )),
         }
     }
 }
@@ -180,14 +189,14 @@ impl Theme {
     /// Default cyber-glass theme: neon cyan accents on translucent dark glass.
     pub fn cyber_glass() -> Self {
         Self {
-            glass_bg: hex("#0f1624d9"),                  // #0f1624 with 85% alpha
-            accent: hex("#00e0fa"),                      // Luminescent Neon Cyan
-            accent_secondary: hex("#b861fa"),            // Electric Purple
-            danger: hex("#ff4761"),                      // Coral Red
-            success: hex("#2ee07a"),                     // Emerald Neon
-            warning: hex("#fac02e"),                     // Amber Gold
-            text_color: hex("#f0f7ff"),                  // Ice White
-            text_muted: hex("#99add1"),                  // Muted Slate
+            glass_bg: hex("#0f1624d9"),       // #0f1624 with 85% alpha
+            accent: hex("#00e0fa"),           // Luminescent Neon Cyan
+            accent_secondary: hex("#b861fa"), // Electric Purple
+            danger: hex("#ff4761"),           // Coral Red
+            success: hex("#2ee07a"),          // Emerald Neon
+            warning: hex("#fac02e"),          // Amber Gold
+            text_color: hex("#f0f7ff"),       // Ice White
+            text_muted: hex("#99add1"),       // Muted Slate
             corner_radius: 14.0,
             border_width: 1.2,
             glow_intensity: 0.12,
@@ -199,14 +208,14 @@ impl Theme {
     /// Studio Pro theme: Rich Midnight Navy Blue (#081026), vivid cyan accent (#2ee8d6), electric violet (#9447eb), 6-8px radius, micro-borders.
     pub fn studio_pro() -> Self {
         Self {
-            glass_bg: hex("#081026fa"),                  // #081026 (Rich Midnight Navy Blue, 98% alpha)
-            accent: hex("#2ee8d6"),                      // #2ee8d6 (Luminescent Bright Cyan)
-            accent_secondary: hex("#9447eb"),            // #9447eb (Electric Violet/Purple)
-            danger: hex("#ff5270"),                      // #ff5270 (Vibrant Coral Red)
-            success: hex("#2eeb85"),                     // #2eeb85 (Bright Emerald Neon)
-            warning: hex("#fcc72e"),                     // #fcc72e (Warm Amber Gold)
-            text_color: hex("#f2f7ff"),                  // #f2f7ff (Crisp Ice White)
-            text_muted: hex("#7a95be"),                  // #7a95be (Soft Slate Indigo Blue)
+            glass_bg: hex("#081026fa"), // #081026 (Rich Midnight Navy Blue, 98% alpha)
+            accent: hex("#2ee8d6"),     // #2ee8d6 (Luminescent Bright Cyan)
+            accent_secondary: hex("#9447eb"), // #9447eb (Electric Violet/Purple)
+            danger: hex("#ff5270"),     // #ff5270 (Vibrant Coral Red)
+            success: hex("#2eeb85"),    // #2eeb85 (Bright Emerald Neon)
+            warning: hex("#fcc72e"),    // #fcc72e (Warm Amber Gold)
+            text_color: hex("#f2f7ff"), // #f2f7ff (Crisp Ice White)
+            text_muted: hex("#7a95be"), // #7a95be (Soft Slate Indigo Blue)
             corner_radius: 6.0,
             border_width: 1.0,
             glow_intensity: 0.08,
@@ -218,14 +227,14 @@ impl Theme {
     /// AetherOS Flagship Theme: Deep Midnight Navy Atmospheric Glassmorphism (#111624), Periwinkle (#c0c1ff), Cyan Ray (#7bd0ff), Emerald (#4edea3), Rose (#ffb4ab).
     pub fn aether_os() -> Self {
         Self {
-            glass_bg: hex("#111624f2"),                  // #111624 with 95% alpha (Deep Midnight Navy Oceanic Slate)
-            accent: hex("#c0c1ff"),                      // #c0c1ff (Periwinkle Indigo)
-            accent_secondary: hex("#7bd0ff"),            // #7bd0ff (Cyan Ray)
-            danger: hex("#ffb4ab"),                      // #ffb4ab (Error Rose)
-            success: hex("#4edea3"),                     // #4edea3 (Emerald Sync)
-            warning: hex("#f59e0b"),                     // #f59e0b (Amber Warning)
-            text_color: hex("#dfe2f1"),                  // #dfe2f1 (Crisp Light Text)
-            text_muted: hex("#8d99b2"),                  // #8d99b2 (Soft Slate Gray)
+            glass_bg: hex("#111624f2"), // #111624 with 95% alpha (Deep Midnight Navy Oceanic Slate)
+            accent: hex("#c0c1ff"),     // #c0c1ff (Periwinkle Indigo)
+            accent_secondary: hex("#7bd0ff"), // #7bd0ff (Cyan Ray)
+            danger: hex("#ffb4ab"),     // #ffb4ab (Error Rose)
+            success: hex("#4edea3"),    // #4edea3 (Emerald Sync)
+            warning: hex("#f59e0b"),    // #f59e0b (Amber Warning)
+            text_color: hex("#dfe2f1"), // #dfe2f1 (Crisp Light Text)
+            text_muted: hex("#8d99b2"), // #8d99b2 (Soft Slate Gray)
             corner_radius: 10.0,
             border_width: 1.0,
             glow_intensity: 0.05,
@@ -262,7 +271,12 @@ impl Theme {
 
     /// Focused / selected border outline
     pub fn border_highlight(&self) -> [f32; 4] {
-        [self.accent_secondary[0], self.accent_secondary[1], self.accent_secondary[2], 0.9]
+        [
+            self.accent_secondary[0],
+            self.accent_secondary[1],
+            self.accent_secondary[2],
+            0.9,
+        ]
     }
 
     /// Parses a theme definition from a TOML string.

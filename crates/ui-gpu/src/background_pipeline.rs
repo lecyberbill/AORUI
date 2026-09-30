@@ -47,7 +47,12 @@ fn hex_to_linear(hex: &str) -> [f32; 4] {
             let g = u8::from_str_radix(&clean[2..4], 16).unwrap_or(0);
             let b = u8::from_str_radix(&clean[4..6], 16).unwrap_or(0);
             let a = u8::from_str_radix(&clean[6..8], 16).unwrap_or(255);
-            [srgb_to_lin(r), srgb_to_lin(g), srgb_to_lin(b), a as f32 / 255.0]
+            [
+                srgb_to_lin(r),
+                srgb_to_lin(g),
+                srgb_to_lin(b),
+                a as f32 / 255.0,
+            ]
         }
         _ => [0.0, 0.0, 0.0, 1.0],
     }
@@ -67,17 +72,17 @@ impl BackgroundParams {
             screen_size: [width, height],
             grid_spacing: 24.0,
             grid_dot_size: 1.0,
-            base_color: hex_to_linear("#05080f"),         // Deep midnight oceanic black (linearized)
-            grad1_center: [0.65, -0.25],                  // Shifted right/up: top-left remains deep dark
-            grad1_radius: [0.55, 0.45],                   // Calibrated ellipse
+            base_color: hex_to_linear("#05080f"), // Deep midnight oceanic black (linearized)
+            grad1_center: [0.65, -0.25],          // Shifted right/up: top-left remains deep dark
+            grad1_radius: [0.55, 0.45],           // Calibrated ellipse
             grad1_color: [
                 srgb_to_linear(99.0 / 255.0),
                 srgb_to_linear(102.0 / 255.0),
                 srgb_to_linear(241.0 / 255.0),
                 0.22,
             ], // Indigo/Periwinkle Aurora (#6366f1) in linear space
-            grad2_center: [0.85, 0.95],                   // Nadir bottom right
-            grad2_radius: [0.55, 0.45],                   // Ellipse 55% x 45%
+            grad2_center: [0.85, 0.95],           // Nadir bottom right
+            grad2_radius: [0.55, 0.45],           // Ellipse 55% x 45%
             grad2_color: [
                 srgb_to_linear(56.0 / 255.0),
                 srgb_to_linear(189.0 / 255.0),
@@ -157,7 +162,9 @@ impl BackgroundPipeline {
     pub fn new(device: &wgpu::Device, format: wgpu::TextureFormat) -> Self {
         let shader = device.create_shader_module(wgpu::ShaderModuleDescriptor {
             label: Some("background_gradient_shader"),
-            source: wgpu::ShaderSource::Wgsl(include_str!("../shaders/background_gradient.wgsl").into()),
+            source: wgpu::ShaderSource::Wgsl(
+                include_str!("../shaders/background_gradient.wgsl").into(),
+            ),
         });
 
         let uniform_buffer = device.create_buffer(&wgpu::BufferDescriptor {

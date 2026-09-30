@@ -45,12 +45,15 @@ impl ToolRegistry {
     }
 
     pub fn list_tools(&self) -> Vec<serde_json::Value> {
-        self.tools.values().map(|t| {
-            serde_json::json!({
-                "name": t.name(),
-                "description": format!("AORUI deterministic UI control tool: {}", t.name()),
-                "inputSchema": t.schema()
+        self.tools
+            .values()
+            .map(|t| {
+                serde_json::json!({
+                    "name": t.name(),
+                    "description": format!("AORUI deterministic UI control tool: {}", t.name()),
+                    "inputSchema": t.schema()
+                })
             })
-        }).collect()
+            .collect()
     }
 }

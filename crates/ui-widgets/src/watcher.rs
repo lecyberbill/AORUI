@@ -1,8 +1,8 @@
 // [WFGY] Zone: SAFE | λ: 0.2 | Fallbacks: 0 | Action: Asynchronous theme file watcher and dynamic hot-reloader
+use crate::theme::Theme;
+use notify::{Config, Event, EventKind, RecommendedWatcher, RecursiveMode, Watcher};
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, RwLock};
-use notify::{Config, Event, EventKind, RecommendedWatcher, RecursiveMode, Watcher};
-use crate::theme::Theme;
 
 /// File watcher that monitors a theme TOML configuration on disk and hot-reloads it in-memory.
 pub struct ThemeWatcher {
@@ -23,7 +23,10 @@ impl ThemeWatcher {
     where
         F: Fn(&Theme) + Send + Sync + 'static,
     {
-        let path_buf = path.as_ref().canonicalize().unwrap_or_else(|_| path.as_ref().to_path_buf());
+        let path_buf = path
+            .as_ref()
+            .canonicalize()
+            .unwrap_or_else(|_| path.as_ref().to_path_buf());
         let watched_path = path_buf.clone();
         let target_clone = theme_target.clone();
 
@@ -32,22 +35,33 @@ impl ThemeWatcher {
                 Ok(event) => {
                     if matches!(event.kind, EventKind::Modify(_) | EventKind::Create(_)) {
                         for p in &event.paths {
-                            if p == &watched_path || watched_path.ends_with(p.file_name().unwrap_or_default()) {
+                            if p == &watched_path
+                                || watched_path.ends_with(p.file_name().unwrap_or_default())
+                            {
                                 match std::fs::read_to_string(&watched_path) {
-                                    Ok(content) => match Theme::from_toml(&content) {
-                                        Ok(new_theme) => {
-                                            tracing::info!("Theme successfully hot-reloaded from {:?}", watched_path);
-                                            if let Ok(mut lock) = target_clone.write() {
-                                                *lock = new_theme.clone();
+                                    Ok(content) => {
+                                        match Theme::from_toml(&content) {
+                                            Ok(new_theme) => {
+                                                tracing::info!(
+                                                    "Theme successfully hot-reloaded from {:?}",
+                                                    watched_path
+                                                );
+                                                if let Ok(mut lock) = target_clone.write() {
+                                                    *lock = new_theme.clone();
+                                                }
+                                                on_change(&new_theme);
                                             }
-                                            on_change(&new_theme);
+                                            Err(err) => {
+                                                tracing::warn!("Failed to parse hot-reloaded theme from {:?}: {}", watched_path, err);
+                                            }
                                         }
-                                        Err(err) => {
-                                            tracing::warn!("Failed to parse hot-reloaded theme from {:?}: {}", watched_path, err);
-                                        }
-                                    },
+                                    }
                                     Err(err) => {
-                                        tracing::warn!("Failed to read theme file {:?}: {}", watched_path, err);
+                                        tracing::warn!(
+                                            "Failed to read theme file {:?}: {}",
+                                            watched_path,
+                                            err
+                                        );
                                     }
                                 }
                             }

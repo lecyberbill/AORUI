@@ -611,9 +611,27 @@ pub enum RatingGlyph {
 impl RatingGlyph {
     pub fn glyph(&self, filled: bool) -> &'static str {
         match self {
-            RatingGlyph::Star => if filled { "★" } else { "☆" },
-            RatingGlyph::Heart => if filled { "♥" } else { "♡" },
-            RatingGlyph::Diamond => if filled { "◆" } else { "◇" },
+            RatingGlyph::Star => {
+                if filled {
+                    "★"
+                } else {
+                    "☆"
+                }
+            }
+            RatingGlyph::Heart => {
+                if filled {
+                    "♥"
+                } else {
+                    "♡"
+                }
+            }
+            RatingGlyph::Diamond => {
+                if filled {
+                    "◆"
+                } else {
+                    "◇"
+                }
+            }
         }
     }
 }
@@ -666,8 +684,8 @@ impl AvatarStatus {
         match self {
             AvatarStatus::None => None,
             AvatarStatus::Online => Some([0.15, 0.92, 0.45, 1.0]), // Vibrant neon green
-            AvatarStatus::Away => Some([1.0, 0.78, 0.12, 1.0]),   // Amber gold
-            AvatarStatus::Busy => Some([1.0, 0.25, 0.30, 1.0]),   // Ruby red
+            AvatarStatus::Away => Some([1.0, 0.78, 0.12, 1.0]),    // Amber gold
+            AvatarStatus::Busy => Some([1.0, 0.25, 0.30, 1.0]),    // Ruby red
             AvatarStatus::Offline => Some([0.50, 0.55, 0.65, 1.0]), // Slate gray
         }
     }
@@ -698,11 +716,11 @@ pub enum SocketType {
 impl SocketType {
     pub fn default_color(&self) -> [f32; 4] {
         match self {
-            SocketType::Signal => [0.0, 0.85, 1.0, 1.0],     // Cyan
-            SocketType::Data => [0.2, 0.8, 0.4, 1.0],       // Green
-            SocketType::Texture => [0.95, 0.6, 0.1, 1.0],    // Amber
-            SocketType::Flow => [0.65, 0.35, 0.95, 1.0],    // Violet
-            SocketType::Custom(_) => [0.8, 0.8, 0.9, 1.0],  // Light Slate
+            SocketType::Signal => [0.0, 0.85, 1.0, 1.0],   // Cyan
+            SocketType::Data => [0.2, 0.8, 0.4, 1.0],      // Green
+            SocketType::Texture => [0.95, 0.6, 0.1, 1.0],  // Amber
+            SocketType::Flow => [0.65, 0.35, 0.95, 1.0],   // Violet
+            SocketType::Custom(_) => [0.8, 0.8, 0.9, 1.0], // Light Slate
         }
     }
 }

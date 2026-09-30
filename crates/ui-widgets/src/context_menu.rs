@@ -1,7 +1,7 @@
 // [WFGY] Zone: SAFE | λ: 0.2 | Fallbacks: 0 | Action: Hierarchical Context Menu & Submenu Navigation Engine
-use serde::{Deserialize, Serialize};
 use crate::floating::{compute_floating_rect, Placement};
 use crate::id::WidgetId;
+use serde::{Deserialize, Serialize};
 
 /// Single item within a context menu tree.
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -53,10 +53,15 @@ impl ContextMenuState {
 
     /// Computes the bounding geometry for the root context menu box within viewport.
     pub fn root_rect(&self, item_height: f32, menu_width: f32, viewport: [f32; 4]) -> [f32; 4] {
-        let total_h = self.items.iter().map(|it| match it {
-            MenuItemSpec::Separator => 6.0,
-            _ => item_height,
-        }).sum::<f32>() + 12.0;
+        let total_h = self
+            .items
+            .iter()
+            .map(|it| match it {
+                MenuItemSpec::Separator => 6.0,
+                _ => item_height,
+            })
+            .sum::<f32>()
+            + 12.0;
 
         let anchor = [self.anchor_pos.0, self.anchor_pos.1, 1.0, 1.0];
         let fl = compute_floating_rect(
@@ -92,15 +97,13 @@ mod tests {
             MenuItemSpec::Submenu {
                 label: "Format".to_string(),
                 icon: None,
-                items: vec![
-                    MenuItemSpec::Action {
-                        id: WidgetId::new("bold"),
-                        label: "Bold".to_string(),
-                        shortcut: None,
-                        icon: None,
-                        disabled: false,
-                    },
-                ],
+                items: vec![MenuItemSpec::Action {
+                    id: WidgetId::new("bold"),
+                    label: "Bold".to_string(),
+                    shortcut: None,
+                    icon: None,
+                    disabled: false,
+                }],
             },
         ];
 

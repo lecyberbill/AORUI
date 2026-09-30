@@ -8,7 +8,9 @@ use ui_layout::{
     Position, Rect, Size, Style,
 };
 use ui_widgets::declarative::{DeclarativeUiDoc, LayoutStyleSpec, WidgetNodeSpec};
-use ui_widgets::{ButtonVariant, FontFamily, InteractionState, ListItemBadge, Theme, ThemeWatcher, WidgetTree};
+use ui_widgets::{
+    ButtonVariant, FontFamily, InteractionState, ListItemBadge, Theme, ThemeWatcher, WidgetTree,
+};
 
 use winit::application::ApplicationHandler;
 use winit::event::{ElementState, MouseButton, WindowEvent};
@@ -580,7 +582,8 @@ impl FormDesignerApp {
             state: DesignerState {
                 doc: initial_doc,
                 selected_widget_id: None,
-                status: "Studio prêt. Sélectionnez un composant ou glissez depuis la palette.".to_string(),
+                status: "Studio prêt. Sélectionnez un composant ou glissez depuis la palette."
+                    .to_string(),
                 next_id_counter: 0,
                 active_toolbox_tab: "Controls".to_string(),
                 drag_session: None,
@@ -756,7 +759,10 @@ impl FormDesignerApp {
 
         state.doc.nodes.push(new_node);
         state.selected_widget_id = Some(new_id.clone());
-        state.status = format!("➕ Composant '{}' ({}) placé à X: {:.0}, Y: {:.0} !", new_id, widget_type, snapped_x, snapped_y);
+        state.status = format!(
+            "➕ Composant '{}' ({}) placé à X: {:.0}, Y: {:.0} !",
+            new_id, widget_type, snapped_x, snapped_y
+        );
     }
 
     /// Assembles the interactive artboard canvas
@@ -809,21 +815,43 @@ impl FormDesignerApp {
                             let item_btn = tree.button_variant(
                                 format!("{}_itm_{}", child.id, idx),
                                 itm,
-                                if idx == active { ButtonVariant::Primary } else { ButtonVariant::Ghost },
+                                if idx == active {
+                                    ButtonVariant::Primary
+                                } else {
+                                    ButtonVariant::Ghost
+                                },
                                 true,
-                                Style { size: Size { width: length(70.0), height: length(26.0) }, ..Default::default() },
+                                Style {
+                                    size: Size {
+                                        width: length(70.0),
+                                        height: length(26.0),
+                                    },
+                                    ..Default::default()
+                                },
                             )?;
                             item_nodes.push(item_btn);
                         }
                         tree.panel(
                             &item_nodes,
                             child.bg.or(Some(self.theme.card_bg())),
-                            if is_selected { Some(self.theme.border_highlight()) } else { child.border.or(Some(self.theme.border_subtle())) },
+                            if is_selected {
+                                Some(self.theme.border_highlight())
+                            } else {
+                                child.border.or(Some(self.theme.border_subtle()))
+                            },
                             Style {
                                 flex_direction: FlexDirection::Row,
                                 align_items: Some(AlignItems::Center),
-                                gap: Size { width: length(4.0), height: length(0.0) },
-                                padding: Rect { top: length(2.0), bottom: length(2.0), left: length(6.0), right: length(6.0) },
+                                gap: Size {
+                                    width: length(4.0),
+                                    height: length(0.0),
+                                },
+                                padding: Rect {
+                                    top: length(2.0),
+                                    bottom: length(2.0),
+                                    left: length(6.0),
+                                    right: length(6.0),
+                                },
                                 ..child_style
                             },
                         )?
@@ -832,14 +860,26 @@ impl FormDesignerApp {
                         let title = child.title.as_deref().unwrap_or("Window");
                         let title_lbl = tree.label(
                             title,
-                            Style { size: Size { width: auto(), height: length(22.0) }, ..Default::default() },
+                            Style {
+                                size: Size {
+                                    width: auto(),
+                                    height: length(22.0),
+                                },
+                                ..Default::default()
+                            },
                         )?;
                         let close_btn = tree.button_variant(
                             format!("{}_close", child.id),
                             "✕",
                             ButtonVariant::Ghost,
                             true,
-                            Style { size: Size { width: length(22.0), height: length(22.0) }, ..Default::default() },
+                            Style {
+                                size: Size {
+                                    width: length(22.0),
+                                    height: length(22.0),
+                                },
+                                ..Default::default()
+                            },
                         )?;
                         let win_header = tree.container(
                             &[title_lbl, close_btn],
@@ -847,40 +887,57 @@ impl FormDesignerApp {
                                 flex_direction: FlexDirection::Row,
                                 justify_content: Some(ui_layout::JustifyContent::SpaceBetween),
                                 align_items: Some(AlignItems::Center),
-                                size: Size { width: percent(1.0), height: length(26.0) },
+                                size: Size {
+                                    width: percent(1.0),
+                                    height: length(26.0),
+                                },
                                 ..Default::default()
                             },
                         )?;
 
                         let content_lbl = tree.label_muted(
                             "Contenu interne de la fenêtre modale.",
-                            Style { size: Size { width: percent(1.0), height: length(40.0) }, ..Default::default() },
+                            Style {
+                                size: Size {
+                                    width: percent(1.0),
+                                    height: length(40.0),
+                                },
+                                ..Default::default()
+                            },
                         )?;
 
                         tree.panel(
                             &[win_header, content_lbl],
                             child.bg.or(Some(self.theme.card_bg())),
-                            if is_selected { Some(self.theme.border_highlight()) } else { child.border.or(Some(self.theme.border_subtle())) },
+                            if is_selected {
+                                Some(self.theme.border_highlight())
+                            } else {
+                                child.border.or(Some(self.theme.border_subtle()))
+                            },
                             child_style,
                         )?
                     }
-                    "card" => {
-                        tree.card(
-                            &[],
-                            child.bg.or(Some(self.theme.card_bg())),
-                            if is_selected { Some(self.theme.border_highlight()) } else { child.border.or(Some(self.theme.border_subtle())) },
-                            child.radius,
-                            child_style,
-                        )?
-                    }
-                    "panel" => {
-                        tree.panel(
-                            &[],
-                            child.bg.or(Some(self.theme.card_bg())),
-                            if is_selected { Some(self.theme.border_highlight()) } else { child.border.or(Some(self.theme.border_subtle())) },
-                            child_style,
-                        )?
-                    }
+                    "card" => tree.card(
+                        &[],
+                        child.bg.or(Some(self.theme.card_bg())),
+                        if is_selected {
+                            Some(self.theme.border_highlight())
+                        } else {
+                            child.border.or(Some(self.theme.border_subtle()))
+                        },
+                        child.radius,
+                        child_style,
+                    )?,
+                    "panel" => tree.panel(
+                        &[],
+                        child.bg.or(Some(self.theme.card_bg())),
+                        if is_selected {
+                            Some(self.theme.border_highlight())
+                        } else {
+                            child.border.or(Some(self.theme.border_subtle()))
+                        },
+                        child_style,
+                    )?,
                     "button" => {
                         let label = child.label.as_deref().unwrap_or(&child.id);
                         let var = match child.variant.as_deref() {
@@ -889,10 +946,20 @@ impl FormDesignerApp {
                             Some("Ghost") => ButtonVariant::Ghost,
                             _ => ButtonVariant::Primary,
                         };
-                        tree.button_variant(child.id.as_str(), label, var, child.enabled.unwrap_or(true), child_style)?
+                        tree.button_variant(
+                            child.id.as_str(),
+                            label,
+                            var,
+                            child.enabled.unwrap_or(true),
+                            child_style,
+                        )?
                     }
                     "label" => {
-                        let text = child.text.as_deref().or(child.label.as_deref()).unwrap_or(&child.id);
+                        let text = child
+                            .text
+                            .as_deref()
+                            .or(child.label.as_deref())
+                            .unwrap_or(&child.id);
                         if child.muted.unwrap_or(false) {
                             tree.label_muted(text, child_style)?
                         } else {
@@ -910,28 +977,49 @@ impl FormDesignerApp {
                         let max = child.max.unwrap_or(100.0) as f32;
                         tree.slider(child.id.as_str(), min, max, val, child_style)?
                     }
-                    "toggle" => {
-                        tree.toggle(child.id.as_str(), child.checked.unwrap_or(true), child_style)?
-                    }
+                    "toggle" => tree.toggle(
+                        child.id.as_str(),
+                        child.checked.unwrap_or(true),
+                        child_style,
+                    )?,
                     "badge" => {
-                        let text = child.text.as_deref().or(child.label.as_deref()).unwrap_or(&child.id);
+                        let text = child
+                            .text
+                            .as_deref()
+                            .or(child.label.as_deref())
+                            .unwrap_or(&child.id);
                         tree.badge(text, ListItemBadge::Success, child_style)?
                     }
                     "metriccard" => {
                         let title = child.title.as_deref().unwrap_or("Metric");
                         let val = child.text.as_deref().unwrap_or("0");
-                        let delta = child.delta.as_deref().map(|d| (d, child.delta_positive.unwrap_or(true)));
+                        let delta = child
+                            .delta
+                            .as_deref()
+                            .map(|d| (d, child.delta_positive.unwrap_or(true)));
                         tree.metric_card(title, val, delta, child_style)?
                     }
                     "dropdown" => {
                         let label = child.label.as_deref().unwrap_or("Sélectionner");
                         let sel = child.text.as_deref().unwrap_or("");
-                        tree.dropdown(child.id.as_str(), label, sel, child.checked.unwrap_or(false), child_style)?
+                        tree.dropdown(
+                            child.id.as_str(),
+                            label,
+                            sel,
+                            child.checked.unwrap_or(false),
+                            child_style,
+                        )?
                     }
                     "toast" => {
                         let title = child.title.as_deref().unwrap_or("Notification");
                         let msg = child.text.as_deref().unwrap_or("");
-                        tree.toast(child.id.as_str(), title, msg, ui_widgets::ToastKind::Success, child_style)?
+                        tree.toast(
+                            child.id.as_str(),
+                            title,
+                            msg,
+                            ui_widgets::ToastKind::Success,
+                            child_style,
+                        )?
                     }
                     _ => tree.container(&[], child_style)?,
                 };
@@ -949,13 +1037,41 @@ impl FormDesignerApp {
 
                     let handle_positions = [
                         ("handle_tl", left_x - half_handle, top_y - half_handle),
-                        ("handle_t", left_x + width_w * 0.5 - half_handle, top_y - half_handle),
-                        ("handle_tr", left_x + width_w - half_handle, top_y - half_handle),
-                        ("handle_r", left_x + width_w - half_handle, top_y + height_h * 0.5 - half_handle),
-                        ("handle_br", left_x + width_w - half_handle, top_y + height_h - half_handle),
-                        ("handle_b", left_x + width_w * 0.5 - half_handle, top_y + height_h - half_handle),
-                        ("handle_bl", left_x - half_handle, top_y + height_h - half_handle),
-                        ("handle_l", left_x - half_handle, top_y + height_h * 0.5 - half_handle),
+                        (
+                            "handle_t",
+                            left_x + width_w * 0.5 - half_handle,
+                            top_y - half_handle,
+                        ),
+                        (
+                            "handle_tr",
+                            left_x + width_w - half_handle,
+                            top_y - half_handle,
+                        ),
+                        (
+                            "handle_r",
+                            left_x + width_w - half_handle,
+                            top_y + height_h * 0.5 - half_handle,
+                        ),
+                        (
+                            "handle_br",
+                            left_x + width_w - half_handle,
+                            top_y + height_h - half_handle,
+                        ),
+                        (
+                            "handle_b",
+                            left_x + width_w * 0.5 - half_handle,
+                            top_y + height_h - half_handle,
+                        ),
+                        (
+                            "handle_bl",
+                            left_x - half_handle,
+                            top_y + height_h - half_handle,
+                        ),
+                        (
+                            "handle_l",
+                            left_x - half_handle,
+                            top_y + height_h * 0.5 - half_handle,
+                        ),
                     ];
 
                     for (hid, hx, hy) in handle_positions {
@@ -966,8 +1082,16 @@ impl FormDesignerApp {
                             true,
                             Style {
                                 position: Position::Absolute,
-                                inset: Rect { left: length(hx), top: length(hy), right: auto(), bottom: auto() },
-                                size: Size { width: length(handle_size), height: length(handle_size) },
+                                inset: Rect {
+                                    left: length(hx),
+                                    top: length(hy),
+                                    right: auto(),
+                                    bottom: auto(),
+                                },
+                                size: Size {
+                                    width: length(handle_size),
+                                    height: length(handle_size),
+                                },
                                 ..Default::default()
                             },
                         )?;
@@ -975,10 +1099,19 @@ impl FormDesignerApp {
                     }
 
                     // Floating dimension tooltip badge
-                    let geo_str = format!("📍 X: {:.0}  Y: {:.0} | 📏 W: {:.0}  H: {:.0}", left_x, top_y, width_w, height_h);
+                    let geo_str = format!(
+                        "📍 X: {:.0}  Y: {:.0} | 📏 W: {:.0}  H: {:.0}",
+                        left_x, top_y, width_w, height_h
+                    );
                     let geo_label = tree.label(
                         &geo_str,
-                        Style { size: Size { width: auto(), height: length(16.0) }, ..Default::default() },
+                        Style {
+                            size: Size {
+                                width: auto(),
+                                height: length(16.0),
+                            },
+                            ..Default::default()
+                        },
                     )?;
                     let geo_badge = tree.panel(
                         &[geo_label],
@@ -986,9 +1119,22 @@ impl FormDesignerApp {
                         Some(self.theme.border_highlight()),
                         Style {
                             position: Position::Absolute,
-                            inset: Rect { left: length(left_x), top: length((top_y - 22.0).max(4.0)), right: auto(), bottom: auto() },
-                            padding: Rect { top: length(2.0), bottom: length(2.0), left: length(6.0), right: length(6.0) },
-                            size: Size { width: auto(), height: length(20.0) },
+                            inset: Rect {
+                                left: length(left_x),
+                                top: length((top_y - 22.0).max(4.0)),
+                                right: auto(),
+                                bottom: auto(),
+                            },
+                            padding: Rect {
+                                top: length(2.0),
+                                bottom: length(2.0),
+                                left: length(6.0),
+                                right: length(6.0),
+                            },
+                            size: Size {
+                                width: auto(),
+                                height: length(20.0),
+                            },
                             ..Default::default()
                         },
                     )?;
@@ -1004,7 +1150,10 @@ impl FormDesignerApp {
             Some(self.theme.border_subtle()),
             Style {
                 position: Position::Relative,
-                size: Size { width: length(self.state.artboard_width), height: length(self.state.artboard_height) },
+                size: Size {
+                    width: length(self.state.artboard_width),
+                    height: length(self.state.artboard_height),
+                },
                 ..Default::default()
             },
         )?;
@@ -1014,8 +1163,16 @@ impl FormDesignerApp {
             &[artboard_surface],
             Style {
                 align_items: Some(AlignItems::Center),
-                size: Size { width: percent(1.0), height: percent(1.0) },
-                padding: Rect { top: length(16.0), bottom: length(16.0), left: length(16.0), right: length(16.0) },
+                size: Size {
+                    width: percent(1.0),
+                    height: percent(1.0),
+                },
+                padding: Rect {
+                    top: length(16.0),
+                    bottom: length(16.0),
+                    left: length(16.0),
+                    right: length(16.0),
+                },
                 ..Default::default()
             },
         )?;
@@ -1032,32 +1189,176 @@ impl FormDesignerApp {
         let header_title = tree.label(
             "📐 Stratus Studio (AORUI Visual Designer)",
             Style {
-                size: Size { width: auto(), height: length(28.0) },
-                margin: Rect { top: length(2.0), bottom: length(0.0), left: length(4.0), right: length(16.0) },
+                size: Size {
+                    width: auto(),
+                    height: length(28.0),
+                },
+                margin: Rect {
+                    top: length(2.0),
+                    bottom: length(0.0),
+                    left: length(4.0),
+                    right: length(16.0),
+                },
                 ..Default::default()
             },
         )?;
 
-        let btn_pre_desk = tree.button_variant("btn_preset_desktop", "🖥️ Desktop HD", if self.state.active_preset_name.contains("Desktop") { ButtonVariant::Primary } else { ButtonVariant::Ghost }, true, Style { size: Size { width: length(110.0), height: length(26.0) }, ..Default::default() })?;
-        let btn_pre_comp = tree.button_variant("btn_preset_compact", "💻 800×500", if self.state.active_preset_name.contains("Compact") { ButtonVariant::Primary } else { ButtonVariant::Ghost }, true, Style { size: Size { width: length(85.0), height: length(26.0) }, ..Default::default() })?;
-        let btn_pre_mob = tree.button_variant("btn_preset_mobile", "📱 Mobile", if self.state.active_preset_name.contains("Mobile") { ButtonVariant::Primary } else { ButtonVariant::Ghost }, true, Style { size: Size { width: length(80.0), height: length(26.0) }, ..Default::default() })?;
+        let btn_pre_desk = tree.button_variant(
+            "btn_preset_desktop",
+            "🖥️ Desktop HD",
+            if self.state.active_preset_name.contains("Desktop") {
+                ButtonVariant::Primary
+            } else {
+                ButtonVariant::Ghost
+            },
+            true,
+            Style {
+                size: Size {
+                    width: length(110.0),
+                    height: length(26.0),
+                },
+                ..Default::default()
+            },
+        )?;
+        let btn_pre_comp = tree.button_variant(
+            "btn_preset_compact",
+            "💻 800×500",
+            if self.state.active_preset_name.contains("Compact") {
+                ButtonVariant::Primary
+            } else {
+                ButtonVariant::Ghost
+            },
+            true,
+            Style {
+                size: Size {
+                    width: length(85.0),
+                    height: length(26.0),
+                },
+                ..Default::default()
+            },
+        )?;
+        let btn_pre_mob = tree.button_variant(
+            "btn_preset_mobile",
+            "📱 Mobile",
+            if self.state.active_preset_name.contains("Mobile") {
+                ButtonVariant::Primary
+            } else {
+                ButtonVariant::Ghost
+            },
+            true,
+            Style {
+                size: Size {
+                    width: length(80.0),
+                    height: length(26.0),
+                },
+                ..Default::default()
+            },
+        )?;
 
-        let btn_snap = tree.button_variant("btn_toggle_snap", if self.state.snap_to_grid { "🧲 Aimantation: 16px" } else { "🧲 Aimantation: OFF" }, if self.state.snap_to_grid { ButtonVariant::Secondary } else { ButtonVariant::Default }, true, Style { size: Size { width: length(145.0), height: length(26.0) }, ..Default::default() })?;
-        let btn_dup = tree.button_variant("btn_dup_node", "📋 Dupliquer", ButtonVariant::Default, self.state.selected_widget_id.is_some(), Style { size: Size { width: length(85.0), height: length(26.0) }, ..Default::default() })?;
-        let btn_del = tree.button_variant("btn_del_node", "🗑️ Supprimer", ButtonVariant::Danger, self.state.selected_widget_id.is_some(), Style { size: Size { width: length(95.0), height: length(26.0) }, ..Default::default() })?;
+        let btn_snap = tree.button_variant(
+            "btn_toggle_snap",
+            if self.state.snap_to_grid {
+                "🧲 Aimantation: 16px"
+            } else {
+                "🧲 Aimantation: OFF"
+            },
+            if self.state.snap_to_grid {
+                ButtonVariant::Secondary
+            } else {
+                ButtonVariant::Default
+            },
+            true,
+            Style {
+                size: Size {
+                    width: length(145.0),
+                    height: length(26.0),
+                },
+                ..Default::default()
+            },
+        )?;
+        let btn_dup = tree.button_variant(
+            "btn_dup_node",
+            "📋 Dupliquer",
+            ButtonVariant::Default,
+            self.state.selected_widget_id.is_some(),
+            Style {
+                size: Size {
+                    width: length(85.0),
+                    height: length(26.0),
+                },
+                ..Default::default()
+            },
+        )?;
+        let btn_del = tree.button_variant(
+            "btn_del_node",
+            "🗑️ Supprimer",
+            ButtonVariant::Danger,
+            self.state.selected_widget_id.is_some(),
+            Style {
+                size: Size {
+                    width: length(95.0),
+                    height: length(26.0),
+                },
+                ..Default::default()
+            },
+        )?;
 
-        let btn_save = tree.button_variant("btn_export_toml", "💾 Export TOML", ButtonVariant::Primary, true, Style { size: Size { width: length(110.0), height: length(26.0) }, ..Default::default() })?;
-        let btn_rust = tree.button_variant("btn_export_rust", "📄 Code Rust", ButtonVariant::Secondary, true, Style { size: Size { width: length(95.0), height: length(26.0) }, ..Default::default() })?;
+        let btn_save = tree.button_variant(
+            "btn_export_toml",
+            "💾 Export TOML",
+            ButtonVariant::Primary,
+            true,
+            Style {
+                size: Size {
+                    width: length(110.0),
+                    height: length(26.0),
+                },
+                ..Default::default()
+            },
+        )?;
+        let btn_rust = tree.button_variant(
+            "btn_export_rust",
+            "📄 Code Rust",
+            ButtonVariant::Secondary,
+            true,
+            Style {
+                size: Size {
+                    width: length(95.0),
+                    height: length(26.0),
+                },
+                ..Default::default()
+            },
+        )?;
 
-        let sync_badge = tree.badge("● Synchro Active", ListItemBadge::Success, Style { size: Size { width: length(120.0), height: length(24.0) }, margin: Rect { top: length(0.0), bottom: length(0.0), left: length(12.0), right: length(4.0) }, ..Default::default() })?;
+        let sync_badge = tree.badge(
+            "● Synchro Active",
+            ListItemBadge::Success,
+            Style {
+                size: Size {
+                    width: length(120.0),
+                    height: length(24.0),
+                },
+                margin: Rect {
+                    top: length(0.0),
+                    bottom: length(0.0),
+                    left: length(12.0),
+                    right: length(4.0),
+                },
+                ..Default::default()
+            },
+        )?;
 
         let top_toolbar = tree.panel(
             &[
                 header_title,
-                btn_pre_desk, btn_pre_comp, btn_pre_mob,
+                btn_pre_desk,
+                btn_pre_comp,
+                btn_pre_mob,
                 btn_snap,
-                btn_dup, btn_del,
-                btn_save, btn_rust,
+                btn_dup,
+                btn_del,
+                btn_save,
+                btn_rust,
                 sync_badge,
             ],
             panel_bg,
@@ -1065,9 +1366,20 @@ impl FormDesignerApp {
             Style {
                 flex_direction: FlexDirection::Row,
                 align_items: Some(AlignItems::Center),
-                gap: Size { width: length(6.0), height: length(0.0) },
-                padding: Rect { top: length(6.0), bottom: length(6.0), left: length(12.0), right: length(12.0) },
-                size: Size { width: percent(1.0), height: length(42.0) },
+                gap: Size {
+                    width: length(6.0),
+                    height: length(0.0),
+                },
+                padding: Rect {
+                    top: length(6.0),
+                    bottom: length(6.0),
+                    left: length(12.0),
+                    right: length(12.0),
+                },
+                size: Size {
+                    width: percent(1.0),
+                    height: length(42.0),
+                },
                 ..Default::default()
             },
         )?;
@@ -1076,23 +1388,112 @@ impl FormDesignerApp {
         let tool_header = tree.label(
             "🧰 COMPOSANTS DISPONIBLES",
             Style {
-                size: Size { width: percent(1.0), height: length(20.0) },
+                size: Size {
+                    width: percent(1.0),
+                    height: length(20.0),
+                },
                 ..Default::default()
             },
         )?;
 
-        let tab_ctl = tree.button_variant("tab_controls", "Boutons", if self.state.active_toolbox_tab == "Controls" { ButtonVariant::Primary } else { ButtonVariant::Ghost }, true, Style { size: Size { width: length(58.0), height: length(24.0) }, ..Default::default() })?;
-        let tab_inp = tree.button_variant("tab_inputs", "Inputs", if self.state.active_toolbox_tab == "Inputs" { ButtonVariant::Primary } else { ButtonVariant::Ghost }, true, Style { size: Size { width: length(48.0), height: length(24.0) }, ..Default::default() })?;
-        let tab_nav = tree.button_variant("tab_nav", "Menus", if self.state.active_toolbox_tab == "Navigation" { ButtonVariant::Primary } else { ButtonVariant::Ghost }, true, Style { size: Size { width: length(48.0), height: length(24.0) }, ..Default::default() })?;
-        let tab_pop = tree.button_variant("tab_popups", "Popups", if self.state.active_toolbox_tab == "Popups" { ButtonVariant::Primary } else { ButtonVariant::Ghost }, true, Style { size: Size { width: length(52.0), height: length(24.0) }, ..Default::default() })?;
-        let tab_srf = tree.button_variant("tab_surfaces", "Surfaces", if self.state.active_toolbox_tab == "Surfaces" { ButtonVariant::Primary } else { ButtonVariant::Ghost }, true, Style { size: Size { width: length(58.0), height: length(24.0) }, ..Default::default() })?;
+        let tab_ctl = tree.button_variant(
+            "tab_controls",
+            "Boutons",
+            if self.state.active_toolbox_tab == "Controls" {
+                ButtonVariant::Primary
+            } else {
+                ButtonVariant::Ghost
+            },
+            true,
+            Style {
+                size: Size {
+                    width: length(58.0),
+                    height: length(24.0),
+                },
+                ..Default::default()
+            },
+        )?;
+        let tab_inp = tree.button_variant(
+            "tab_inputs",
+            "Inputs",
+            if self.state.active_toolbox_tab == "Inputs" {
+                ButtonVariant::Primary
+            } else {
+                ButtonVariant::Ghost
+            },
+            true,
+            Style {
+                size: Size {
+                    width: length(48.0),
+                    height: length(24.0),
+                },
+                ..Default::default()
+            },
+        )?;
+        let tab_nav = tree.button_variant(
+            "tab_nav",
+            "Menus",
+            if self.state.active_toolbox_tab == "Navigation" {
+                ButtonVariant::Primary
+            } else {
+                ButtonVariant::Ghost
+            },
+            true,
+            Style {
+                size: Size {
+                    width: length(48.0),
+                    height: length(24.0),
+                },
+                ..Default::default()
+            },
+        )?;
+        let tab_pop = tree.button_variant(
+            "tab_popups",
+            "Popups",
+            if self.state.active_toolbox_tab == "Popups" {
+                ButtonVariant::Primary
+            } else {
+                ButtonVariant::Ghost
+            },
+            true,
+            Style {
+                size: Size {
+                    width: length(52.0),
+                    height: length(24.0),
+                },
+                ..Default::default()
+            },
+        )?;
+        let tab_srf = tree.button_variant(
+            "tab_surfaces",
+            "Surfaces",
+            if self.state.active_toolbox_tab == "Surfaces" {
+                ButtonVariant::Primary
+            } else {
+                ButtonVariant::Ghost
+            },
+            true,
+            Style {
+                size: Size {
+                    width: length(58.0),
+                    height: length(24.0),
+                },
+                ..Default::default()
+            },
+        )?;
 
         let toolbox_tabs_row = tree.container(
             &[tab_ctl, tab_inp, tab_nav, tab_pop, tab_srf],
             Style {
                 flex_direction: FlexDirection::Row,
-                gap: Size { width: length(2.0), height: length(0.0) },
-                size: Size { width: percent(1.0), height: length(26.0) },
+                gap: Size {
+                    width: length(2.0),
+                    height: length(0.0),
+                },
+                size: Size {
+                    width: percent(1.0),
+                    height: length(26.0),
+                },
                 ..Default::default()
             },
         )?;
@@ -1101,33 +1502,213 @@ impl FormDesignerApp {
 
         match self.state.active_toolbox_tab.as_str() {
             "Navigation" => {
-                let btn_menu = tree.button_variant("tool_add_menubar", "📦 MenuBar (Barre Menus)", ButtonVariant::Primary, true, Style { size: Size { width: percent(1.0), height: length(28.0) }, ..Default::default() })?;
-                let btn_drop = tree.button_variant("tool_add_dropdown", "📦 Dropdown Select", ButtonVariant::Default, true, Style { size: Size { width: percent(1.0), height: length(28.0) }, ..Default::default() })?;
+                let btn_menu = tree.button_variant(
+                    "tool_add_menubar",
+                    "📦 MenuBar (Barre Menus)",
+                    ButtonVariant::Primary,
+                    true,
+                    Style {
+                        size: Size {
+                            width: percent(1.0),
+                            height: length(28.0),
+                        },
+                        ..Default::default()
+                    },
+                )?;
+                let btn_drop = tree.button_variant(
+                    "tool_add_dropdown",
+                    "📦 Dropdown Select",
+                    ButtonVariant::Default,
+                    true,
+                    Style {
+                        size: Size {
+                            width: percent(1.0),
+                            height: length(28.0),
+                        },
+                        ..Default::default()
+                    },
+                )?;
                 tool_items.extend(vec![btn_menu, btn_drop]);
             }
             "Popups" => {
-                let btn_modal = tree.button_variant("tool_add_modal", "📦 Modal Dialog (Window)", ButtonVariant::Primary, true, Style { size: Size { width: percent(1.0), height: length(28.0) }, ..Default::default() })?;
-                let btn_toast = tree.button_variant("tool_add_toast", "📦 Toast Notification", ButtonVariant::Default, true, Style { size: Size { width: percent(1.0), height: length(28.0) }, ..Default::default() })?;
+                let btn_modal = tree.button_variant(
+                    "tool_add_modal",
+                    "📦 Modal Dialog (Window)",
+                    ButtonVariant::Primary,
+                    true,
+                    Style {
+                        size: Size {
+                            width: percent(1.0),
+                            height: length(28.0),
+                        },
+                        ..Default::default()
+                    },
+                )?;
+                let btn_toast = tree.button_variant(
+                    "tool_add_toast",
+                    "📦 Toast Notification",
+                    ButtonVariant::Default,
+                    true,
+                    Style {
+                        size: Size {
+                            width: percent(1.0),
+                            height: length(28.0),
+                        },
+                        ..Default::default()
+                    },
+                )?;
                 tool_items.extend(vec![btn_modal, btn_toast]);
             }
             "Inputs" => {
-                let btn_inp = tree.button_variant("tool_add_input", "📦 TextInput Saisie", ButtonVariant::Default, true, Style { size: Size { width: percent(1.0), height: length(28.0) }, ..Default::default() })?;
-                let btn_sli = tree.button_variant("tool_add_slider", "📦 Slider Fader", ButtonVariant::Default, true, Style { size: Size { width: percent(1.0), height: length(28.0) }, ..Default::default() })?;
-                let btn_tog = tree.button_variant("tool_add_toggle", "📦 Toggle Switch", ButtonVariant::Default, true, Style { size: Size { width: percent(1.0), height: length(28.0) }, ..Default::default() })?;
+                let btn_inp = tree.button_variant(
+                    "tool_add_input",
+                    "📦 TextInput Saisie",
+                    ButtonVariant::Default,
+                    true,
+                    Style {
+                        size: Size {
+                            width: percent(1.0),
+                            height: length(28.0),
+                        },
+                        ..Default::default()
+                    },
+                )?;
+                let btn_sli = tree.button_variant(
+                    "tool_add_slider",
+                    "📦 Slider Fader",
+                    ButtonVariant::Default,
+                    true,
+                    Style {
+                        size: Size {
+                            width: percent(1.0),
+                            height: length(28.0),
+                        },
+                        ..Default::default()
+                    },
+                )?;
+                let btn_tog = tree.button_variant(
+                    "tool_add_toggle",
+                    "📦 Toggle Switch",
+                    ButtonVariant::Default,
+                    true,
+                    Style {
+                        size: Size {
+                            width: percent(1.0),
+                            height: length(28.0),
+                        },
+                        ..Default::default()
+                    },
+                )?;
                 tool_items.extend(vec![btn_inp, btn_sli, btn_tog]);
             }
             "Surfaces" => {
-                let btn_card = tree.button_variant("tool_add_card", "📦 Surface Card", ButtonVariant::Default, true, Style { size: Size { width: percent(1.0), height: length(28.0) }, ..Default::default() })?;
-                let btn_pan = tree.button_variant("tool_add_panel", "📦 Surface Panel", ButtonVariant::Default, true, Style { size: Size { width: percent(1.0), height: length(28.0) }, ..Default::default() })?;
-                let btn_met = tree.button_variant("tool_add_metric", "📦 Metric Stat Card", ButtonVariant::Default, true, Style { size: Size { width: percent(1.0), height: length(28.0) }, ..Default::default() })?;
+                let btn_card = tree.button_variant(
+                    "tool_add_card",
+                    "📦 Surface Card",
+                    ButtonVariant::Default,
+                    true,
+                    Style {
+                        size: Size {
+                            width: percent(1.0),
+                            height: length(28.0),
+                        },
+                        ..Default::default()
+                    },
+                )?;
+                let btn_pan = tree.button_variant(
+                    "tool_add_panel",
+                    "📦 Surface Panel",
+                    ButtonVariant::Default,
+                    true,
+                    Style {
+                        size: Size {
+                            width: percent(1.0),
+                            height: length(28.0),
+                        },
+                        ..Default::default()
+                    },
+                )?;
+                let btn_met = tree.button_variant(
+                    "tool_add_metric",
+                    "📦 Metric Stat Card",
+                    ButtonVariant::Default,
+                    true,
+                    Style {
+                        size: Size {
+                            width: percent(1.0),
+                            height: length(28.0),
+                        },
+                        ..Default::default()
+                    },
+                )?;
                 tool_items.extend(vec![btn_card, btn_pan, btn_met]);
             }
             _ => {
-                let btn_pri = tree.button_variant("tool_add_btn_primary", "📦 Button Primary", ButtonVariant::Primary, true, Style { size: Size { width: percent(1.0), height: length(28.0) }, ..Default::default() })?;
-                let btn_sec = tree.button_variant("tool_add_btn_secondary", "📦 Button Secondary", ButtonVariant::Secondary, true, Style { size: Size { width: percent(1.0), height: length(28.0) }, ..Default::default() })?;
-                let btn_dan = tree.button_variant("tool_add_btn_danger", "📦 Button Danger", ButtonVariant::Danger, true, Style { size: Size { width: percent(1.0), height: length(28.0) }, ..Default::default() })?;
-                let btn_lbl = tree.button_variant("tool_add_label", "📦 Label Texte", ButtonVariant::Default, true, Style { size: Size { width: percent(1.0), height: length(28.0) }, ..Default::default() })?;
-                let btn_badge = tree.button_variant("tool_add_badge", "📦 Badge Status Pill", ButtonVariant::Default, true, Style { size: Size { width: percent(1.0), height: length(28.0) }, ..Default::default() })?;
+                let btn_pri = tree.button_variant(
+                    "tool_add_btn_primary",
+                    "📦 Button Primary",
+                    ButtonVariant::Primary,
+                    true,
+                    Style {
+                        size: Size {
+                            width: percent(1.0),
+                            height: length(28.0),
+                        },
+                        ..Default::default()
+                    },
+                )?;
+                let btn_sec = tree.button_variant(
+                    "tool_add_btn_secondary",
+                    "📦 Button Secondary",
+                    ButtonVariant::Secondary,
+                    true,
+                    Style {
+                        size: Size {
+                            width: percent(1.0),
+                            height: length(28.0),
+                        },
+                        ..Default::default()
+                    },
+                )?;
+                let btn_dan = tree.button_variant(
+                    "tool_add_btn_danger",
+                    "📦 Button Danger",
+                    ButtonVariant::Danger,
+                    true,
+                    Style {
+                        size: Size {
+                            width: percent(1.0),
+                            height: length(28.0),
+                        },
+                        ..Default::default()
+                    },
+                )?;
+                let btn_lbl = tree.button_variant(
+                    "tool_add_label",
+                    "📦 Label Texte",
+                    ButtonVariant::Default,
+                    true,
+                    Style {
+                        size: Size {
+                            width: percent(1.0),
+                            height: length(28.0),
+                        },
+                        ..Default::default()
+                    },
+                )?;
+                let btn_badge = tree.button_variant(
+                    "tool_add_badge",
+                    "📦 Badge Status Pill",
+                    ButtonVariant::Default,
+                    true,
+                    Style {
+                        size: Size {
+                            width: percent(1.0),
+                            height: length(28.0),
+                        },
+                        ..Default::default()
+                    },
+                )?;
                 tool_items.extend(vec![btn_pri, btn_sec, btn_dan, btn_lbl, btn_badge]);
             }
         }
@@ -1138,22 +1719,40 @@ impl FormDesignerApp {
             border_subtle,
             Style {
                 flex_direction: FlexDirection::Column,
-                gap: Size { width: length(0.0), height: length(6.0) },
-                padding: Rect { top: length(12.0), bottom: length(12.0), left: length(12.0), right: length(12.0) },
-                size: Size { width: length(240.0), height: percent(1.0) },
+                gap: Size {
+                    width: length(0.0),
+                    height: length(6.0),
+                },
+                padding: Rect {
+                    top: length(12.0),
+                    bottom: length(12.0),
+                    left: length(12.0),
+                    right: length(12.0),
+                },
+                size: Size {
+                    width: length(240.0),
+                    height: percent(1.0),
+                },
                 ..Default::default()
             },
         )?;
 
         // --- 3. CENTER WORKSPACE CANVAS (ARTBOARD PAGE) ---
         let artboard_viewport = self.build_artboard_canvas(tree).unwrap_or_else(|_| {
-            tree.container(&[], Style::default()).unwrap_or(NodeId::from(0usize))
+            tree.container(&[], Style::default())
+                .unwrap_or(NodeId::from(0usize))
         });
 
         let canvas_header = tree.label(
-            format!("🖼️ Planche Active : \"{}\" [Gabarit: {}] (Grille: 16px)", self.state.doc.window.title, self.state.active_preset_name),
+            format!(
+                "🖼️ Planche Active : \"{}\" [Gabarit: {}] (Grille: 16px)",
+                self.state.doc.window.title, self.state.active_preset_name
+            ),
             Style {
-                size: Size { width: percent(1.0), height: length(20.0) },
+                size: Size {
+                    width: percent(1.0),
+                    height: length(20.0),
+                },
                 ..Default::default()
             },
         )?;
@@ -1165,9 +1764,20 @@ impl FormDesignerApp {
             Style {
                 flex_direction: FlexDirection::Column,
                 flex_grow: 1.0,
-                gap: Size { width: length(0.0), height: length(10.0) },
-                padding: Rect { top: length(10.0), bottom: length(10.0), left: length(12.0), right: length(12.0) },
-                size: Size { width: auto(), height: percent(1.0) },
+                gap: Size {
+                    width: length(0.0),
+                    height: length(10.0),
+                },
+                padding: Rect {
+                    top: length(10.0),
+                    bottom: length(10.0),
+                    left: length(12.0),
+                    right: length(12.0),
+                },
+                size: Size {
+                    width: auto(),
+                    height: percent(1.0),
+                },
                 ..Default::default()
             },
         )?;
@@ -1176,7 +1786,10 @@ impl FormDesignerApp {
         let prop_header = tree.label(
             "📋 INSPECTEUR D'OBJET",
             Style {
-                size: Size { width: percent(1.0), height: length(20.0) },
+                size: Size {
+                    width: percent(1.0),
+                    height: length(20.0),
+                },
                 ..Default::default()
             },
         )?;
@@ -1185,135 +1798,677 @@ impl FormDesignerApp {
 
         if let Some(sel_id) = &self.state.selected_widget_id {
             if let Some(node) = self.state.doc.nodes.iter().find(|n| &n.id == sel_id) {
-                let lbl_id = tree.label(format!("ID: {}  [{}]", node.id, node.widget_type), Style { size: Size { width: percent(1.0), height: length(20.0) }, ..Default::default() })?;
+                let lbl_id = tree.label(
+                    format!("ID: {}  [{}]", node.id, node.widget_type),
+                    Style {
+                        size: Size {
+                            width: percent(1.0),
+                            height: length(20.0),
+                        },
+                        ..Default::default()
+                    },
+                )?;
 
                 // Section 1: Color Picker & Nuancier
-                let lbl_sec_col = tree.label("━━ Apparence & Couleurs ━━", Style { size: Size { width: percent(1.0), height: length(18.0) }, ..Default::default() })?;
+                let lbl_sec_col = tree.label(
+                    "━━ Apparence & Couleurs ━━",
+                    Style {
+                        size: Size {
+                            width: percent(1.0),
+                            height: length(18.0),
+                        },
+                        ..Default::default()
+                    },
+                )?;
 
-                let btn_t_bg = tree.button_variant("prop_target_bg", "🎨 Fond", if self.state.color_target == ColorTarget::Background { ButtonVariant::Primary } else { ButtonVariant::Ghost }, true, Style { size: Size { width: length(85.0), height: length(22.0) }, ..Default::default() })?;
-                let btn_t_br = tree.button_variant("prop_target_border", "🔲 Bordure", if self.state.color_target == ColorTarget::Border { ButtonVariant::Primary } else { ButtonVariant::Ghost }, true, Style { size: Size { width: length(90.0), height: length(22.0) }, ..Default::default() })?;
-                let btn_t_tx = tree.button_variant("prop_target_text", "✍️ Texte", if self.state.color_target == ColorTarget::Text { ButtonVariant::Primary } else { ButtonVariant::Ghost }, true, Style { size: Size { width: length(85.0), height: length(22.0) }, ..Default::default() })?;
-                let row_col_targets = tree.container(&[btn_t_bg, btn_t_br, btn_t_tx], Style {
-                    flex_direction: FlexDirection::Row,
-                    gap: Size { width: length(4.0), height: length(0.0) },
-                    size: Size { width: percent(1.0), height: length(24.0) },
-                    ..Default::default()
-                })?;
+                let btn_t_bg = tree.button_variant(
+                    "prop_target_bg",
+                    "🎨 Fond",
+                    if self.state.color_target == ColorTarget::Background {
+                        ButtonVariant::Primary
+                    } else {
+                        ButtonVariant::Ghost
+                    },
+                    true,
+                    Style {
+                        size: Size {
+                            width: length(85.0),
+                            height: length(22.0),
+                        },
+                        ..Default::default()
+                    },
+                )?;
+                let btn_t_br = tree.button_variant(
+                    "prop_target_border",
+                    "🔲 Bordure",
+                    if self.state.color_target == ColorTarget::Border {
+                        ButtonVariant::Primary
+                    } else {
+                        ButtonVariant::Ghost
+                    },
+                    true,
+                    Style {
+                        size: Size {
+                            width: length(90.0),
+                            height: length(22.0),
+                        },
+                        ..Default::default()
+                    },
+                )?;
+                let btn_t_tx = tree.button_variant(
+                    "prop_target_text",
+                    "✍️ Texte",
+                    if self.state.color_target == ColorTarget::Text {
+                        ButtonVariant::Primary
+                    } else {
+                        ButtonVariant::Ghost
+                    },
+                    true,
+                    Style {
+                        size: Size {
+                            width: length(85.0),
+                            height: length(22.0),
+                        },
+                        ..Default::default()
+                    },
+                )?;
+                let row_col_targets = tree.container(
+                    &[btn_t_bg, btn_t_br, btn_t_tx],
+                    Style {
+                        flex_direction: FlexDirection::Row,
+                        gap: Size {
+                            width: length(4.0),
+                            height: length(0.0),
+                        },
+                        size: Size {
+                            width: percent(1.0),
+                            height: length(24.0),
+                        },
+                        ..Default::default()
+                    },
+                )?;
 
                 let cur_rgba = self.state.get_active_color(&self.theme);
-                let rgba_str = format!("RGBA: {:.2}, {:.2}, {:.2}, {:.2}", cur_rgba[0], cur_rgba[1], cur_rgba[2], cur_rgba[3]);
-                let lbl_rgba_val = tree.label_muted(rgba_str, Style { size: Size { width: auto(), height: length(18.0) }, ..Default::default() })?;
-                let col_preview_swatch = tree.panel(&[], Some(cur_rgba), Some(self.theme.border_highlight()), Style {
-                    size: Size { width: length(26.0), height: length(18.0) },
-                    ..Default::default()
-                })?;
-                let row_preview = tree.container(&[col_preview_swatch, lbl_rgba_val], Style {
-                    flex_direction: FlexDirection::Row,
-                    align_items: Some(AlignItems::Center),
-                    gap: Size { width: length(8.0), height: length(0.0) },
-                    size: Size { width: percent(1.0), height: length(20.0) },
-                    ..Default::default()
-                })?;
+                let rgba_str = format!(
+                    "RGBA: {:.2}, {:.2}, {:.2}, {:.2}",
+                    cur_rgba[0], cur_rgba[1], cur_rgba[2], cur_rgba[3]
+                );
+                let lbl_rgba_val = tree.label_muted(
+                    rgba_str,
+                    Style {
+                        size: Size {
+                            width: auto(),
+                            height: length(18.0),
+                        },
+                        ..Default::default()
+                    },
+                )?;
+                let col_preview_swatch = tree.panel(
+                    &[],
+                    Some(cur_rgba),
+                    Some(self.theme.border_highlight()),
+                    Style {
+                        size: Size {
+                            width: length(26.0),
+                            height: length(18.0),
+                        },
+                        ..Default::default()
+                    },
+                )?;
+                let row_preview = tree.container(
+                    &[col_preview_swatch, lbl_rgba_val],
+                    Style {
+                        flex_direction: FlexDirection::Row,
+                        align_items: Some(AlignItems::Center),
+                        gap: Size {
+                            width: length(8.0),
+                            height: length(0.0),
+                        },
+                        size: Size {
+                            width: percent(1.0),
+                            height: length(20.0),
+                        },
+                        ..Default::default()
+                    },
+                )?;
 
                 // Swatches Row 1
-                let btn_c_cyan = tree.button_variant("prop_col_cyan", "🔵 Cyan", ButtonVariant::Default, true, Style { size: Size { width: length(62.0), height: length(22.0) }, ..Default::default() })?;
-                let btn_c_pur = tree.button_variant("prop_col_purple", "🟣 Violet", ButtonVariant::Default, true, Style { size: Size { width: length(65.0), height: length(22.0) }, ..Default::default() })?;
-                let btn_c_mag = tree.button_variant("prop_col_magenta", "🌸 Rose", ButtonVariant::Default, true, Style { size: Size { width: length(60.0), height: length(22.0) }, ..Default::default() })?;
-                let btn_c_eme = tree.button_variant("prop_col_emerald", "🟢 Vert", ButtonVariant::Default, true, Style { size: Size { width: length(60.0), height: length(22.0) }, ..Default::default() })?;
-                let row_swatch_1 = tree.container(&[btn_c_cyan, btn_c_pur, btn_c_mag, btn_c_eme], Style {
-                    flex_direction: FlexDirection::Row,
-                    gap: Size { width: length(4.0), height: length(0.0) },
-                    size: Size { width: percent(1.0), height: length(24.0) },
-                    ..Default::default()
-                })?;
+                let btn_c_cyan = tree.button_variant(
+                    "prop_col_cyan",
+                    "🔵 Cyan",
+                    ButtonVariant::Default,
+                    true,
+                    Style {
+                        size: Size {
+                            width: length(62.0),
+                            height: length(22.0),
+                        },
+                        ..Default::default()
+                    },
+                )?;
+                let btn_c_pur = tree.button_variant(
+                    "prop_col_purple",
+                    "🟣 Violet",
+                    ButtonVariant::Default,
+                    true,
+                    Style {
+                        size: Size {
+                            width: length(65.0),
+                            height: length(22.0),
+                        },
+                        ..Default::default()
+                    },
+                )?;
+                let btn_c_mag = tree.button_variant(
+                    "prop_col_magenta",
+                    "🌸 Rose",
+                    ButtonVariant::Default,
+                    true,
+                    Style {
+                        size: Size {
+                            width: length(60.0),
+                            height: length(22.0),
+                        },
+                        ..Default::default()
+                    },
+                )?;
+                let btn_c_eme = tree.button_variant(
+                    "prop_col_emerald",
+                    "🟢 Vert",
+                    ButtonVariant::Default,
+                    true,
+                    Style {
+                        size: Size {
+                            width: length(60.0),
+                            height: length(22.0),
+                        },
+                        ..Default::default()
+                    },
+                )?;
+                let row_swatch_1 = tree.container(
+                    &[btn_c_cyan, btn_c_pur, btn_c_mag, btn_c_eme],
+                    Style {
+                        flex_direction: FlexDirection::Row,
+                        gap: Size {
+                            width: length(4.0),
+                            height: length(0.0),
+                        },
+                        size: Size {
+                            width: percent(1.0),
+                            height: length(24.0),
+                        },
+                        ..Default::default()
+                    },
+                )?;
 
                 // Swatches Row 2
-                let btn_c_gld = tree.button_variant("prop_col_gold", "🟡 Or", ButtonVariant::Default, true, Style { size: Size { width: length(56.0), height: length(22.0) }, ..Default::default() })?;
-                let btn_c_crim = tree.button_variant("prop_col_crimson", "🔴 Rouge", ButtonVariant::Default, true, Style { size: Size { width: length(65.0), height: length(22.0) }, ..Default::default() })?;
-                let btn_c_obs = tree.button_variant("prop_col_obsidian", "🌌 Dark", ButtonVariant::Default, true, Style { size: Size { width: length(62.0), height: length(22.0) }, ..Default::default() })?;
-                let btn_c_gls = tree.button_variant("prop_col_glass", "🌫️ Verre", ButtonVariant::Default, true, Style { size: Size { width: length(62.0), height: length(22.0) }, ..Default::default() })?;
-                let row_swatch_2 = tree.container(&[btn_c_gld, btn_c_crim, btn_c_obs, btn_c_gls], Style {
-                    flex_direction: FlexDirection::Row,
-                    gap: Size { width: length(4.0), height: length(0.0) },
-                    size: Size { width: percent(1.0), height: length(24.0) },
-                    ..Default::default()
-                })?;
+                let btn_c_gld = tree.button_variant(
+                    "prop_col_gold",
+                    "🟡 Or",
+                    ButtonVariant::Default,
+                    true,
+                    Style {
+                        size: Size {
+                            width: length(56.0),
+                            height: length(22.0),
+                        },
+                        ..Default::default()
+                    },
+                )?;
+                let btn_c_crim = tree.button_variant(
+                    "prop_col_crimson",
+                    "🔴 Rouge",
+                    ButtonVariant::Default,
+                    true,
+                    Style {
+                        size: Size {
+                            width: length(65.0),
+                            height: length(22.0),
+                        },
+                        ..Default::default()
+                    },
+                )?;
+                let btn_c_obs = tree.button_variant(
+                    "prop_col_obsidian",
+                    "🌌 Dark",
+                    ButtonVariant::Default,
+                    true,
+                    Style {
+                        size: Size {
+                            width: length(62.0),
+                            height: length(22.0),
+                        },
+                        ..Default::default()
+                    },
+                )?;
+                let btn_c_gls = tree.button_variant(
+                    "prop_col_glass",
+                    "🌫️ Verre",
+                    ButtonVariant::Default,
+                    true,
+                    Style {
+                        size: Size {
+                            width: length(62.0),
+                            height: length(22.0),
+                        },
+                        ..Default::default()
+                    },
+                )?;
+                let row_swatch_2 = tree.container(
+                    &[btn_c_gld, btn_c_crim, btn_c_obs, btn_c_gls],
+                    Style {
+                        flex_direction: FlexDirection::Row,
+                        gap: Size {
+                            width: length(4.0),
+                            height: length(0.0),
+                        },
+                        size: Size {
+                            width: percent(1.0),
+                            height: length(24.0),
+                        },
+                        ..Default::default()
+                    },
+                )?;
 
                 // Section 2: Géométrie 2D (Position & Dimensions)
-                let lbl_sec_geo = tree.label("━━ Géométrie & Position ━━", Style { size: Size { width: percent(1.0), height: length(18.0) }, ..Default::default() })?;
+                let lbl_sec_geo = tree.label(
+                    "━━ Géométrie & Position ━━",
+                    Style {
+                        size: Size {
+                            width: percent(1.0),
+                            height: length(18.0),
+                        },
+                        ..Default::default()
+                    },
+                )?;
                 let pos_x = node.layout.left.unwrap_or(0.0);
                 let pos_y = node.layout.top.unwrap_or(0.0);
                 let w_val = node.layout.width.unwrap_or(180.0);
                 let h_val = node.layout.height.unwrap_or(38.0);
 
-                let lbl_coords = tree.label_muted(format!("X: {:.0}px | Y: {:.0}px | W: {:.0}px | H: {:.0}px", pos_x, pos_y, w_val, h_val), Style { size: Size { width: percent(1.0), height: length(18.0) }, ..Default::default() })?;
+                let lbl_coords = tree.label_muted(
+                    format!(
+                        "X: {:.0}px | Y: {:.0}px | W: {:.0}px | H: {:.0}px",
+                        pos_x, pos_y, w_val, h_val
+                    ),
+                    Style {
+                        size: Size {
+                            width: percent(1.0),
+                            height: length(18.0),
+                        },
+                        ..Default::default()
+                    },
+                )?;
 
-                let btn_xm = tree.button_variant("prop_btn_x_minus", "X -16", ButtonVariant::Default, true, Style { size: Size { width: length(60.0), height: length(22.0) }, ..Default::default() })?;
-                let btn_xp = tree.button_variant("prop_btn_x_plus", "X +16", ButtonVariant::Default, true, Style { size: Size { width: length(60.0), height: length(22.0) }, ..Default::default() })?;
-                let btn_ym = tree.button_variant("prop_btn_y_minus", "Y -16", ButtonVariant::Default, true, Style { size: Size { width: length(60.0), height: length(22.0) }, ..Default::default() })?;
-                let btn_yp = tree.button_variant("prop_btn_y_plus", "Y +16", ButtonVariant::Default, true, Style { size: Size { width: length(60.0), height: length(22.0) }, ..Default::default() })?;
-                let row_xy = tree.container(&[btn_xm, btn_xp, btn_ym, btn_yp], Style {
-                    flex_direction: FlexDirection::Row,
-                    gap: Size { width: length(4.0), height: length(0.0) },
-                    size: Size { width: percent(1.0), height: length(24.0) },
-                    ..Default::default()
-                })?;
+                let btn_xm = tree.button_variant(
+                    "prop_btn_x_minus",
+                    "X -16",
+                    ButtonVariant::Default,
+                    true,
+                    Style {
+                        size: Size {
+                            width: length(60.0),
+                            height: length(22.0),
+                        },
+                        ..Default::default()
+                    },
+                )?;
+                let btn_xp = tree.button_variant(
+                    "prop_btn_x_plus",
+                    "X +16",
+                    ButtonVariant::Default,
+                    true,
+                    Style {
+                        size: Size {
+                            width: length(60.0),
+                            height: length(22.0),
+                        },
+                        ..Default::default()
+                    },
+                )?;
+                let btn_ym = tree.button_variant(
+                    "prop_btn_y_minus",
+                    "Y -16",
+                    ButtonVariant::Default,
+                    true,
+                    Style {
+                        size: Size {
+                            width: length(60.0),
+                            height: length(22.0),
+                        },
+                        ..Default::default()
+                    },
+                )?;
+                let btn_yp = tree.button_variant(
+                    "prop_btn_y_plus",
+                    "Y +16",
+                    ButtonVariant::Default,
+                    true,
+                    Style {
+                        size: Size {
+                            width: length(60.0),
+                            height: length(22.0),
+                        },
+                        ..Default::default()
+                    },
+                )?;
+                let row_xy = tree.container(
+                    &[btn_xm, btn_xp, btn_ym, btn_yp],
+                    Style {
+                        flex_direction: FlexDirection::Row,
+                        gap: Size {
+                            width: length(4.0),
+                            height: length(0.0),
+                        },
+                        size: Size {
+                            width: percent(1.0),
+                            height: length(24.0),
+                        },
+                        ..Default::default()
+                    },
+                )?;
 
-                let btn_wm = tree.button_variant("prop_btn_w_minus", "W -16", ButtonVariant::Default, true, Style { size: Size { width: length(60.0), height: length(22.0) }, ..Default::default() })?;
-                let btn_wp = tree.button_variant("prop_btn_w_plus", "W +16", ButtonVariant::Default, true, Style { size: Size { width: length(60.0), height: length(22.0) }, ..Default::default() })?;
-                let btn_hm = tree.button_variant("prop_btn_h_minus", "H -8", ButtonVariant::Default, true, Style { size: Size { width: length(60.0), height: length(22.0) }, ..Default::default() })?;
-                let btn_hp = tree.button_variant("prop_btn_h_plus", "H +8", ButtonVariant::Default, true, Style { size: Size { width: length(60.0), height: length(22.0) }, ..Default::default() })?;
-                let row_wh = tree.container(&[btn_wm, btn_wp, btn_hm, btn_hp], Style {
-                    flex_direction: FlexDirection::Row,
-                    gap: Size { width: length(4.0), height: length(0.0) },
-                    size: Size { width: percent(1.0), height: length(24.0) },
-                    ..Default::default()
-                })?;
+                let btn_wm = tree.button_variant(
+                    "prop_btn_w_minus",
+                    "W -16",
+                    ButtonVariant::Default,
+                    true,
+                    Style {
+                        size: Size {
+                            width: length(60.0),
+                            height: length(22.0),
+                        },
+                        ..Default::default()
+                    },
+                )?;
+                let btn_wp = tree.button_variant(
+                    "prop_btn_w_plus",
+                    "W +16",
+                    ButtonVariant::Default,
+                    true,
+                    Style {
+                        size: Size {
+                            width: length(60.0),
+                            height: length(22.0),
+                        },
+                        ..Default::default()
+                    },
+                )?;
+                let btn_hm = tree.button_variant(
+                    "prop_btn_h_minus",
+                    "H -8",
+                    ButtonVariant::Default,
+                    true,
+                    Style {
+                        size: Size {
+                            width: length(60.0),
+                            height: length(22.0),
+                        },
+                        ..Default::default()
+                    },
+                )?;
+                let btn_hp = tree.button_variant(
+                    "prop_btn_h_plus",
+                    "H +8",
+                    ButtonVariant::Default,
+                    true,
+                    Style {
+                        size: Size {
+                            width: length(60.0),
+                            height: length(22.0),
+                        },
+                        ..Default::default()
+                    },
+                )?;
+                let row_wh = tree.container(
+                    &[btn_wm, btn_wp, btn_hm, btn_hp],
+                    Style {
+                        flex_direction: FlexDirection::Row,
+                        gap: Size {
+                            width: length(4.0),
+                            height: length(0.0),
+                        },
+                        size: Size {
+                            width: percent(1.0),
+                            height: length(24.0),
+                        },
+                        ..Default::default()
+                    },
+                )?;
 
                 // Section 3: Variantes & Radius
-                let lbl_sec_sty = tree.label("━━ Style & Variantes ━━", Style { size: Size { width: percent(1.0), height: length(18.0) }, ..Default::default() })?;
-                let btn_var_pri = tree.button_variant("prop_btn_primary", "Primary", ButtonVariant::Primary, true, Style { size: Size { width: length(62.0), height: length(22.0) }, ..Default::default() })?;
-                let btn_var_sec = tree.button_variant("prop_btn_secondary", "Secondary", ButtonVariant::Secondary, true, Style { size: Size { width: length(72.0), height: length(22.0) }, ..Default::default() })?;
-                let btn_var_dan = tree.button_variant("prop_btn_danger", "Danger", ButtonVariant::Danger, true, Style { size: Size { width: length(58.0), height: length(22.0) }, ..Default::default() })?;
-                let btn_var_gho = tree.button_variant("prop_btn_ghost", "Ghost", ButtonVariant::Ghost, true, Style { size: Size { width: length(52.0), height: length(22.0) }, ..Default::default() })?;
-                let row_vars = tree.container(&[btn_var_pri, btn_var_sec, btn_var_dan, btn_var_gho], Style {
-                    flex_direction: FlexDirection::Row,
-                    gap: Size { width: length(4.0), height: length(0.0) },
-                    size: Size { width: percent(1.0), height: length(24.0) },
-                    ..Default::default()
-                })?;
+                let lbl_sec_sty = tree.label(
+                    "━━ Style & Variantes ━━",
+                    Style {
+                        size: Size {
+                            width: percent(1.0),
+                            height: length(18.0),
+                        },
+                        ..Default::default()
+                    },
+                )?;
+                let btn_var_pri = tree.button_variant(
+                    "prop_btn_primary",
+                    "Primary",
+                    ButtonVariant::Primary,
+                    true,
+                    Style {
+                        size: Size {
+                            width: length(62.0),
+                            height: length(22.0),
+                        },
+                        ..Default::default()
+                    },
+                )?;
+                let btn_var_sec = tree.button_variant(
+                    "prop_btn_secondary",
+                    "Secondary",
+                    ButtonVariant::Secondary,
+                    true,
+                    Style {
+                        size: Size {
+                            width: length(72.0),
+                            height: length(22.0),
+                        },
+                        ..Default::default()
+                    },
+                )?;
+                let btn_var_dan = tree.button_variant(
+                    "prop_btn_danger",
+                    "Danger",
+                    ButtonVariant::Danger,
+                    true,
+                    Style {
+                        size: Size {
+                            width: length(58.0),
+                            height: length(22.0),
+                        },
+                        ..Default::default()
+                    },
+                )?;
+                let btn_var_gho = tree.button_variant(
+                    "prop_btn_ghost",
+                    "Ghost",
+                    ButtonVariant::Ghost,
+                    true,
+                    Style {
+                        size: Size {
+                            width: length(52.0),
+                            height: length(22.0),
+                        },
+                        ..Default::default()
+                    },
+                )?;
+                let row_vars = tree.container(
+                    &[btn_var_pri, btn_var_sec, btn_var_dan, btn_var_gho],
+                    Style {
+                        flex_direction: FlexDirection::Row,
+                        gap: Size {
+                            width: length(4.0),
+                            height: length(0.0),
+                        },
+                        size: Size {
+                            width: percent(1.0),
+                            height: length(24.0),
+                        },
+                        ..Default::default()
+                    },
+                )?;
 
-                let btn_rad_0 = tree.button_variant("prop_btn_rad_0", "Rad 0", ButtonVariant::Default, true, Style { size: Size { width: length(52.0), height: length(20.0) }, ..Default::default() })?;
-                let btn_rad_4 = tree.button_variant("prop_btn_rad_4", "Rad 4", ButtonVariant::Default, true, Style { size: Size { width: length(52.0), height: length(20.0) }, ..Default::default() })?;
-                let btn_rad_8 = tree.button_variant("prop_btn_rad_8", "Rad 8", ButtonVariant::Default, true, Style { size: Size { width: length(52.0), height: length(20.0) }, ..Default::default() })?;
-                let btn_rad_16 = tree.button_variant("prop_btn_rad_16", "Rad 16", ButtonVariant::Default, true, Style { size: Size { width: length(52.0), height: length(20.0) }, ..Default::default() })?;
-                let row_rads = tree.container(&[btn_rad_0, btn_rad_4, btn_rad_8, btn_rad_16], Style {
-                    flex_direction: FlexDirection::Row,
-                    gap: Size { width: length(4.0), height: length(0.0) },
-                    size: Size { width: percent(1.0), height: length(22.0) },
-                    ..Default::default()
-                })?;
+                let btn_rad_0 = tree.button_variant(
+                    "prop_btn_rad_0",
+                    "Rad 0",
+                    ButtonVariant::Default,
+                    true,
+                    Style {
+                        size: Size {
+                            width: length(52.0),
+                            height: length(20.0),
+                        },
+                        ..Default::default()
+                    },
+                )?;
+                let btn_rad_4 = tree.button_variant(
+                    "prop_btn_rad_4",
+                    "Rad 4",
+                    ButtonVariant::Default,
+                    true,
+                    Style {
+                        size: Size {
+                            width: length(52.0),
+                            height: length(20.0),
+                        },
+                        ..Default::default()
+                    },
+                )?;
+                let btn_rad_8 = tree.button_variant(
+                    "prop_btn_rad_8",
+                    "Rad 8",
+                    ButtonVariant::Default,
+                    true,
+                    Style {
+                        size: Size {
+                            width: length(52.0),
+                            height: length(20.0),
+                        },
+                        ..Default::default()
+                    },
+                )?;
+                let btn_rad_16 = tree.button_variant(
+                    "prop_btn_rad_16",
+                    "Rad 16",
+                    ButtonVariant::Default,
+                    true,
+                    Style {
+                        size: Size {
+                            width: length(52.0),
+                            height: length(20.0),
+                        },
+                        ..Default::default()
+                    },
+                )?;
+                let row_rads = tree.container(
+                    &[btn_rad_0, btn_rad_4, btn_rad_8, btn_rad_16],
+                    Style {
+                        flex_direction: FlexDirection::Row,
+                        gap: Size {
+                            width: length(4.0),
+                            height: length(0.0),
+                        },
+                        size: Size {
+                            width: percent(1.0),
+                            height: length(22.0),
+                        },
+                        ..Default::default()
+                    },
+                )?;
 
                 // Section 4: Liaisons d'Événements
-                let lbl_sec_ev = tree.label("━━ Handlers & Événements ━━", Style { size: Size { width: percent(1.0), height: length(18.0) }, ..Default::default() })?;
-                let event_str = node.on_click.as_deref().or(node.on_change.as_deref()).unwrap_or("<aucun>");
-                let lbl_ev = tree.label_muted(format!("Action: {}", event_str), Style { size: Size { width: percent(1.0), height: length(18.0) }, ..Default::default() })?;
+                let lbl_sec_ev = tree.label(
+                    "━━ Handlers & Événements ━━",
+                    Style {
+                        size: Size {
+                            width: percent(1.0),
+                            height: length(18.0),
+                        },
+                        ..Default::default()
+                    },
+                )?;
+                let event_str = node
+                    .on_click
+                    .as_deref()
+                    .or(node.on_change.as_deref())
+                    .unwrap_or("<aucun>");
+                let lbl_ev = tree.label_muted(
+                    format!("Action: {}", event_str),
+                    Style {
+                        size: Size {
+                            width: percent(1.0),
+                            height: length(18.0),
+                        },
+                        ..Default::default()
+                    },
+                )?;
 
-                let btn_bind_c = tree.button_variant("prop_btn_bind_click", "Lier onClick", ButtonVariant::Default, true, Style { size: Size { width: length(120.0), height: length(22.0) }, ..Default::default() })?;
-                let btn_bind_ch = tree.button_variant("prop_btn_bind_change", "Lier onChange", ButtonVariant::Default, true, Style { size: Size { width: length(120.0), height: length(22.0) }, ..Default::default() })?;
-                let row_bind = tree.container(&[btn_bind_c, btn_bind_ch], Style {
-                    flex_direction: FlexDirection::Row,
-                    gap: Size { width: length(6.0), height: length(0.0) },
-                    size: Size { width: percent(1.0), height: length(24.0) },
-                    ..Default::default()
-                })?;
+                let btn_bind_c = tree.button_variant(
+                    "prop_btn_bind_click",
+                    "Lier onClick",
+                    ButtonVariant::Default,
+                    true,
+                    Style {
+                        size: Size {
+                            width: length(120.0),
+                            height: length(22.0),
+                        },
+                        ..Default::default()
+                    },
+                )?;
+                let btn_bind_ch = tree.button_variant(
+                    "prop_btn_bind_change",
+                    "Lier onChange",
+                    ButtonVariant::Default,
+                    true,
+                    Style {
+                        size: Size {
+                            width: length(120.0),
+                            height: length(22.0),
+                        },
+                        ..Default::default()
+                    },
+                )?;
+                let row_bind = tree.container(
+                    &[btn_bind_c, btn_bind_ch],
+                    Style {
+                        flex_direction: FlexDirection::Row,
+                        gap: Size {
+                            width: length(6.0),
+                            height: length(0.0),
+                        },
+                        size: Size {
+                            width: percent(1.0),
+                            height: length(24.0),
+                        },
+                        ..Default::default()
+                    },
+                )?;
 
                 prop_items.extend(vec![
                     lbl_id,
-                    lbl_sec_col, row_col_targets, row_preview, row_swatch_1, row_swatch_2,
-                    lbl_sec_geo, lbl_coords, row_xy, row_wh,
-                    lbl_sec_sty, row_vars, row_rads,
-                    lbl_sec_ev, lbl_ev, row_bind,
+                    lbl_sec_col,
+                    row_col_targets,
+                    row_preview,
+                    row_swatch_1,
+                    row_swatch_2,
+                    lbl_sec_geo,
+                    lbl_coords,
+                    row_xy,
+                    row_wh,
+                    lbl_sec_sty,
+                    row_vars,
+                    row_rads,
+                    lbl_sec_ev,
+                    lbl_ev,
+                    row_bind,
                 ]);
             }
         } else {
@@ -1330,9 +2485,20 @@ impl FormDesignerApp {
             border_subtle,
             Style {
                 flex_direction: FlexDirection::Column,
-                gap: Size { width: length(0.0), height: length(4.0) },
-                padding: Rect { top: length(12.0), bottom: length(12.0), left: length(12.0), right: length(12.0) },
-                size: Size { width: length(305.0), height: percent(1.0) },
+                gap: Size {
+                    width: length(0.0),
+                    height: length(4.0),
+                },
+                padding: Rect {
+                    top: length(12.0),
+                    bottom: length(12.0),
+                    left: length(12.0),
+                    right: length(12.0),
+                },
+                size: Size {
+                    width: length(305.0),
+                    height: percent(1.0),
+                },
                 ..Default::default()
             },
         )?;
@@ -1343,8 +2509,14 @@ impl FormDesignerApp {
             Style {
                 flex_direction: FlexDirection::Row,
                 flex_grow: 1.0,
-                gap: Size { width: length(6.0), height: length(0.0) },
-                size: Size { width: percent(1.0), height: auto() },
+                gap: Size {
+                    width: length(6.0),
+                    height: length(0.0),
+                },
+                size: Size {
+                    width: percent(1.0),
+                    height: auto(),
+                },
                 ..Default::default()
             },
         )?;
@@ -1353,7 +2525,10 @@ impl FormDesignerApp {
         let status_lbl = tree.label_muted(
             format!("⚡ {}", self.state.status),
             Style {
-                size: Size { width: percent(1.0), height: length(20.0) },
+                size: Size {
+                    width: percent(1.0),
+                    height: length(20.0),
+                },
                 ..Default::default()
             },
         )?;
@@ -1365,8 +2540,16 @@ impl FormDesignerApp {
             Style {
                 flex_direction: FlexDirection::Row,
                 align_items: Some(AlignItems::Center),
-                padding: Rect { top: length(4.0), bottom: length(4.0), left: length(12.0), right: length(12.0) },
-                size: Size { width: percent(1.0), height: length(28.0) },
+                padding: Rect {
+                    top: length(4.0),
+                    bottom: length(4.0),
+                    left: length(12.0),
+                    right: length(12.0),
+                },
+                size: Size {
+                    width: percent(1.0),
+                    height: length(28.0),
+                },
                 ..Default::default()
             },
         )?;
@@ -1378,10 +2561,21 @@ impl FormDesignerApp {
             None,
             Style {
                 position: Position::Absolute,
-                inset: Rect { top: length(0.0), bottom: length(0.0), left: length(0.0), right: length(0.0) },
+                inset: Rect {
+                    top: length(0.0),
+                    bottom: length(0.0),
+                    left: length(0.0),
+                    right: length(0.0),
+                },
                 flex_direction: FlexDirection::Column,
-                gap: Size { width: length(0.0), height: length(4.0) },
-                size: Size { width: percent(1.0), height: percent(1.0) },
+                gap: Size {
+                    width: length(0.0),
+                    height: length(4.0),
+                },
+                size: Size {
+                    width: percent(1.0),
+                    height: percent(1.0),
+                },
                 ..Default::default()
             },
         )?;
@@ -1410,7 +2604,9 @@ impl FormDesignerApp {
             }
         };
 
-        let Some(renderer) = self.renderer.as_mut() else { return; };
+        let Some(renderer) = self.renderer.as_mut() else {
+            return;
+        };
 
         let available = Size {
             width: AvailableSpace::Definite(width_f),
@@ -1469,7 +2665,12 @@ impl FormDesignerApp {
             let (cr, cg, cb) = self.theme.window_clear_color();
 
             let _ = renderer.render_layers(
-                wgpu::Color { r: cr, g: cg, b: cb, a: 1.0 },
+                wgpu::Color {
+                    r: cr,
+                    g: cg,
+                    b: cb,
+                    a: 1.0,
+                },
                 &[layer],
                 &[],
                 &self.resources,
@@ -1483,7 +2684,9 @@ impl FormDesignerApp {
 
 impl ApplicationHandler for FormDesignerApp {
     fn resumed(&mut self, event_loop: &ActiveEventLoop) {
-        if self.window.is_some() { return; }
+        if self.window.is_some() {
+            return;
+        }
 
         let window_attrs = WindowAttributes::default()
             .with_title("Stratus Studio - AORUI Modern Visual Form Designer")
@@ -1504,7 +2707,12 @@ impl ApplicationHandler for FormDesignerApp {
         self.window = Some(window);
     }
 
-    fn window_event(&mut self, event_loop: &ActiveEventLoop, _window_id: WindowId, event: WindowEvent) {
+    fn window_event(
+        &mut self,
+        event_loop: &ActiveEventLoop,
+        _window_id: WindowId,
+        event: WindowEvent,
+    ) {
         match event {
             WindowEvent::CloseRequested => event_loop.exit(),
             WindowEvent::Resized(new_size) => {
@@ -1552,17 +2760,35 @@ impl ApplicationHandler for FormDesignerApp {
                 if is_active_now {
                     if let Some((mode, dx, dy)) = drag_mode_clone {
                         match mode {
-                            DragMode::MoveWidget { widget_id, initial_left, initial_top } => {
-                                if let Some(node) = self.state.doc.nodes.iter_mut().find(|n| n.id == widget_id) {
+                            DragMode::MoveWidget {
+                                widget_id,
+                                initial_left,
+                                initial_top,
+                            } => {
+                                if let Some(node) =
+                                    self.state.doc.nodes.iter_mut().find(|n| n.id == widget_id)
+                                {
                                     let new_x = snap_val((initial_left + dx).max(0.0));
                                     let new_y = snap_val((initial_top + dy).max(0.0));
                                     node.layout.left = Some(new_x);
                                     node.layout.top = Some(new_y);
-                                    self.state.status = format!("📍 Déplacement de '{}' ➔ X: {:.0}px, Y: {:.0}px", widget_id, new_x, new_y);
+                                    self.state.status = format!(
+                                        "📍 Déplacement de '{}' ➔ X: {:.0}px, Y: {:.0}px",
+                                        widget_id, new_x, new_y
+                                    );
                                 }
                             }
-                            DragMode::ResizeWidget { widget_id, handle, initial_left, initial_top, initial_width, initial_height } => {
-                                if let Some(node) = self.state.doc.nodes.iter_mut().find(|n| n.id == widget_id) {
+                            DragMode::ResizeWidget {
+                                widget_id,
+                                handle,
+                                initial_left,
+                                initial_top,
+                                initial_width,
+                                initial_height,
+                            } => {
+                                if let Some(node) =
+                                    self.state.doc.nodes.iter_mut().find(|n| n.id == widget_id)
+                                {
                                     match handle {
                                         ResizeHandle::Right => {
                                             let new_w = snap_val((initial_width + dx).max(32.0));
@@ -1617,7 +2843,12 @@ impl ApplicationHandler for FormDesignerApp {
                                             node.layout.width = Some(new_w);
                                         }
                                     }
-                                    self.state.status = format!("📐 Redimensionnement de '{}' ➔ W: {:.0}px, H: {:.0}px", widget_id, node.layout.width.unwrap_or(0.0), node.layout.height.unwrap_or(0.0));
+                                    self.state.status = format!(
+                                        "📐 Redimensionnement de '{}' ➔ W: {:.0}px, H: {:.0}px",
+                                        widget_id,
+                                        node.layout.width.unwrap_or(0.0),
+                                        node.layout.height.unwrap_or(0.0)
+                                    );
                                 }
                             }
                             DragMode::ToolboxDrop { .. } => {}
@@ -1629,7 +2860,11 @@ impl ApplicationHandler for FormDesignerApp {
                     win.request_redraw();
                 }
             }
-            WindowEvent::MouseInput { state: ElementState::Pressed, button: MouseButton::Left, .. } => {
+            WindowEvent::MouseInput {
+                state: ElementState::Pressed,
+                button: MouseButton::Left,
+                ..
+            } => {
                 if let Some(pos) = self.last_mouse_pos {
                     let rect = self.state.artboard_screen_rect;
                     let art_x = pos.0 - rect[0];
@@ -1639,7 +2874,9 @@ impl ApplicationHandler for FormDesignerApp {
                     if art_x >= 0.0 && art_x <= rect[2] && art_y >= 0.0 && art_y <= rect[3] {
                         let mut handle_clicked = None;
                         if let Some(sel_id) = &self.state.selected_widget_id {
-                            if let Some(node) = self.state.doc.nodes.iter().find(|n| &n.id == sel_id) {
+                            if let Some(node) =
+                                self.state.doc.nodes.iter().find(|n| &n.id == sel_id)
+                            {
                                 let lx = node.layout.left.unwrap_or(0.0);
                                 let ty = node.layout.top.unwrap_or(0.0);
                                 let w = node.layout.width.unwrap_or(180.0);
@@ -1681,20 +2918,28 @@ impl ApplicationHandler for FormDesignerApp {
                                     current_mouse_pos: pos,
                                     is_active: false,
                                 });
-                                if let Some(win) = &self.window { win.request_redraw(); }
+                                if let Some(win) = &self.window {
+                                    win.request_redraw();
+                                }
                                 return;
                             }
                         }
 
                         let mut found_node = None;
                         for node in self.state.doc.nodes.iter().rev() {
-                            if node.id == self.state.doc.root { continue; }
+                            if node.id == self.state.doc.root {
+                                continue;
+                            }
                             let left = node.layout.left.unwrap_or(0.0);
                             let top = node.layout.top.unwrap_or(0.0);
                             let width = node.layout.width.unwrap_or(180.0);
                             let height = node.layout.height.unwrap_or(38.0);
 
-                            if art_x >= left && art_x <= left + width && art_y >= top && art_y <= top + height {
+                            if art_x >= left
+                                && art_x <= left + width
+                                && art_y >= top
+                                && art_y <= top + height
+                            {
                                 found_node = Some((node.id.clone(), left, top));
                                 break;
                             }
@@ -1713,7 +2958,9 @@ impl ApplicationHandler for FormDesignerApp {
                                 current_mouse_pos: pos,
                                 is_active: false,
                             });
-                            if let Some(win) = &self.window { win.request_redraw(); }
+                            if let Some(win) = &self.window {
+                                win.request_redraw();
+                            }
                             return;
                         } else {
                             self.state.selected_widget_id = None;
@@ -1735,9 +2982,15 @@ impl ApplicationHandler for FormDesignerApp {
 
                     if let Some(widget_id) = hit_id {
                         let toolbox_info = match widget_id.as_str() {
-                            "tool_add_btn_primary" => Some(("Button", "Button Primary", Some("Primary"))),
-                            "tool_add_btn_secondary" => Some(("Button", "Button Secondary", Some("Secondary"))),
-                            "tool_add_btn_danger" => Some(("Button", "Button Danger", Some("Danger"))),
+                            "tool_add_btn_primary" => {
+                                Some(("Button", "Button Primary", Some("Primary")))
+                            }
+                            "tool_add_btn_secondary" => {
+                                Some(("Button", "Button Secondary", Some("Secondary")))
+                            }
+                            "tool_add_btn_danger" => {
+                                Some(("Button", "Button Danger", Some("Danger")))
+                            }
                             "tool_add_label" => Some(("Label", "Nouveau Libellé", None)),
                             "tool_add_menubar" => Some(("MenuBar", "Barre de Menus", None)),
                             "tool_add_modal" => Some(("Window", "Dialogue Modale", None)),
@@ -1767,27 +3020,34 @@ impl ApplicationHandler for FormDesignerApp {
                         }
 
                         match widget_id.as_str() {
-                            "btn_export_toml" => {
-                                match self.state.doc.to_toml() {
-                                    Ok(toml_text) => {
-                                        let out_path = "ui/exported_form.toml";
-                                        let _ = std::fs::write(out_path, &toml_text);
-                                        self.state.status = format!("💾 Formulaire exporté dans '{}' !", out_path);
-                                    }
-                                    Err(e) => {
-                                        self.state.status = format!("❌ Erreur TOML: {}", e);
-                                    }
+                            "btn_export_toml" => match self.state.doc.to_toml() {
+                                Ok(toml_text) => {
+                                    let out_path = "ui/exported_form.toml";
+                                    let _ = std::fs::write(out_path, &toml_text);
+                                    self.state.status =
+                                        format!("💾 Formulaire exporté dans '{}' !", out_path);
                                 }
-                            }
+                                Err(e) => {
+                                    self.state.status = format!("❌ Erreur TOML: {}", e);
+                                }
+                            },
                             "btn_export_rust" => {
                                 let code = self.state.doc.generate_rust_handlers();
                                 let out_path = "ui/exported_handlers.rs";
                                 let _ = std::fs::write(out_path, &code);
-                                self.state.status = format!("📄 Handlers Rust générés dans '{}' !", out_path);
+                                self.state.status =
+                                    format!("📄 Handlers Rust générés dans '{}' !", out_path);
                             }
                             "btn_toggle_snap" => {
                                 self.state.snap_to_grid = !self.state.snap_to_grid;
-                                self.state.status = format!("Aimantation : {}", if self.state.snap_to_grid { "ACTIVÉE (16px)" } else { "DÉSACTIVÉE" });
+                                self.state.status = format!(
+                                    "Aimantation : {}",
+                                    if self.state.snap_to_grid {
+                                        "ACTIVÉE (16px)"
+                                    } else {
+                                        "DÉSACTIVÉE"
+                                    }
+                                );
                             }
                             "btn_preset_desktop" => {
                                 self.state.artboard_width = 960.0;
@@ -1810,9 +3070,19 @@ impl ApplicationHandler for FormDesignerApp {
                             "btn_dup_node" => {
                                 if let Some(sel_id) = self.state.selected_widget_id.clone() {
                                     if sel_id != self.state.doc.root {
-                                        if let Some(node) = self.state.doc.nodes.iter().find(|n| n.id == sel_id).cloned() {
+                                        if let Some(node) = self
+                                            .state
+                                            .doc
+                                            .nodes
+                                            .iter()
+                                            .find(|n| n.id == sel_id)
+                                            .cloned()
+                                        {
                                             self.state.next_id_counter += 1;
-                                            let new_id = format!("{}_copy_{}", node.id, self.state.next_id_counter);
+                                            let new_id = format!(
+                                                "{}_copy_{}",
+                                                node.id, self.state.next_id_counter
+                                            );
                                             let mut dup = node.clone();
                                             dup.id = new_id.clone();
                                             let cur_x = dup.layout.left.unwrap_or(40.0);
@@ -1820,12 +3090,19 @@ impl ApplicationHandler for FormDesignerApp {
                                             dup.layout.left = Some(cur_x + 24.0);
                                             dup.layout.top = Some(cur_y + 24.0);
 
-                                            if let Some(root_node) = self.state.doc.nodes.iter_mut().find(|n| n.id == self.state.doc.root) {
+                                            if let Some(root_node) = self
+                                                .state
+                                                .doc
+                                                .nodes
+                                                .iter_mut()
+                                                .find(|n| n.id == self.state.doc.root)
+                                            {
                                                 root_node.children.push(new_id.clone());
                                             }
                                             self.state.doc.nodes.push(dup);
                                             self.state.selected_widget_id = Some(new_id.clone());
-                                            self.state.status = format!("📋 Widget '{}' dupliqué !", sel_id);
+                                            self.state.status =
+                                                format!("📋 Widget '{}' dupliqué !", sel_id);
                                         }
                                     }
                                 }
@@ -1837,34 +3114,69 @@ impl ApplicationHandler for FormDesignerApp {
                                             node.children.retain(|c| c != &sel_id);
                                         }
                                         self.state.doc.nodes.retain(|n| n.id != sel_id);
-                                        self.state.status = format!("🗑️ Widget '{}' supprimé.", sel_id);
+                                        self.state.status =
+                                            format!("🗑️ Widget '{}' supprimé.", sel_id);
                                     }
                                 }
                             }
                             // Category tabs
-                            "tab_controls" => { self.state.active_toolbox_tab = "Controls".to_string(); }
-                            "tab_inputs" => { self.state.active_toolbox_tab = "Inputs".to_string(); }
-                            "tab_nav" => { self.state.active_toolbox_tab = "Navigation".to_string(); }
-                            "tab_popups" => { self.state.active_toolbox_tab = "Popups".to_string(); }
-                            "tab_surfaces" => { self.state.active_toolbox_tab = "Surfaces".to_string(); }
+                            "tab_controls" => {
+                                self.state.active_toolbox_tab = "Controls".to_string();
+                            }
+                            "tab_inputs" => {
+                                self.state.active_toolbox_tab = "Inputs".to_string();
+                            }
+                            "tab_nav" => {
+                                self.state.active_toolbox_tab = "Navigation".to_string();
+                            }
+                            "tab_popups" => {
+                                self.state.active_toolbox_tab = "Popups".to_string();
+                            }
+                            "tab_surfaces" => {
+                                self.state.active_toolbox_tab = "Surfaces".to_string();
+                            }
 
                             // Color Target & Swatches
-                            "prop_target_bg" => { self.state.color_target = ColorTarget::Background; }
-                            "prop_target_border" => { self.state.color_target = ColorTarget::Border; }
-                            "prop_target_text" => { self.state.color_target = ColorTarget::Text; }
-                            "prop_col_cyan" => { self.state.set_active_color(Some([0.0, 0.95, 1.0, 1.0])); }
-                            "prop_col_purple" => { self.state.set_active_color(Some([0.75, 0.76, 1.0, 1.0])); }
-                            "prop_col_magenta" => { self.state.set_active_color(Some([0.93, 0.28, 0.60, 1.0])); }
-                            "prop_col_emerald" => { self.state.set_active_color(Some([0.31, 0.87, 0.64, 1.0])); }
-                            "prop_col_gold" => { self.state.set_active_color(Some([0.96, 0.62, 0.04, 1.0])); }
-                            "prop_col_crimson" => { self.state.set_active_color(Some([1.0, 0.71, 0.67, 1.0])); }
-                            "prop_col_obsidian" => { self.state.set_active_color(Some(self.theme.window_bg())); }
-                            "prop_col_glass" => { self.state.set_active_color(Some(self.theme.glass_bg)); }
+                            "prop_target_bg" => {
+                                self.state.color_target = ColorTarget::Background;
+                            }
+                            "prop_target_border" => {
+                                self.state.color_target = ColorTarget::Border;
+                            }
+                            "prop_target_text" => {
+                                self.state.color_target = ColorTarget::Text;
+                            }
+                            "prop_col_cyan" => {
+                                self.state.set_active_color(Some([0.0, 0.95, 1.0, 1.0]));
+                            }
+                            "prop_col_purple" => {
+                                self.state.set_active_color(Some([0.75, 0.76, 1.0, 1.0]));
+                            }
+                            "prop_col_magenta" => {
+                                self.state.set_active_color(Some([0.93, 0.28, 0.60, 1.0]));
+                            }
+                            "prop_col_emerald" => {
+                                self.state.set_active_color(Some([0.31, 0.87, 0.64, 1.0]));
+                            }
+                            "prop_col_gold" => {
+                                self.state.set_active_color(Some([0.96, 0.62, 0.04, 1.0]));
+                            }
+                            "prop_col_crimson" => {
+                                self.state.set_active_color(Some([1.0, 0.71, 0.67, 1.0]));
+                            }
+                            "prop_col_obsidian" => {
+                                self.state.set_active_color(Some(self.theme.window_bg()));
+                            }
+                            "prop_col_glass" => {
+                                self.state.set_active_color(Some(self.theme.glass_bg));
+                            }
 
                             // Geometry fine steppers
                             "prop_btn_x_minus" => {
                                 if let Some(sel_id) = &self.state.selected_widget_id {
-                                    if let Some(node) = self.state.doc.nodes.iter_mut().find(|n| &n.id == sel_id) {
+                                    if let Some(node) =
+                                        self.state.doc.nodes.iter_mut().find(|n| &n.id == sel_id)
+                                    {
                                         let cur = node.layout.left.unwrap_or(0.0);
                                         node.layout.left = Some((cur - 16.0).max(0.0));
                                     }
@@ -1872,7 +3184,9 @@ impl ApplicationHandler for FormDesignerApp {
                             }
                             "prop_btn_x_plus" => {
                                 if let Some(sel_id) = &self.state.selected_widget_id {
-                                    if let Some(node) = self.state.doc.nodes.iter_mut().find(|n| &n.id == sel_id) {
+                                    if let Some(node) =
+                                        self.state.doc.nodes.iter_mut().find(|n| &n.id == sel_id)
+                                    {
                                         let cur = node.layout.left.unwrap_or(0.0);
                                         node.layout.left = Some(cur + 16.0);
                                     }
@@ -1880,7 +3194,9 @@ impl ApplicationHandler for FormDesignerApp {
                             }
                             "prop_btn_y_minus" => {
                                 if let Some(sel_id) = &self.state.selected_widget_id {
-                                    if let Some(node) = self.state.doc.nodes.iter_mut().find(|n| &n.id == sel_id) {
+                                    if let Some(node) =
+                                        self.state.doc.nodes.iter_mut().find(|n| &n.id == sel_id)
+                                    {
                                         let cur = node.layout.top.unwrap_or(0.0);
                                         node.layout.top = Some((cur - 16.0).max(0.0));
                                     }
@@ -1888,7 +3204,9 @@ impl ApplicationHandler for FormDesignerApp {
                             }
                             "prop_btn_y_plus" => {
                                 if let Some(sel_id) = &self.state.selected_widget_id {
-                                    if let Some(node) = self.state.doc.nodes.iter_mut().find(|n| &n.id == sel_id) {
+                                    if let Some(node) =
+                                        self.state.doc.nodes.iter_mut().find(|n| &n.id == sel_id)
+                                    {
                                         let cur = node.layout.top.unwrap_or(0.0);
                                         node.layout.top = Some(cur + 16.0);
                                     }
@@ -1896,7 +3214,9 @@ impl ApplicationHandler for FormDesignerApp {
                             }
                             "prop_btn_w_minus" => {
                                 if let Some(sel_id) = &self.state.selected_widget_id {
-                                    if let Some(node) = self.state.doc.nodes.iter_mut().find(|n| &n.id == sel_id) {
+                                    if let Some(node) =
+                                        self.state.doc.nodes.iter_mut().find(|n| &n.id == sel_id)
+                                    {
                                         let cur = node.layout.width.unwrap_or(180.0);
                                         node.layout.width = Some((cur - 16.0).max(32.0));
                                     }
@@ -1904,7 +3224,9 @@ impl ApplicationHandler for FormDesignerApp {
                             }
                             "prop_btn_w_plus" => {
                                 if let Some(sel_id) = &self.state.selected_widget_id {
-                                    if let Some(node) = self.state.doc.nodes.iter_mut().find(|n| &n.id == sel_id) {
+                                    if let Some(node) =
+                                        self.state.doc.nodes.iter_mut().find(|n| &n.id == sel_id)
+                                    {
                                         let cur = node.layout.width.unwrap_or(180.0);
                                         node.layout.width = Some(cur + 16.0);
                                     }
@@ -1912,7 +3234,9 @@ impl ApplicationHandler for FormDesignerApp {
                             }
                             "prop_btn_h_minus" => {
                                 if let Some(sel_id) = &self.state.selected_widget_id {
-                                    if let Some(node) = self.state.doc.nodes.iter_mut().find(|n| &n.id == sel_id) {
+                                    if let Some(node) =
+                                        self.state.doc.nodes.iter_mut().find(|n| &n.id == sel_id)
+                                    {
                                         let cur = node.layout.height.unwrap_or(38.0);
                                         node.layout.height = Some((cur - 8.0).max(20.0));
                                     }
@@ -1920,7 +3244,9 @@ impl ApplicationHandler for FormDesignerApp {
                             }
                             "prop_btn_h_plus" => {
                                 if let Some(sel_id) = &self.state.selected_widget_id {
-                                    if let Some(node) = self.state.doc.nodes.iter_mut().find(|n| &n.id == sel_id) {
+                                    if let Some(node) =
+                                        self.state.doc.nodes.iter_mut().find(|n| &n.id == sel_id)
+                                    {
                                         let cur = node.layout.height.unwrap_or(38.0);
                                         node.layout.height = Some(cur + 8.0);
                                     }
@@ -1930,56 +3256,72 @@ impl ApplicationHandler for FormDesignerApp {
                             // Style variants
                             "prop_btn_primary" => {
                                 if let Some(sel_id) = &self.state.selected_widget_id {
-                                    if let Some(node) = self.state.doc.nodes.iter_mut().find(|n| &n.id == sel_id) {
+                                    if let Some(node) =
+                                        self.state.doc.nodes.iter_mut().find(|n| &n.id == sel_id)
+                                    {
                                         node.variant = Some("Primary".to_string());
                                     }
                                 }
                             }
                             "prop_btn_secondary" => {
                                 if let Some(sel_id) = &self.state.selected_widget_id {
-                                    if let Some(node) = self.state.doc.nodes.iter_mut().find(|n| &n.id == sel_id) {
+                                    if let Some(node) =
+                                        self.state.doc.nodes.iter_mut().find(|n| &n.id == sel_id)
+                                    {
                                         node.variant = Some("Secondary".to_string());
                                     }
                                 }
                             }
                             "prop_btn_danger" => {
                                 if let Some(sel_id) = &self.state.selected_widget_id {
-                                    if let Some(node) = self.state.doc.nodes.iter_mut().find(|n| &n.id == sel_id) {
+                                    if let Some(node) =
+                                        self.state.doc.nodes.iter_mut().find(|n| &n.id == sel_id)
+                                    {
                                         node.variant = Some("Danger".to_string());
                                     }
                                 }
                             }
                             "prop_btn_ghost" => {
                                 if let Some(sel_id) = &self.state.selected_widget_id {
-                                    if let Some(node) = self.state.doc.nodes.iter_mut().find(|n| &n.id == sel_id) {
+                                    if let Some(node) =
+                                        self.state.doc.nodes.iter_mut().find(|n| &n.id == sel_id)
+                                    {
                                         node.variant = Some("Ghost".to_string());
                                     }
                                 }
                             }
                             "prop_btn_rad_0" => {
                                 if let Some(sel_id) = &self.state.selected_widget_id {
-                                    if let Some(node) = self.state.doc.nodes.iter_mut().find(|n| &n.id == sel_id) {
+                                    if let Some(node) =
+                                        self.state.doc.nodes.iter_mut().find(|n| &n.id == sel_id)
+                                    {
                                         node.radius = Some(0.0);
                                     }
                                 }
                             }
                             "prop_btn_rad_4" => {
                                 if let Some(sel_id) = &self.state.selected_widget_id {
-                                    if let Some(node) = self.state.doc.nodes.iter_mut().find(|n| &n.id == sel_id) {
+                                    if let Some(node) =
+                                        self.state.doc.nodes.iter_mut().find(|n| &n.id == sel_id)
+                                    {
                                         node.radius = Some(4.0);
                                     }
                                 }
                             }
                             "prop_btn_rad_8" => {
                                 if let Some(sel_id) = &self.state.selected_widget_id {
-                                    if let Some(node) = self.state.doc.nodes.iter_mut().find(|n| &n.id == sel_id) {
+                                    if let Some(node) =
+                                        self.state.doc.nodes.iter_mut().find(|n| &n.id == sel_id)
+                                    {
                                         node.radius = Some(8.0);
                                     }
                                 }
                             }
                             "prop_btn_rad_16" => {
                                 if let Some(sel_id) = &self.state.selected_widget_id {
-                                    if let Some(node) = self.state.doc.nodes.iter_mut().find(|n| &n.id == sel_id) {
+                                    if let Some(node) =
+                                        self.state.doc.nodes.iter_mut().find(|n| &n.id == sel_id)
+                                    {
                                         node.radius = Some(16.0);
                                     }
                                 }
@@ -1988,17 +3330,27 @@ impl ApplicationHandler for FormDesignerApp {
                             // Event bindings
                             "prop_btn_bind_click" => {
                                 if let Some(sel_id) = &self.state.selected_widget_id {
-                                    if let Some(node) = self.state.doc.nodes.iter_mut().find(|n| &n.id == sel_id) {
+                                    if let Some(node) =
+                                        self.state.doc.nodes.iter_mut().find(|n| &n.id == sel_id)
+                                    {
                                         node.on_click = Some(format!("app:on_{}_click", sel_id));
-                                        self.state.status = format!("⚡ Liaison onClick générée : 'app:on_{}_click'", sel_id);
+                                        self.state.status = format!(
+                                            "⚡ Liaison onClick générée : 'app:on_{}_click'",
+                                            sel_id
+                                        );
                                     }
                                 }
                             }
                             "prop_btn_bind_change" => {
                                 if let Some(sel_id) = &self.state.selected_widget_id {
-                                    if let Some(node) = self.state.doc.nodes.iter_mut().find(|n| &n.id == sel_id) {
+                                    if let Some(node) =
+                                        self.state.doc.nodes.iter_mut().find(|n| &n.id == sel_id)
+                                    {
                                         node.on_change = Some(format!("app:on_{}_change", sel_id));
-                                        self.state.status = format!("⚡ Liaison onChange générée : 'app:on_{}_change'", sel_id);
+                                        self.state.status = format!(
+                                            "⚡ Liaison onChange générée : 'app:on_{}_change'",
+                                            sel_id
+                                        );
                                     }
                                 }
                             }
@@ -2011,9 +3363,18 @@ impl ApplicationHandler for FormDesignerApp {
                     }
                 }
             }
-            WindowEvent::MouseInput { state: ElementState::Released, button: MouseButton::Left, .. } => {
+            WindowEvent::MouseInput {
+                state: ElementState::Released,
+                button: MouseButton::Left,
+                ..
+            } => {
                 if let Some(session) = self.state.drag_session.take() {
-                    if let DragMode::ToolboxDrop { widget_type, default_label, variant } = session.mode {
+                    if let DragMode::ToolboxDrop {
+                        widget_type,
+                        default_label,
+                        variant,
+                    } = session.mode
+                    {
                         if let Some(mouse_pos) = self.last_mouse_pos {
                             let rect = self.state.artboard_screen_rect;
                             let art_x = (mouse_pos.0 - rect[0]).max(16.0);

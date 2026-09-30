@@ -48,7 +48,8 @@ impl GpuRenderer {
 
         let blur_pipeline = BlurPipeline::new(&ctx.device, format);
         let sdf_pipeline = SdfPipeline::new(&ctx.device, format);
-        let background_pipeline = crate::background_pipeline::BackgroundPipeline::new(&ctx.device, format);
+        let background_pipeline =
+            crate::background_pipeline::BackgroundPipeline::new(&ctx.device, format);
         let background_params = crate::background_pipeline::BackgroundParams::aether_os(
             ctx.config.width as f32,
             ctx.config.height as f32,
@@ -617,12 +618,7 @@ fn to_glyphon_color(color: [f32; 4]) -> glyphon::Color {
     };
     let to_u8 = |c: f32| (linear_to_srgb(c) * 255.0).round().clamp(0.0, 255.0) as u8;
     let alpha_u8 = (color[3].clamp(0.0, 1.0) * 255.0).round().clamp(0.0, 255.0) as u8;
-    glyphon::Color::rgba(
-        to_u8(color[0]),
-        to_u8(color[1]),
-        to_u8(color[2]),
-        alpha_u8,
-    )
+    glyphon::Color::rgba(to_u8(color[0]), to_u8(color[1]), to_u8(color[2]), alpha_u8)
 }
 
 fn clear_target(encoder: &mut wgpu::CommandEncoder, view: &wgpu::TextureView, color: wgpu::Color) {

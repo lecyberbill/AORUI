@@ -65,10 +65,10 @@ pub struct FloatingRect {
 
 /// Computes intelligent floating geometry with screen boundary constraints and auto-flip.
 pub fn compute_floating_rect(
-    anchor: [f32; 4],      // [ax, ay, aw, ah]
+    anchor: [f32; 4],        // [ax, ay, aw, ah]
     floating_size: [f32; 2], // [fw, fh]
-    viewport: [f32; 4],     // [vx, vy, vw, vh]
-    offset: f32,            // gap between anchor and floating element
+    viewport: [f32; 4],      // [vx, vy, vw, vh]
+    offset: f32,             // gap between anchor and floating element
     requested_placement: Placement,
     auto_flip: bool,
 ) -> FloatingRect {
@@ -156,14 +156,7 @@ mod tests {
         let floating_size = [120.0, 40.0];
         let viewport = [0.0, 0.0, 1000.0, 1000.0];
 
-        let res = compute_floating_rect(
-            anchor,
-            floating_size,
-            viewport,
-            8.0,
-            Placement::Top,
-            true,
-        );
+        let res = compute_floating_rect(anchor, floating_size, viewport, 8.0, Placement::Top, true);
 
         assert_eq!(res.placement, Placement::Top);
         // x centered: 100 + (80 - 120)/2 = 80
@@ -178,14 +171,7 @@ mod tests {
         let floating_size = [120.0, 40.0];
         let viewport = [0.0, 0.0, 1000.0, 1000.0];
 
-        let res = compute_floating_rect(
-            anchor,
-            floating_size,
-            viewport,
-            8.0,
-            Placement::Top,
-            true,
-        );
+        let res = compute_floating_rect(anchor, floating_size, viewport, 8.0, Placement::Top, true);
 
         // Should flip to Bottom because top (10 - 40 - 8 = -38 < 0) overflows viewport
         assert_eq!(res.placement, Placement::Bottom);
@@ -199,14 +185,7 @@ mod tests {
         let floating_size = [100.0, 40.0];
         let viewport = [0.0, 0.0, 1000.0, 1000.0];
 
-        let res = compute_floating_rect(
-            anchor,
-            floating_size,
-            viewport,
-            8.0,
-            Placement::Top,
-            true,
-        );
+        let res = compute_floating_rect(anchor, floating_size, viewport, 8.0, Placement::Top, true);
 
         // x centered would be 5 + (30 - 100)/2 = -30, clamped to min 4.0
         assert!(res.rect[0] >= 4.0);

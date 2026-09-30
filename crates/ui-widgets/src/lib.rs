@@ -11,6 +11,11 @@
 //! No dependency on `agent-runtime`: interaction processing
 //! handles clicks identically whether from a human pointer or programmatic control —
 //! the UI remains human-first, optionally agent-controllable.
+#![allow(
+    clippy::too_many_arguments,
+    clippy::type_complexity,
+    clippy::collapsible_match
+)]
 
 pub mod animation;
 mod color;
@@ -36,7 +41,9 @@ mod watcher;
 pub use animation::{TransitionEngine, WidgetAnimationState};
 pub use color::{Color, ColorSpace};
 pub use context_menu::{ContextMenuState, MenuItemSpec};
-pub use declarative::{DeclarativeUiDoc, EventRouter, LayoutStyleSpec, WidgetNodeSpec, WindowMetaSpec};
+pub use declarative::{
+    DeclarativeUiDoc, EventRouter, LayoutStyleSpec, WidgetNodeSpec, WindowMetaSpec,
+};
 pub use docking::{DockArea, DockDirection, DockNode, DockTab};
 pub use drag_drop::{DragDropContext, DragGhostSpec, DragPayload, DragState};
 pub use effective::{EffectiveBounds, NO_CLIP};
@@ -45,10 +52,10 @@ pub use focus::{FocusManager, KeyChord, KeyCode, KeyMap, Modifiers};
 pub use frame::{Frame, InteractionState, TextAlign, TextSpec};
 pub use id::WidgetId;
 pub use kind::{
-    AvatarStatus, BarItem, ButtonVariant, ChartSeries, ChipVariant, GraphConnectionSpec, GraphNodeSpec,
-    GraphSocket, IconKind, InteractionKey, ListItemBadge, ProgressSegment, RatingGlyph, SocketType,
-    SplitOrientation, StepItem, StepState, TimelineItem, TimelineStatus, ToastKind, TooltipPlacement,
-    WidgetKind,
+    AvatarStatus, BarItem, ButtonVariant, ChartSeries, ChipVariant, GraphConnectionSpec,
+    GraphNodeSpec, GraphSocket, IconKind, InteractionKey, ListItemBadge, ProgressSegment,
+    RatingGlyph, SocketType, SplitOrientation, StepItem, StepState, TimelineItem, TimelineStatus,
+    ToastKind, TooltipPlacement, WidgetKind,
 };
 pub use media::{MediaFit, MediaKind, MediaSpec};
 pub use motion::{lerp, lerp_color, AnimatedValue, Easing, Spring};
@@ -1574,14 +1581,12 @@ mod tests {
     #[test]
     fn time_series_chart_multi_series_and_inspection() {
         let mut tree = WidgetTree::new();
-        let series = vec![
-            ChartSeries {
-                name: "Primary Core".to_string(),
-                color: [0.0, 0.85, 1.0, 1.0],
-                points: vec![[0.0, 20.0], [5.0, 55.0], [10.0, 85.0]],
-                filled: true,
-            },
-        ];
+        let series = vec![ChartSeries {
+            name: "Primary Core".to_string(),
+            color: [0.0, 0.85, 1.0, 1.0],
+            points: vec![[0.0, 20.0], [5.0, 55.0], [10.0, 85.0]],
+            filled: true,
+        }];
         let chart = tree
             .time_series_chart(
                 "telemetry_chart",
@@ -1605,7 +1610,10 @@ mod tests {
 
         // Click near center
         let event = tree.dispatch_click(root, (150.0, 80.0)).unwrap();
-        assert!(matches!(event, Some(ui_core::UiEvent::ChartInspected { .. })));
+        assert!(matches!(
+            event,
+            Some(ui_core::UiEvent::ChartInspected { .. })
+        ));
     }
 
     #[test]
@@ -1645,16 +1653,14 @@ mod tests {
                 selected: false,
             },
         ];
-        let connections = vec![
-            GraphConnectionSpec {
-                from_node: "node_alpha".to_string(),
-                from_socket: 0,
-                to_node: "node_beta".to_string(),
-                to_socket: 0,
-                color: None,
-                flow_active: true,
-            },
-        ];
+        let connections = vec![GraphConnectionSpec {
+            from_node: "node_alpha".to_string(),
+            from_socket: 0,
+            to_node: "node_beta".to_string(),
+            to_socket: 0,
+            color: None,
+            flow_active: true,
+        }];
 
         let graph = tree
             .node_graph(
@@ -1699,7 +1705,9 @@ mod tests {
                 leaf_style(250.0, 36.0),
             )
             .unwrap();
-        let root = tree.container(&[tag_widget], leaf_style(250.0, 36.0)).unwrap();
+        let root = tree
+            .container(&[tag_widget], leaf_style(250.0, 36.0))
+            .unwrap();
         tree.compute(root, Size::MAX_CONTENT).unwrap();
 
         let theme = Theme::cyber_glass();
@@ -1737,11 +1745,17 @@ mod tests {
         let theme = Theme::cyber_glass();
         let frame = tree.build_frame(root, &theme, Default::default()).unwrap();
         assert!(frame.texts.iter().any(|t| t.text == "Drop Assets Here"));
-        assert!(frame.texts.iter().any(|t| t.text.contains("Imported: sample.png")));
+        assert!(frame
+            .texts
+            .iter()
+            .any(|t| t.text.contains("Imported: sample.png")));
 
         // Hit testing drop target
         let target = tree.hit_test_drop_target(root, (150.0, 40.0)).unwrap();
-        assert_eq!(target, Some(("main_drop_zone".to_string(), Some("DropZone".to_string()))));
+        assert_eq!(
+            target,
+            Some(("main_drop_zone".to_string(), Some("DropZone".to_string())))
+        );
     }
 
     #[test]
@@ -1772,7 +1786,9 @@ mod tests {
             )
             .unwrap();
 
-        let root = tree.container(&[av1, av2], leaf_style(100.0, 50.0)).unwrap();
+        let root = tree
+            .container(&[av1, av2], leaf_style(100.0, 50.0))
+            .unwrap();
         tree.compute(root, Size::MAX_CONTENT).unwrap();
 
         let theme = Theme::cyber_glass();
@@ -1835,14 +1851,12 @@ mod tests {
         let tl = tree
             .timeline(
                 "deploy_timeline",
-                vec![
-                    TimelineItem {
-                        time: "10:00".to_string(),
-                        title: "Build".to_string(),
-                        description: Some("Success".to_string()),
-                        status: TimelineStatus::Success,
-                    },
-                ],
+                vec![TimelineItem {
+                    time: "10:00".to_string(),
+                    title: "Build".to_string(),
+                    description: Some("Success".to_string()),
+                    status: TimelineStatus::Success,
+                }],
                 leaf_style(300.0, 80.0),
             )
             .unwrap();
@@ -1872,23 +1886,46 @@ mod tests {
             )
             .unwrap();
         let kbd = tree.kbd("Ctrl", leaf_style(40.0, 20.0)).unwrap();
-        let rating = tree.rating("star_rate", 4, 5, RatingGlyph::Star, false, leaf_style(100.0, 24.0)).unwrap();
-        let mp = tree.multi_progress(
-            "mem_breakdown",
-            vec![
-                ProgressSegment { label: "Rust".to_string(), value: 60.0, color: [0.0, 0.85, 1.0, 1.0] },
-                ProgressSegment { label: "WGPU".to_string(), value: 40.0, color: [0.75, 0.35, 0.95, 1.0] },
-            ],
-            true,
-            leaf_style(200.0, 32.0),
-        ).unwrap();
-        let skel = tree.skeleton(Some(8.0), true, leaf_style(200.0, 40.0)).unwrap();
+        let rating = tree
+            .rating(
+                "star_rate",
+                4,
+                5,
+                RatingGlyph::Star,
+                false,
+                leaf_style(100.0, 24.0),
+            )
+            .unwrap();
+        let mp = tree
+            .multi_progress(
+                "mem_breakdown",
+                vec![
+                    ProgressSegment {
+                        label: "Rust".to_string(),
+                        value: 60.0,
+                        color: [0.0, 0.85, 1.0, 1.0],
+                    },
+                    ProgressSegment {
+                        label: "WGPU".to_string(),
+                        value: 40.0,
+                        color: [0.75, 0.35, 0.95, 1.0],
+                    },
+                ],
+                true,
+                leaf_style(200.0, 32.0),
+            )
+            .unwrap();
+        let skel = tree
+            .skeleton(Some(8.0), true, leaf_style(200.0, 40.0))
+            .unwrap();
 
         let col_style = Style {
             flex_direction: FlexDirection::Column,
             ..leaf_style(300.0, 200.0)
         };
-        let root = tree.container(&[chip, kbd, rating, mp, skel], col_style).unwrap();
+        let root = tree
+            .container(&[chip, kbd, rating, mp, skel], col_style)
+            .unwrap();
         tree.compute(root, Size::MAX_CONTENT).unwrap();
 
         let theme = Theme::cyber_glass();
