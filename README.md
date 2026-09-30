@@ -9,6 +9,13 @@
 AORUI is designed **for humans first**, with an **optional AI Agent runtime** (`agent-runtime`) that can interact with the UI through the exact same canonical event system (`UiEvent`) as a human user.
 
 ---
+<img width="1030" height="815" alt="image" src="https://github.com/user-attachments/assets/b0cb9baf-fc55-4936-b319-26ba88483e50" />
+<img width="1019" height="813" alt="image" src="https://github.com/user-attachments/assets/8e23f7cd-e9db-408a-963d-a0e41841da25" />
+<img width="1028" height="816" alt="image" src="https://github.com/user-attachments/assets/774a3634-f5dd-47a5-b69b-f7bd45a430cf" />
+<img width="1374" height="463" alt="image" src="https://github.com/user-attachments/assets/1a4a1bee-dce9-4d16-b39d-c2783667dfc3" />
+
+---
+
 
 ## Key Features
 
