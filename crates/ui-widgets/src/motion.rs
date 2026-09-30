@@ -232,6 +232,11 @@ impl AnimatedValue {
         self.current
     }
 
+    /// Returns the current animated scalar value.
+    pub fn value(&self) -> f32 {
+        self.current
+    }
+
     /// Returns true if the value has reached its target and velocity is negligible.
     pub fn is_settled(&self) -> bool {
         self.spring.is_settled(self.current, self.target, self.velocity, self.tolerance)

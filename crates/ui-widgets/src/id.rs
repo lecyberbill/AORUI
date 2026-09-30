@@ -1,8 +1,9 @@
-// [WFGY] Zone: SAFE | λ: 0.1 | Fallbacks: 0 | Action: Semantic stable widget identifier decoupled from ephemeral Taffy NodeId
+use serde::{Deserialize, Serialize};
+
 /// Stable semantic identifier for a widget (e.g. `"submit_button"`), chosen
 /// by the application — unlike `taffy::NodeId`, which changes across tree reconstructions.
 /// This `WidgetId` is emitted in [`ui_core::UiEvent`] during interaction dispatch.
-#[derive(Debug, Clone, PartialEq, Eq, Hash, PartialOrd, Ord)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize, Deserialize)]
 pub struct WidgetId(pub String);
 
 impl WidgetId {

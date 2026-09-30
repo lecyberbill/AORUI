@@ -928,6 +928,39 @@ Chronological event feed and history log component. Features:
 
 ---
 
+## Advanced Desktop Engines (`ui-widgets`)
+
+### 1. Spring Physics & Motion Easing (`motion`)
+- **Harmonic Oscillator Solver:** $m\cdot x'' + c\cdot x' + k\cdot(x-x_0) = 0$
+- **Presets:** `Spring::smooth()`, `Spring::snappy()`, `Spring::bouncy()`, `Spring::gentle()`
+- **Easing Curves:** `EaseInOutCubic`, `EaseOutBounce`, `EaseOutElastic`, etc.
+- **Interpolation:** `lerp(a, b, t)`, `lerp_color(c1, c2, t)`, `AnimatedValue`
+
+### 2. Global Keybindings & Focus Navigation (`focus`)
+- **KeyMap & Chords:** `KeyMap::bind(KeyChord::ctrl(KeyCode::Char('k')), "spotlight")`
+- **Focus Cycle:** `FocusManager::focus_next()`, `focus_prev()`, `set_tab_order(vec![...])`
+
+### 3. Studio Docking & Multi-Panel BSP Split (`docking`)
+- **Binary Space Partitioning:** `DockArea`, `DockNode::Leaf`, `DockNode::Split`
+- **Directional Insertion:** `DockDirection::Left`, `Right`, `Top`, `Bottom`
+
+### 4. Widget State Transitions & Micro-Animations (`animation`)
+- **TransitionEngine:** Per-widget continuous springs for Hover, Press, Focus Ring, and Elevation.
+- **Methods:** `set_hovered`, `set_pressed`, `set_focused`, `hover_progress`, `press_progress`, `elevation_value`.
+
+### 5. Floating Overlays & Auto-Flip (`floating`)
+- **Placement:** `Top`, `Bottom`, `Left`, `Right`, `TopStart`, `BottomEnd`, etc.
+- **Collision Avoidance:** `compute_floating_rect(anchor, size, viewport, offset, placement, auto_flip)` with viewport clamping and arrow coordinate calculation.
+
+### 6. Universal Drag & Drop (`drag_drop`)
+- **DragDropContext:** `start_drag(source_id, pos, payload, ghost)`, `update_cursor(pos)`, `set_target_hover(target_id, accepted)`, `drop()`.
+- **Ghost Previews:** Real-time semi-transparent drag badge following cursor.
+
+### 7. Hierarchical Context Menus (`context_menu`)
+- **ContextMenuState:** Multi-level right-click menus with nested submenus, action shortcuts, separators, and auto-flip placement.
+
+---
+
 ## Quick Example
 
 ```rust

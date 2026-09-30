@@ -12,10 +12,14 @@
 //! handles clicks identically whether from a human pointer or programmatic control —
 //! the UI remains human-first, optionally agent-controllable.
 
+pub mod animation;
 mod color;
+pub mod context_menu;
 pub mod declarative;
 pub mod docking;
+pub mod drag_drop;
 mod effective;
+pub mod floating;
 pub mod focus;
 mod frame;
 mod id;
@@ -29,10 +33,14 @@ mod theme;
 mod tree;
 mod watcher;
 
+pub use animation::{TransitionEngine, WidgetAnimationState};
 pub use color::{Color, ColorSpace};
+pub use context_menu::{ContextMenuState, MenuItemSpec};
 pub use declarative::{DeclarativeUiDoc, EventRouter, LayoutStyleSpec, WidgetNodeSpec, WindowMetaSpec};
 pub use docking::{DockArea, DockDirection, DockNode, DockTab};
+pub use drag_drop::{DragDropContext, DragGhostSpec, DragPayload, DragState};
 pub use effective::{EffectiveBounds, NO_CLIP};
+pub use floating::{compute_floating_rect, FloatingRect, Placement};
 pub use focus::{FocusManager, KeyChord, KeyCode, KeyMap, Modifiers};
 pub use frame::{Frame, InteractionState, TextAlign, TextSpec};
 pub use id::WidgetId;
