@@ -3600,6 +3600,12 @@ fn build_popover_ui(
 
     // 4. Dropdown popover if dropdown is open
     if state.dropdown_open {
+        let content_w = (width - WINDOW_MARGIN * 2.0 - 48.0).max(500.0);
+        let half_col_w = ((content_w - 16.0) * 0.5).max(200.0);
+        let drop_w = half_col_w - 138.0;
+        let drop_x = WINDOW_MARGIN + 24.0 + half_col_w + 16.0 + 14.0 + 108.0;
+        let drop_y = WINDOW_MARGIN + 238.0;
+
         let env_items: Vec<(&str, &str, Option<&str>, bool)> = vec![
             ("env_prod", "Production (US-East 01)", None, true),
             ("env_staging", "Staging (EU-West 02)", None, true),
@@ -3609,8 +3615,8 @@ fn build_popover_ui(
             .menu_popover(
                 "env_dropdown",
                 &env_items,
-                leaf(370.0, 26.0),
-                popover_style(146.0 + WINDOW_MARGIN, 554.0 + WINDOW_MARGIN, 378.0, 94.0),
+                leaf(drop_w - 8.0, 26.0),
+                popover_style(drop_x, drop_y, drop_w, 94.0),
             )
             .unwrap();
         overlay_nodes.push(popover);
