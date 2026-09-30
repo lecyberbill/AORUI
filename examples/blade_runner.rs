@@ -1529,6 +1529,9 @@ impl App {
         }
 
         let size = window.inner_size();
+        if size.width == 0 || size.height == 0 {
+            return;
+        }
         let w = size.width as f32;
         let h = size.height as f32;
         renderer.background_params_mut().screen_size = [w, h];
@@ -1717,23 +1720,29 @@ impl App {
                         texts: &pop_text_runs,
                     };
 
-                    let _ = renderer.render_layers(
+                    let render_res = renderer.render_layers(
                         background,
                         &[base_layer, pop_layer],
                         &media,
                         &self.resources,
                     );
+                    if let Err(wgpu::SurfaceError::Lost | wgpu::SurfaceError::Outdated) = render_res {
+                        renderer.resize(size);
+                    }
                 }
             }
             self.overlay_tree = Some(overlay_tree);
             self.overlay_root = Some(overlay_root);
         } else {
-            let _ = renderer.render_layers(
+            let render_res = renderer.render_layers(
                 background,
                 &[base_layer],
                 &media,
                 &self.resources,
             );
+            if let Err(wgpu::SurfaceError::Lost | wgpu::SurfaceError::Outdated) = render_res {
+                renderer.resize(size);
+            }
             self.overlay_tree = None;
             self.overlay_root = None;
         }
@@ -1787,6 +1796,27 @@ impl ApplicationHandler for App {
         match event {
             WindowEvent::CloseRequested => {
                 event_loop.exit();
+            }
+            WindowEvent::Resized(size) => {
+                if size.width > 0 && size.height > 0 {
+                    if let Some(renderer) = &mut self.renderer {
+                        renderer.resize(size);
+                    }
+                    if let Some(w) = &self.window {
+                        w.request_redraw();
+                    }
+                }
+            }
+            WindowEvent::ScaleFactorChanged { .. } => {
+                if let Some(w) = &self.window {
+                    let size = w.inner_size();
+                    if size.width > 0 && size.height > 0 {
+                        if let Some(renderer) = &mut self.renderer {
+                            renderer.resize(size);
+                        }
+                        w.request_redraw();
+                    }
+                }
             }
             WindowEvent::CursorMoved { position, .. } => {
                 self.cursor_pos = (position.x as f32, position.y as f32);
