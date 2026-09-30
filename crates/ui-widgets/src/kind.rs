@@ -884,19 +884,22 @@ impl WidgetKind {
             | WidgetKind::BreadcrumbItem { owner, index, .. }
             | WidgetKind::PaginationItem {
                 owner, page: index, ..
-            }
-            | WidgetKind::TableHeader {
-                owner,
-                column_index: index,
-                ..
             } => Some(InteractionKey {
                 widget_id: owner.clone(),
                 index: Some(*index),
             }),
+            WidgetKind::TableHeader {
+                owner,
+                column_index,
+                ..
+            } => Some(InteractionKey {
+                widget_id: crate::id::WidgetId::new(format!("{}:header", owner)),
+                index: Some(*column_index),
+            }),
             WidgetKind::TableCell {
                 owner, row_index, ..
             } => Some(InteractionKey {
-                widget_id: owner.clone(),
+                widget_id: crate::id::WidgetId::new(format!("{}:row", owner)),
                 index: Some(*row_index),
             }),
             WidgetKind::Container
