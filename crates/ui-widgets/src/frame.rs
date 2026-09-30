@@ -279,18 +279,18 @@ fn render_kind(
             ]);
             let r = radius.unwrap_or(theme.corner_radius.min(8.0));
 
-            // Soft tactile drop shadow under the card (matching screen3.png)
-            let shadow_color = [0.0, 0.0, 0.0, 0.50];
-            let shadow_glow = [0.0, 0.0, 0.0, 0.65];
-            let shadow_bounds = [bounds[0], bounds[1] + 4.0, bounds[2], bounds[3]];
+            // Deep dark graphite drop shadow under the card (elevated near-black)
+            let shadow_color = [0.012, 0.014, 0.020, 0.70];
+            let shadow_glow = [0.008, 0.010, 0.015, 0.85];
+            let shadow_bounds = [bounds[0], bounds[1] + 5.0, bounds[2], bounds[3]];
             frame.instances.push(custom_glass_instance(
                 shadow_bounds,
                 clip,
                 shadow_color,
                 shadow_glow,
-                r + 1.0,
+                r + 2.0,
                 0.0,
-                0.40,
+                0.55,
             ));
 
             frame.instances.push(custom_glass_instance(
@@ -314,18 +314,18 @@ fn render_kind(
             ]);
             let r = theme.corner_radius.min(8.0);
 
-            // Soft drop shadow under the panel
-            let shadow_color = [0.0, 0.0, 0.0, 0.40];
-            let shadow_glow = [0.0, 0.0, 0.0, 0.55];
-            let shadow_bounds = [bounds[0], bounds[1] + 3.0, bounds[2], bounds[3]];
+            // Deep dark graphite drop shadow under the panel
+            let shadow_color = [0.012, 0.014, 0.020, 0.60];
+            let shadow_glow = [0.008, 0.010, 0.015, 0.75];
+            let shadow_bounds = [bounds[0], bounds[1] + 4.0, bounds[2], bounds[3]];
             frame.instances.push(custom_glass_instance(
                 shadow_bounds,
                 clip,
                 shadow_color,
                 shadow_glow,
-                r + 1.0,
+                r + 2.0,
                 0.0,
-                0.35,
+                0.50,
             ));
 
             frame.instances.push(custom_glass_instance(
@@ -1154,18 +1154,18 @@ fn render_kind(
             value,
             delta,
         } => {
-            // Soft drop shadow under the metric card
-            let shadow_color = [0.0, 0.0, 0.0, 0.40];
-            let shadow_glow = [0.0, 0.0, 0.0, 0.55];
-            let shadow_bounds = [bounds[0], bounds[1] + 3.0, bounds[2], bounds[3]];
+            // Deep dark graphite drop shadow under the metric card
+            let shadow_color = [0.012, 0.014, 0.020, 0.60];
+            let shadow_glow = [0.008, 0.010, 0.015, 0.75];
+            let shadow_bounds = [bounds[0], bounds[1] + 4.0, bounds[2], bounds[3]];
             frame.instances.push(custom_glass_instance(
                 shadow_bounds,
                 clip,
                 shadow_color,
                 shadow_glow,
-                theme.corner_radius.min(6.0) + 1.0,
+                theme.corner_radius.min(6.0) + 2.0,
                 0.0,
-                0.35,
+                0.50,
             ));
 
             frame.instances.push(glass_instance(
@@ -2007,18 +2007,18 @@ fn render_kind(
         }
 
         WidgetKind::Window { title, .. } => {
-            // Soft drop shadow under the main window card
-            let shadow_color = [0.0, 0.0, 0.0, 0.55];
-            let shadow_glow = [0.0, 0.0, 0.0, 0.70];
-            let shadow_bounds = [bounds[0], bounds[1] + 5.0, bounds[2], bounds[3]];
+            // Deep dark graphite drop shadow under the main window card
+            let shadow_color = [0.010, 0.012, 0.016, 0.75];
+            let shadow_glow = [0.006, 0.008, 0.012, 0.90];
+            let shadow_bounds = [bounds[0], bounds[1] + 6.0, bounds[2], bounds[3]];
             frame.instances.push(custom_glass_instance(
                 shadow_bounds,
                 clip,
                 shadow_color,
                 shadow_glow,
-                theme.corner_radius + 2.0,
+                theme.corner_radius + 3.0,
                 0.0,
-                0.60,
+                0.70,
             ));
 
             // Main window glass body
