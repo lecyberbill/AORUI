@@ -29,6 +29,10 @@ path = "aether_workstation.rs"
 name = "blade_runner"
 path = "blade_runner.rs"
 
+[[bin]]
+name = "aorui_studio"
+path = "aorui_studio.rs"
+
 [dependencies]
 ui-core.workspace = true
 ui-gpu.workspace = true
