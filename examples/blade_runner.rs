@@ -883,7 +883,7 @@ fn build_blade_runner_ui(
             }
 
             let agents_grid = tree
-                .grid(2, 16.0, 12.0, &agent_cards, leaf(content_w, 240.0))
+                .grid(2, 16.0, 12.0, &agent_cards, leaf(content_w, 300.0))
                 .unwrap();
 
             let banner_title = tree
